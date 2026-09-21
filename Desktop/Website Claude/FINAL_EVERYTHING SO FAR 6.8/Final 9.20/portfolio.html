@@ -463,6 +463,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      min-height: 320px;
       max-height: 62vh;
     }
 
@@ -474,6 +475,31 @@
       height: auto;
       margin: 0 auto;
       object-fit: contain;
+    }
+
+    .ig-gallery-insta-slide {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      padding: 2.4rem 1.6rem;
+      text-align: center;
+      width: 100%;
+    }
+
+    .ig-gallery-insta-ring {
+      width: 96px;
+      height: 96px;
+      margin: 0;
+    }
+
+    .ig-gallery-insta-text {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.8rem;
+      color: rgba(237, 232, 223, 0.65);
+      line-height: 1.6;
+      max-width: 320px;
     }
 
     .ig-gallery-arrow {
@@ -1076,6 +1102,20 @@
         <div class="ig-gallery-viewer">
           <button type="button" class="ig-gallery-arrow ig-gallery-prev" id="igGalleryPrev" aria-label="Previous photo">&#10094;</button>
           <img class="ig-gallery-img" id="igGalleryImg" src="" alt="" />
+          <div class="ig-gallery-insta-slide" id="igGalleryInstaSlide">
+            <div class="ig-modal-ring ig-gallery-insta-ring">
+              <div class="ig-modal-inner">
+                <img id="igGalleryInstaImg" src="" alt="" />
+              </div>
+            </div>
+            <p class="ig-gallery-insta-text">See more of this project on our Instagram Highlights.</p>
+            <a class="ig-modal-btn" id="igGalleryInstaLink" href="#" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+              </svg>
+              View on Instagram
+            </a>
+          </div>
           <button type="button" class="ig-gallery-arrow ig-gallery-next" id="igGalleryNext" aria-label="Next photo">&#10095;</button>
         </div>
         <div class="ig-gallery-counter" id="igGalleryCounter"></div>
@@ -1128,6 +1168,9 @@
     const igModalClose = document.getElementById('igModalClose');
     const igGalleryTitle = document.getElementById('igGalleryTitle');
     const igGalleryImg = document.getElementById('igGalleryImg');
+    const igGalleryInstaSlide = document.getElementById('igGalleryInstaSlide');
+    const igGalleryInstaImg = document.getElementById('igGalleryInstaImg');
+    const igGalleryInstaLink = document.getElementById('igGalleryInstaLink');
     const igGalleryCounter = document.getElementById('igGalleryCounter');
     const igGalleryPrev = document.getElementById('igGalleryPrev');
     const igGalleryNext = document.getElementById('igGalleryNext');
@@ -1135,11 +1178,25 @@
     let igGalleryPhotos = [];
     let igGalleryIndex = 0;
 
+    // Every gallery has one extra "slide" at the end linking out to Instagram.
+    function igTotalSlides() {
+      return igGalleryPhotos.length + 1;
+    }
+
     function updateGalleryImage() {
-      igGalleryImg.src = igGalleryPhotos[igGalleryIndex];
-      igGalleryImg.alt = igGalleryTitle.textContent + ' - photo ' + (igGalleryIndex + 1);
-      igGalleryCounter.textContent = (igGalleryIndex + 1) + ' / ' + igGalleryPhotos.length;
-      const multi = igGalleryPhotos.length > 1;
+      const total = igTotalSlides();
+      const onInstaSlide = igGalleryIndex >= igGalleryPhotos.length;
+
+      igGalleryImg.style.display = onInstaSlide ? 'none' : '';
+      igGalleryInstaSlide.style.display = onInstaSlide ? 'flex' : 'none';
+
+      if (!onInstaSlide) {
+        igGalleryImg.src = igGalleryPhotos[igGalleryIndex];
+        igGalleryImg.alt = igGalleryTitle.textContent + ' - photo ' + (igGalleryIndex + 1);
+      }
+
+      igGalleryCounter.textContent = (igGalleryIndex + 1) + ' / ' + total;
+      const multi = total > 1;
       igGalleryPrev.style.display = multi ? '' : 'none';
       igGalleryNext.style.display = multi ? '' : 'none';
     }
@@ -1149,6 +1206,7 @@
       const title = label ? label.textContent : '';
       const category = bubble.dataset.category;
       const photos = PORTFOLIO_PHOTOS[category];
+      const icon = bubble.querySelector('.ig-highlight-inner img');
 
       igLastFocused = bubble;
       igModalOverlay.classList.add('open');
@@ -1159,12 +1217,14 @@
         igGalleryPhotos = photos;
         igGalleryIndex = 0;
         igGalleryTitle.textContent = title;
+        igGalleryInstaImg.src = icon ? icon.src : '';
+        igGalleryInstaImg.alt = icon ? icon.alt : '';
+        igGalleryInstaLink.href = bubble.getAttribute('href');
         updateGalleryImage();
       } else {
         igModal.classList.remove('gallery-mode');
-        const img = bubble.querySelector('.ig-highlight-inner img');
-        igModalImg.src = img ? img.src : '';
-        igModalImg.alt = img ? img.alt : '';
+        igModalImg.src = icon ? icon.src : '';
+        igModalImg.alt = icon ? icon.alt : '';
         igModalTitle.textContent = title;
         igModalLink.href = bubble.getAttribute('href');
       }
@@ -1178,12 +1238,14 @@
     }
 
     function showPrevPhoto() {
-      igGalleryIndex = (igGalleryIndex - 1 + igGalleryPhotos.length) % igGalleryPhotos.length;
+      const total = igTotalSlides();
+      igGalleryIndex = (igGalleryIndex - 1 + total) % total;
       updateGalleryImage();
     }
 
     function showNextPhoto() {
-      igGalleryIndex = (igGalleryIndex + 1) % igGalleryPhotos.length;
+      const total = igTotalSlides();
+      igGalleryIndex = (igGalleryIndex + 1) % total;
       updateGalleryImage();
     }
 
