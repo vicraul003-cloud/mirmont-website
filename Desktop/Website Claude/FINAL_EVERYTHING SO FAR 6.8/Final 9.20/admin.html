@@ -167,12 +167,16 @@
     .empty-state{text-align:center;padding:3rem;color:rgba(200,192,176,0.25);font-size:0.8rem;letter-spacing:0.1em;}
 
     /* ── PER-PROJECT TABS ── */
+    @keyframes subtabsIn{
+      from{opacity:0;transform:translateY(-8px);}
+      to{opacity:1;transform:translateY(0);}
+    }
     .project-tabs{display:flex;flex-wrap:wrap;gap:0.2rem;margin-top:1.8rem;border-bottom:1px solid rgba(201,160,90,0.15);}
     .ptab-btn{background:transparent;border:none;border-bottom:2px solid transparent;color:rgba(200,192,176,0.5);font-family:'Montserrat',sans-serif;font-size:0.6rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;padding:0.75rem 0.85rem;cursor:pointer;transition:color 0.2s,border-color 0.2s;white-space:nowrap;}
     .ptab-btn:hover{color:var(--gold-light);}
     .ptab-btn.active{color:var(--gold);border-bottom-color:var(--gold);}
-    .project-subtabs{display:none;flex-wrap:wrap;gap:0.15rem;padding:0.5rem 0 0.1rem 0.4rem;margin-bottom:0.2rem;border-bottom:1px solid rgba(201,160,90,0.1);}
-    .project-subtabs.open{display:flex;}
+    .project-subtabs{display:none;flex-wrap:wrap;gap:0.35rem;padding:0.85rem 0.9rem 0.75rem;margin:1.1rem 0 0.9rem;background:rgba(201,160,90,0.05);border:1px solid rgba(201,160,90,0.1);border-radius:8px;}
+    .project-subtabs.open{display:flex;animation:subtabsIn 0.22s ease;}
     .psub-btn{background:transparent;border:none;border-bottom:2px solid transparent;color:rgba(200,192,176,0.45);font-family:'Montserrat',sans-serif;font-size:0.56rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:0.5rem 0.7rem;cursor:pointer;transition:color 0.2s,border-color 0.2s;white-space:nowrap;}
     .psub-btn:hover{color:var(--gold-light);}
     .psub-btn.active{color:var(--gold);border-bottom-color:var(--gold);}
@@ -305,7 +309,7 @@
     .project-edit.light-theme .ptab-btn{color:#6b7480;font-family:'IBM Plex Sans',sans-serif;}
     .project-edit.light-theme .ptab-btn:hover{color:#7a4212;}
     .project-edit.light-theme .ptab-btn.active{color:#7a4212;border-bottom-color:#b5651d;}
-    .project-edit.light-theme .project-subtabs{border-bottom-color:rgba(122,66,18,0.14);}
+    .project-edit.light-theme .project-subtabs{background:rgba(122,66,18,0.045);border-color:rgba(122,66,18,0.14);}
     .project-edit.light-theme .psub-btn{color:#8a95a3;font-family:'IBM Plex Sans',sans-serif;}
     .project-edit.light-theme .psub-btn:hover{color:#7a4212;}
     .project-edit.light-theme .psub-btn.active{color:#7a4212;border-bottom-color:#b5651d;}
@@ -438,10 +442,11 @@
       .project-subtabs{
         display:none;
         grid-template-columns:1fr 1fr;
-        gap:0.45rem;
-        border-bottom:none;
-        padding:0;
-        margin:0 0 1rem;
+        gap:0.5rem;
+        border:1px solid rgba(201,160,90,0.14);
+        border-radius:12px;
+        padding:0.8rem 0.7rem;
+        margin:1.15rem 0 1.2rem;
       }
       .project-subtabs.open{display:grid;}
       .psub-btn{
@@ -459,6 +464,10 @@
         color:var(--gold) !important;
         border-color:var(--gold);
         border-bottom-color:var(--gold);
+      }
+      .project-edit.light-theme .project-subtabs{
+        border-color:rgba(122,66,18,0.16);
+        background:rgba(122,66,18,0.035);
       }
       .project-edit.light-theme .psub-btn{
         border:1.5px solid rgba(122,66,18,0.16);
