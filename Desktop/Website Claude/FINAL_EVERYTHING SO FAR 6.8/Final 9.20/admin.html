@@ -217,7 +217,12 @@
     .mini-item-amount{color:var(--text-light);font-size:0.75rem;}
 
     /* ── PROJECT FINANCIAL OVERVIEW (stat cards + details + deposits/change orders) ── */
-    .project-stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:0.8rem;margin:1.5rem 0;}
+    .stats-toggle-row{display:flex;justify-content:flex-end;margin-top:1.3rem;}
+    .stats-toggle-btn{background:transparent;border:1px solid rgba(201,160,90,0.3);color:var(--gold);width:26px;height:26px;border-radius:50%;font-size:0.75rem;font-weight:700;line-height:1;padding:0;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform 0.25s ease,background 0.2s,border-color 0.2s;}
+    .stats-toggle-btn:hover{background:rgba(201,160,90,0.12);border-color:var(--gold);}
+    .stats-toggle-btn.collapsed{transform:rotate(180deg);}
+    .project-stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:0.8rem;margin:0.6rem 0 1.5rem;}
+    .project-stats-row.collapsed{display:none;}
     .project-stat-card{padding:0.9rem 1.1rem;border-radius:3px;position:relative;overflow:hidden;cursor:pointer;transition:transform 0.15s,box-shadow 0.15s,border-color 0.15s;min-height:92px;display:flex;flex-direction:column;justify-content:center;box-sizing:border-box;background:#ffffff;border:2px solid;color:#1c232b;}
     .project-stat-card:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,0,0,0.12);}
     .project-stat-card:active{transform:translateY(0);}
@@ -305,6 +310,8 @@
     .project-edit.light-theme{background:#eef0f2;color:#1c232b;padding:2.2rem 2.4rem 2.8rem;border:1px solid rgba(122,66,18,0.12);font-family:'IBM Plex Sans',sans-serif;}
     .project-edit.light-theme .edit-field label{color:#7a4212;}
     .project-edit.light-theme .edit-field input{background:#ffffff;border:1px solid rgba(122,66,18,0.2);color:#1c232b;}
+    .project-edit.light-theme .stats-toggle-btn{border-color:rgba(122,66,18,0.28);color:#7a4212;}
+    .project-edit.light-theme .stats-toggle-btn:hover{background:rgba(122,66,18,0.08);border-color:#7a4212;}
     .project-edit.light-theme .project-tabs{border-bottom-color:rgba(122,66,18,0.18);}
     .project-edit.light-theme .ptab-btn{color:#6b7480;font-family:'IBM Plex Sans',sans-serif;}
     .project-edit.light-theme .ptab-btn:hover{color:#7a4212;}
@@ -864,7 +871,10 @@
               </div>
             </div>
 
-            <div class="project-stats-row">
+            <div class="stats-toggle-row">
+              <button type="button" class="stats-toggle-btn" id="statsToggleBtn-${safecode}" onclick="toggleStatsRow('${safecode}')" title="Show/hide stats" aria-label="Show/hide stats">^</button>
+            </div>
+            <div class="project-stats-row" id="statsRow-${safecode}">
               <div class="project-stat-card stat-card-start" onclick="switchProjectTab('${safecode}','details')" title="Go to Project Details">
                 <span class="stat-label">Project Start</span>
                 <span class="stat-value" id="statStart-${safecode}">—</span>
@@ -1309,6 +1319,14 @@
     document.querySelectorAll('.project-card').forEach(c => c.classList.remove('detail-active'));
     document.querySelectorAll('.project-edit.open').forEach(p => { p.classList.remove('open'); p.classList.remove('light-theme'); });
     document.querySelectorAll('.project-expand-btn.open').forEach(b => b.classList.remove('open'));
+  }
+
+  function toggleStatsRow(safecode){
+    const row = document.getElementById('statsRow-' + safecode);
+    const btn = document.getElementById('statsToggleBtn-' + safecode);
+    if(!row || !btn) return;
+    const collapsed = row.classList.toggle('collapsed');
+    btn.classList.toggle('collapsed', collapsed);
   }
 
   const TAB_GROUP_OF = {
