@@ -473,6 +473,17 @@
       max-height: 62vh;
     }
 
+    .ig-gallery-video {
+      display: block;
+      max-width: 100%;
+      max-height: 62vh;
+      width: auto;
+      height: auto;
+      margin: 0 auto;
+      object-fit: contain;
+      background: #000;
+    }
+
     .ig-gallery-img {
       display: block;
       max-width: 100%;
@@ -547,6 +558,7 @@
       .ig-modal.gallery-mode { padding: 1.6rem 1rem; }
       .ig-gallery-viewer { max-height: 50vh; }
       .ig-gallery-img { max-height: 50vh; }
+      .ig-gallery-video { max-height: 50vh; }
     }
 
     /* Follow button */
@@ -1117,6 +1129,7 @@
         <div class="ig-gallery-viewer">
           <button type="button" class="ig-gallery-arrow ig-gallery-prev" id="igGalleryPrev" aria-label="Previous photo">&#10094;</button>
           <img class="ig-gallery-img" id="igGalleryImg" src="" alt="" />
+          <video class="ig-gallery-video" id="igGalleryVideo" controls muted loop playsinline></video>
           <div class="ig-gallery-insta-slide" id="igGalleryInstaSlide">
             <div class="ig-modal-ring ig-gallery-insta-ring">
               <div class="ig-modal-inner">
@@ -1175,8 +1188,14 @@
         'images/portfolio/bath-remodel/02.jpeg',
         'images/portfolio/bath-remodel/03.jpeg',
         'images/portfolio/bath-remodel/04.jpeg'
+      ],
+      'kitchen': [
+        'images/portfolio/kitchen/01.mp4'
       ]
     };
+
+    // File extensions in PORTFOLIO_PHOTOS that should play as video instead of an image.
+    const IG_VIDEO_EXT = /\.(mp4|webm|mov|m4v)$/i;
 
     const igModalOverlay = document.getElementById('igModalOverlay');
     const igModal = document.getElementById('igModal');
@@ -1186,6 +1205,7 @@
     const igModalClose = document.getElementById('igModalClose');
     const igGalleryTitle = document.getElementById('igGalleryTitle');
     const igGalleryImg = document.getElementById('igGalleryImg');
+    const igGalleryVideo = document.getElementById('igGalleryVideo');
     const igGalleryInstaSlide = document.getElementById('igGalleryInstaSlide');
     const igGalleryInstaImg = document.getElementById('igGalleryInstaImg');
     const igGalleryInstaText = document.getElementById('igGalleryInstaText');
@@ -1206,12 +1226,25 @@
       const total = igTotalSlides();
       const onInstaSlide = igGalleryIndex >= igGalleryPhotos.length;
 
-      igGalleryImg.style.display = onInstaSlide ? 'none' : '';
-      igGalleryInstaSlide.style.display = onInstaSlide ? 'flex' : 'none';
+      // Reset all three slide types, then show only the one that applies.
+      igGalleryVideo.pause();
+      igGalleryVideo.style.display = 'none';
+      igGalleryImg.style.display = 'none';
+      igGalleryInstaSlide.style.display = 'none';
 
-      if (!onInstaSlide) {
-        igGalleryImg.src = igGalleryPhotos[igGalleryIndex];
-        igGalleryImg.alt = igGalleryTitle.textContent + ' - photo ' + (igGalleryIndex + 1);
+      if (onInstaSlide) {
+        igGalleryInstaSlide.style.display = 'flex';
+      } else {
+        const src = igGalleryPhotos[igGalleryIndex];
+        if (IG_VIDEO_EXT.test(src)) {
+          igGalleryVideo.src = src;
+          igGalleryVideo.style.display = '';
+          igGalleryVideo.play().catch(() => {});
+        } else {
+          igGalleryImg.src = src;
+          igGalleryImg.alt = igGalleryTitle.textContent + ' - photo ' + (igGalleryIndex + 1);
+          igGalleryImg.style.display = '';
+        }
       }
 
       igGalleryCounter.textContent = (igGalleryIndex + 1) + ' / ' + total;
@@ -1254,6 +1287,7 @@
     function closeIgModal() {
       igModalOverlay.classList.remove('open');
       document.body.style.overflow = '';
+      igGalleryVideo.pause();
       if (igLastFocused) igLastFocused.focus();
     }
 
