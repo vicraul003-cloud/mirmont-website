@@ -1,0 +1,53 @@
+{
+  "routes": [
+    {
+      "routePath": "/api/qbo/callback",
+      "mountPath": "/api/qbo",
+      "method": "GET",
+      "module": [
+        "api/qbo/callback.js:onRequestGet"
+      ]
+    },
+    {
+      "routePath": "/api/qbo/connect",
+      "mountPath": "/api/qbo",
+      "method": "GET",
+      "module": [
+        "api/qbo/connect.js:onRequestGet"
+      ]
+    },
+    {
+      "routePath": "/api/qbo/disconnect",
+      "mountPath": "/api/qbo",
+      "method": "POST",
+      "module": [
+        "api/qbo/disconnect.js:onRequestPost"
+      ]
+    },
+    {
+      "routePath": "/api/qbo/search",
+      "mountPath": "/api/qbo",
+      "method": "GET",
+      "module": [
+        "api/qbo/search.js:onRequestGet"
+      ]
+    },
+    {
+      "routePath": "/api/qbo/status",
+      "mountPath": "/api/qbo",
+      "method": "GET",
+      "module": [
+        "api/qbo/status.js:onRequestGet"
+      ]
+    },
+    {
+      "routePath": "/api/send-summary",
+      "mountPath": "/api",
+      "method": "POST",
+      "module": [
+        "api/send-summary.js:onRequestPost"
+      ]
+    }
+  ],
+  "baseURL": "/"
+}
