@@ -171,6 +171,11 @@
     .ptab-btn{background:transparent;border:none;border-bottom:2px solid transparent;color:rgba(200,192,176,0.5);font-family:'Montserrat',sans-serif;font-size:0.6rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;padding:0.75rem 0.85rem;cursor:pointer;transition:color 0.2s,border-color 0.2s;white-space:nowrap;}
     .ptab-btn:hover{color:var(--gold-light);}
     .ptab-btn.active{color:var(--gold);border-bottom-color:var(--gold);}
+    .project-subtabs{display:none;flex-wrap:wrap;gap:0.15rem;padding:0.5rem 0 0.1rem 0.4rem;margin-bottom:0.2rem;border-bottom:1px solid rgba(201,160,90,0.1);}
+    .project-subtabs.open{display:flex;}
+    .psub-btn{background:transparent;border:none;border-bottom:2px solid transparent;color:rgba(200,192,176,0.45);font-family:'Montserrat',sans-serif;font-size:0.56rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:0.5rem 0.7rem;cursor:pointer;transition:color 0.2s,border-color 0.2s;white-space:nowrap;}
+    .psub-btn:hover{color:var(--gold-light);}
+    .psub-btn.active{color:var(--gold);border-bottom-color:var(--gold);}
     .project-tab-panel{display:none;}
     .project-tab-panel.active{display:block;}
     .project-tab-panel.mini-section{margin-top:0;padding-top:1.2rem;border-top:none;}
@@ -300,6 +305,10 @@
     .project-edit.light-theme .ptab-btn{color:#6b7480;font-family:'IBM Plex Sans',sans-serif;}
     .project-edit.light-theme .ptab-btn:hover{color:#7a4212;}
     .project-edit.light-theme .ptab-btn.active{color:#7a4212;border-bottom-color:#b5651d;}
+    .project-edit.light-theme .project-subtabs{border-bottom-color:rgba(122,66,18,0.14);}
+    .project-edit.light-theme .psub-btn{color:#8a95a3;font-family:'IBM Plex Sans',sans-serif;}
+    .project-edit.light-theme .psub-btn:hover{color:#7a4212;}
+    .project-edit.light-theme .psub-btn.active{color:#7a4212;border-bottom-color:#b5651d;}
     .project-edit.light-theme .mini-section{border-top-color:rgba(122,66,18,0.14);}
     .project-edit.light-theme .mini-section-label{color:#7a4212;}
     .project-edit.light-theme .phase-toggle-label{color:#7a4212;}
@@ -422,6 +431,42 @@
       .project-edit.light-theme .ptab-btn.active{
         background:#b5651d;
         color:#ffffff !important;
+        border-color:#b5651d;
+        border-bottom-color:#b5651d;
+      }
+
+      .project-subtabs{
+        display:none;
+        grid-template-columns:1fr 1fr;
+        gap:0.45rem;
+        border-bottom:none;
+        padding:0;
+        margin:0 0 1rem;
+      }
+      .project-subtabs.open{display:grid;}
+      .psub-btn{
+        border:1.5px solid rgba(201,160,90,0.22);
+        border-bottom:1.5px solid rgba(201,160,90,0.22);
+        border-radius:9px;
+        padding:0.65rem 0.4rem;
+        font-size:0.58rem;
+        line-height:1.3;
+        text-align:center;
+        white-space:normal;
+      }
+      .psub-btn.active{
+        background:rgba(201,160,90,0.18);
+        color:var(--gold) !important;
+        border-color:var(--gold);
+        border-bottom-color:var(--gold);
+      }
+      .project-edit.light-theme .psub-btn{
+        border:1.5px solid rgba(122,66,18,0.16);
+        border-bottom:1.5px solid rgba(122,66,18,0.16);
+      }
+      .project-edit.light-theme .psub-btn.active{
+        background:rgba(181,101,29,0.12);
+        color:#7a4212 !important;
         border-color:#b5651d;
         border-bottom-color:#b5651d;
       }
@@ -844,17 +889,29 @@
             </div>
 
             <div class="project-tabs" id="projectTabs-${safecode}">
-              <button class="ptab-btn active" data-tab="details" onclick="switchProjectTab('${safecode}','details')">Project Details</button>
-              <button class="ptab-btn" data-tab="deposits" onclick="switchProjectTab('${safecode}','deposits')">Deposits &amp; Payments</button>
-              <button class="ptab-btn" data-tab="changeorders" onclick="switchProjectTab('${safecode}','changeorders')">Change Orders</button>
-              <button class="ptab-btn" data-tab="expenses" onclick="switchProjectTab('${safecode}','expenses')">Expenses</button>
-              <button class="ptab-btn" data-tab="notes" onclick="switchProjectTab('${safecode}','notes')">Notes</button>
-              <button class="ptab-btn" data-tab="tasks" onclick="switchProjectTab('${safecode}','tasks')">Tasks</button>
-              <button class="ptab-btn" data-tab="documents" onclick="switchProjectTab('${safecode}','documents')">Documents</button>
-              <button class="ptab-btn" data-tab="invoices" onclick="switchProjectTab('${safecode}','invoices')">Invoices &amp; Quotes</button>
-              <button class="ptab-btn" data-tab="status" onclick="switchProjectTab('${safecode}','status')">Status &amp; Follow-Up</button>
-              <button class="ptab-btn" data-tab="timeline" onclick="switchProjectTab('${safecode}','timeline')">Timeline</button>
-              <button class="ptab-btn" data-tab="sections" onclick="switchProjectTab('${safecode}','sections')">Active Sections</button>
+              <button class="ptab-btn active" data-group="details" onclick="switchProjectTab('${safecode}','details')">Project Details</button>
+              <button class="ptab-btn" data-group="financials" onclick="switchProjectTab('${safecode}','deposits')">Financials</button>
+              <button class="ptab-btn" data-group="activity" onclick="switchProjectTab('${safecode}','notes')">Client Activity</button>
+              <button class="ptab-btn" data-group="files" onclick="switchProjectTab('${safecode}','documents')">Files &amp; Settings</button>
+            </div>
+
+            <div class="project-subtabs" id="subtabs-financials-${safecode}">
+              <button class="psub-btn" data-tab="deposits" onclick="switchProjectTab('${safecode}','deposits')">Deposits &amp; Payments</button>
+              <button class="psub-btn" data-tab="expenses" onclick="switchProjectTab('${safecode}','expenses')">Expenses</button>
+              <button class="psub-btn" data-tab="changeorders" onclick="switchProjectTab('${safecode}','changeorders')">Change Orders</button>
+              <button class="psub-btn" data-tab="invoices" onclick="switchProjectTab('${safecode}','invoices')">Invoices &amp; Quotes</button>
+            </div>
+
+            <div class="project-subtabs" id="subtabs-activity-${safecode}">
+              <button class="psub-btn" data-tab="notes" onclick="switchProjectTab('${safecode}','notes')">Notes</button>
+              <button class="psub-btn" data-tab="tasks" onclick="switchProjectTab('${safecode}','tasks')">Tasks</button>
+              <button class="psub-btn" data-tab="status" onclick="switchProjectTab('${safecode}','status')">Status &amp; Follow-Up</button>
+              <button class="psub-btn" data-tab="timeline" onclick="switchProjectTab('${safecode}','timeline')">Timeline</button>
+            </div>
+
+            <div class="project-subtabs" id="subtabs-files-${safecode}">
+              <button class="psub-btn" data-tab="documents" onclick="switchProjectTab('${safecode}','documents')">Documents</button>
+              <button class="psub-btn" data-tab="sections" onclick="switchProjectTab('${safecode}','sections')">Active Sections</button>
             </div>
 
             <div class="mini-section project-tab-panel active" id="tabPanel-details-${safecode}">
@@ -1245,13 +1302,32 @@
     document.querySelectorAll('.project-expand-btn.open').forEach(b => b.classList.remove('open'));
   }
 
+  const TAB_GROUP_OF = {
+    deposits: 'financials', expenses: 'financials', changeorders: 'financials', invoices: 'financials',
+    notes: 'activity', tasks: 'activity', status: 'activity', timeline: 'activity',
+    documents: 'files', sections: 'files'
+  };
+
   function switchProjectTab(safecode, tabKey){
+    const group = TAB_GROUP_OF[tabKey] || tabKey; // 'details' has no entry, falls back to itself
+
     const tabBar = document.getElementById('projectTabs-' + safecode);
     if(tabBar){
       tabBar.querySelectorAll('.ptab-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.tab === tabKey);
+        btn.classList.toggle('active', btn.dataset.group === group);
       });
     }
+
+    document.querySelectorAll('#edit-' + safecode + ' > .project-subtabs').forEach(row => {
+      const isMatch = row.id === 'subtabs-' + group + '-' + safecode;
+      row.classList.toggle('open', isMatch);
+      if(isMatch){
+        row.querySelectorAll('.psub-btn').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.tab === tabKey);
+        });
+      }
+    });
+
     document.querySelectorAll('#edit-' + safecode + ' > .project-tab-panel').forEach(panel => {
       panel.classList.toggle('active', panel.id === 'tabPanel-' + tabKey + '-' + safecode);
     });
