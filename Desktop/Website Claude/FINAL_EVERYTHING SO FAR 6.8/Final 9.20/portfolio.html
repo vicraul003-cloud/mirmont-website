@@ -374,6 +374,12 @@
       border: 3px solid var(--navy-dark);
       overflow: hidden;
       background: var(--navy-dark);
+      position: relative;
+    }
+
+    #igGalleryInstaSlide .ig-bubble-text {
+      font-size: 0.52rem;
+      padding: 0 6px;
     }
 
     .ig-modal-inner img {
@@ -1106,6 +1112,7 @@
             <div class="ig-modal-ring ig-gallery-insta-ring">
               <div class="ig-modal-inner">
                 <img id="igGalleryInstaImg" src="" alt="" />
+                <div class="ig-bubble-text" id="igGalleryInstaText"></div>
               </div>
             </div>
             <p class="ig-gallery-insta-text">See more of this project on our Instagram Highlights.</p>
@@ -1170,6 +1177,7 @@
     const igGalleryImg = document.getElementById('igGalleryImg');
     const igGalleryInstaSlide = document.getElementById('igGalleryInstaSlide');
     const igGalleryInstaImg = document.getElementById('igGalleryInstaImg');
+    const igGalleryInstaText = document.getElementById('igGalleryInstaText');
     const igGalleryInstaLink = document.getElementById('igGalleryInstaLink');
     const igGalleryCounter = document.getElementById('igGalleryCounter');
     const igGalleryPrev = document.getElementById('igGalleryPrev');
@@ -1219,6 +1227,7 @@
         igGalleryTitle.textContent = title;
         igGalleryInstaImg.src = icon ? icon.src : '';
         igGalleryInstaImg.alt = icon ? icon.alt : '';
+        igGalleryInstaText.textContent = title;
         igGalleryInstaLink.href = bubble.getAttribute('href');
         updateGalleryImage();
       } else {
