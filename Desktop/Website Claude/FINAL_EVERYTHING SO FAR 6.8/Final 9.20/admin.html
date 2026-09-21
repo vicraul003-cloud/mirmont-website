@@ -363,6 +363,49 @@
     .project-edit.light-theme .timeline-dot{background:#b5651d;}
     .project-edit.light-theme .timeline-text{color:#1c232b;}
     .project-edit.light-theme .timeline-meta{color:rgba(107,116,128,0.7);}
+
+    /* ── Mobile: cleaner stat cards + rectangle section tabs ── */
+    @media (max-width: 640px) {
+      .project-stats-row{grid-template-columns:repeat(2,1fr);gap:0.6rem;}
+      .project-stat-card{padding:0.75rem 0.8rem;min-height:82px;}
+      .project-stat-card .stat-label{font-size:0.6rem;}
+      .project-stat-card .stat-value{font-size:1rem;word-break:break-word;}
+      .stat-card-profit{grid-column:1 / -1;}
+
+      .project-tabs{
+        display:grid;
+        grid-template-columns:1fr 1fr;
+        gap:0.55rem;
+        border-bottom:none;
+        margin-top:1.4rem;
+      }
+      .ptab-btn{
+        border:1.5px solid rgba(201,160,90,0.3);
+        border-bottom:1.5px solid rgba(201,160,90,0.3);
+        border-radius:10px;
+        padding:0.8rem 0.5rem;
+        font-size:0.64rem;
+        line-height:1.35;
+        text-align:center;
+        white-space:normal;
+      }
+      .ptab-btn.active{
+        background:var(--gold);
+        color:var(--navy-dark) !important;
+        border-color:var(--gold);
+        border-bottom-color:var(--gold);
+      }
+      .project-edit.light-theme .ptab-btn{
+        border:1.5px solid rgba(122,66,18,0.22);
+        border-bottom:1.5px solid rgba(122,66,18,0.22);
+      }
+      .project-edit.light-theme .ptab-btn.active{
+        background:#b5651d;
+        color:#ffffff !important;
+        border-color:#b5651d;
+        border-bottom-color:#b5651d;
+      }
+    }
   </style>
 </head>
 <body>
