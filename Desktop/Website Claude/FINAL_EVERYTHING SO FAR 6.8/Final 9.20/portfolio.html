@@ -294,6 +294,229 @@
       color: var(--gold);
     }
 
+    /* Portfolio tile lightbox */
+    .ig-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(9, 21, 53, 0.82);
+      backdrop-filter: blur(4px);
+      z-index: 999;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .ig-modal-overlay.open {
+      display: flex;
+      opacity: 1;
+    }
+
+    .ig-modal {
+      background: var(--navy-mid);
+      border: 1px solid rgba(201, 160, 90, 0.25);
+      border-radius: 16px;
+      max-width: 380px;
+      width: 100%;
+      padding: 2.4rem 2rem 2rem;
+      text-align: center;
+      position: relative;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+      transform: translateY(14px) scale(0.97);
+      opacity: 0;
+      transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+
+    .ig-modal-overlay.open .ig-modal {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+
+    .ig-modal-close {
+      position: absolute;
+      top: 0.9rem;
+      right: 0.9rem;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: transparent;
+      border: 1px solid rgba(201, 160, 90, 0.3);
+      color: var(--gold-light);
+      font-size: 1.1rem;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .ig-modal-close:hover {
+      background: rgba(201, 160, 90, 0.12);
+      border-color: var(--gold);
+    }
+
+    .ig-modal-ring {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      padding: 3px;
+      margin: 0 auto 1.2rem;
+      background: linear-gradient(45deg, #c9a05a, #dbb97a, #a07a35, #c9a05a);
+    }
+
+    .ig-modal-inner {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      border: 3px solid var(--navy-dark);
+      overflow: hidden;
+      background: var(--navy-dark);
+    }
+
+    .ig-modal-inner img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .ig-modal-title {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--off-white);
+      margin-bottom: 0.6rem;
+    }
+
+    .ig-modal-sub {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.8rem;
+      color: rgba(237, 232, 223, 0.65);
+      line-height: 1.6;
+      margin-bottom: 1.6rem;
+    }
+
+    .ig-modal-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      background: var(--gold);
+      color: var(--navy-dark) !important;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      text-decoration: none;
+      padding: 0.85rem 1.6rem;
+      border-radius: 30px;
+      transition: background 0.2s, transform 0.2s;
+    }
+
+    .ig-modal-btn:hover {
+      background: var(--gold-light);
+      transform: translateY(-1px);
+    }
+
+    .ig-modal-btn svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+    }
+
+    @media (max-width: 480px) {
+      .ig-modal { padding: 2.2rem 1.4rem 1.8rem; }
+    }
+
+    /* Gallery mode (categories with real project photos) */
+    .ig-modal.gallery-mode {
+      max-width: 640px;
+      padding: 2rem;
+    }
+
+    .ig-modal-compact { display: block; }
+    .ig-modal-gallery { display: none; }
+    .ig-modal.gallery-mode .ig-modal-compact { display: none; }
+    .ig-modal.gallery-mode .ig-modal-gallery { display: block; }
+
+    .ig-gallery-title {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--off-white);
+      margin: 0.2rem 0 1.2rem;
+      padding-right: 2rem;
+      text-align: left;
+    }
+
+    .ig-gallery-viewer {
+      position: relative;
+      background: var(--navy-dark);
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      max-height: 62vh;
+    }
+
+    .ig-gallery-img {
+      display: block;
+      max-width: 100%;
+      max-height: 62vh;
+      width: auto;
+      height: auto;
+      margin: 0 auto;
+      object-fit: contain;
+    }
+
+    .ig-gallery-arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: rgba(9, 21, 53, 0.6);
+      border: 1px solid rgba(201, 160, 90, 0.4);
+      color: var(--gold-light);
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .ig-gallery-arrow:hover {
+      background: rgba(201, 160, 90, 0.25);
+      border-color: var(--gold);
+    }
+
+    .ig-gallery-prev { left: 12px; }
+    .ig-gallery-next { right: 12px; }
+
+    .ig-gallery-counter {
+      text-align: center;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      color: rgba(237, 232, 223, 0.6);
+      margin-top: 0.9rem;
+    }
+
+    @media (max-width: 480px) {
+      .ig-modal.gallery-mode { padding: 1.6rem 1rem; }
+      .ig-gallery-viewer { max-height: 50vh; }
+      .ig-gallery-img { max-height: 50vh; }
+    }
+
     /* Follow button */
     .ig-follow {
       display: inline-flex;
@@ -641,7 +864,7 @@
       <!-- Instagram Story Highlight Bubbles -->
       <div class="ig-highlights">
 
-        <a href="https://www.instagram.com/stories/highlights/18033544301724643/" target="_blank" class="ig-highlight-bubble">
+        <a href="https://www.instagram.com/stories/highlights/18033544301724643/" target="_blank" class="ig-highlight-bubble" data-category="kitchen">
           <div class="ig-highlight-ring"><div class="ig-highlight-inner">
             <img src="highlight-base.png" alt="Kitchen" />
             <div class="ig-bubble-text">Kitchen</div>
@@ -649,7 +872,7 @@
           <span class="ig-highlight-label">Kitchen</span>
         </a>
 
-        <a href="https://www.instagram.com/stories/highlights/18074172055552469/" target="_blank" class="ig-highlight-bubble">
+        <a href="https://www.instagram.com/stories/highlights/18074172055552469/" target="_blank" class="ig-highlight-bubble" data-category="bath-remodel">
           <div class="ig-highlight-ring"><div class="ig-highlight-inner">
             <img src="highlight-base.png" alt="Bath Remodel" />
             <div class="ig-bubble-text">Bath Remodel</div>
@@ -657,7 +880,7 @@
           <span class="ig-highlight-label">Bath Remodel</span>
         </a>
 
-        <a href="https://www.instagram.com/stories/highlights/17993042192899987/" target="_blank" class="ig-highlight-bubble">
+        <a href="https://www.instagram.com/stories/highlights/17993042192899987/" target="_blank" class="ig-highlight-bubble" data-category="bar-backsplash">
           <div class="ig-highlight-ring"><div class="ig-highlight-inner">
             <img src="highlight-base.png" alt="Bar Backsplash" />
             <div class="ig-bubble-text">Bar Backsplash</div>
@@ -665,7 +888,7 @@
           <span class="ig-highlight-label">Bar Backsplash</span>
         </a>
 
-        <a href="https://www.instagram.com/stories/highlights/17955683978590402/" target="_blank" class="ig-highlight-bubble">
+        <a href="https://www.instagram.com/stories/highlights/17955683978590402/" target="_blank" class="ig-highlight-bubble" data-category="flooring">
           <div class="ig-highlight-ring"><div class="ig-highlight-inner">
             <img src="highlight-base.png" alt="Flooring" />
             <div class="ig-bubble-text">Flooring</div>
@@ -673,7 +896,7 @@
           <span class="ig-highlight-label">Flooring</span>
         </a>
 
-        <a href="https://www.instagram.com/stories/highlights/17868451977488890/" target="_blank" class="ig-highlight-bubble">
+        <a href="https://www.instagram.com/stories/highlights/17868451977488890/" target="_blank" class="ig-highlight-bubble" data-category="kitchen-decor">
           <div class="ig-highlight-ring"><div class="ig-highlight-inner">
             <img src="highlight-base.png" alt="Kitchen Decor" />
             <div class="ig-bubble-text">Kitchen Decor</div>
@@ -681,7 +904,7 @@
           <span class="ig-highlight-label">Kitchen Decor</span>
         </a>
 
-        <a href="https://www.instagram.com/stories/highlights/18050225783394936/" target="_blank" class="ig-highlight-bubble">
+        <a href="https://www.instagram.com/stories/highlights/18050225783394936/" target="_blank" class="ig-highlight-bubble" data-category="wall-panels">
           <div class="ig-highlight-ring"><div class="ig-highlight-inner">
             <img src="highlight-base.png" alt="Wall Panels" />
             <div class="ig-bubble-text">Wall Panels</div>
@@ -689,7 +912,7 @@
           <span class="ig-highlight-label">Wall Panels</span>
         </a>
 
-        <a href="https://www.instagram.com/stories/highlights/18143889013452938/" target="_blank" class="ig-highlight-bubble">
+        <a href="https://www.instagram.com/stories/highlights/18143889013452938/" target="_blank" class="ig-highlight-bubble" data-category="tool-trailer">
           <div class="ig-highlight-ring"><div class="ig-highlight-inner">
             <img src="highlight-base.png" alt="Tool Trailer" />
             <div class="ig-bubble-text">Tool Trailer</div>
@@ -697,7 +920,7 @@
           <span class="ig-highlight-label">Tool Trailer</span>
         </a>
 
-        <a href="https://www.instagram.com/stories/highlights/18134175928483289/" target="_blank" class="ig-highlight-bubble">
+        <a href="https://www.instagram.com/stories/highlights/18134175928483289/" target="_blank" class="ig-highlight-bubble" data-category="fence-stain">
           <div class="ig-highlight-ring"><div class="ig-highlight-inner">
             <img src="highlight-base.png" alt="Fence Stain" />
             <div class="ig-bubble-text">Fence Stain</div>
@@ -705,7 +928,7 @@
           <span class="ig-highlight-label">Fence Stain</span>
         </a>
 
-        <a href="https://www.instagram.com/stories/highlights/18099625417796055/" target="_blank" class="ig-highlight-bubble">
+        <a href="https://www.instagram.com/stories/highlights/18099625417796055/" target="_blank" class="ig-highlight-bubble" data-category="deck-balcony">
           <div class="ig-highlight-ring"><div class="ig-highlight-inner">
             <img src="highlight-base.png" alt="Deck/Balcony" />
             <div class="ig-bubble-text">Deck / Balcony</div>
@@ -713,7 +936,7 @@
           <span class="ig-highlight-label">Deck / Balcony</span>
         </a>
 
-        <a href="https://www.instagram.com/stories/highlights/18547813678031776/" target="_blank" class="ig-highlight-bubble">
+        <a href="https://www.instagram.com/stories/highlights/18547813678031776/" target="_blank" class="ig-highlight-bubble" data-category="work-in-progress">
           <div class="ig-highlight-ring"><div class="ig-highlight-inner">
             <img src="highlight-base.png" alt="Work in Progress" />
             <div class="ig-bubble-text">Work in Progress</div>
@@ -721,7 +944,7 @@
           <span class="ig-highlight-label">Work in Progress</span>
         </a>
 
-        <a href="https://www.instagram.com/stories/highlights/18145794331333999/" target="_blank" class="ig-highlight-bubble">
+        <a href="https://www.instagram.com/stories/highlights/18145794331333999/" target="_blank" class="ig-highlight-bubble" data-category="custom-closets">
           <div class="ig-highlight-ring"><div class="ig-highlight-inner">
             <img src="highlight-base.png" alt="Custom Closets" />
             <div class="ig-bubble-text">Custom Closets</div>
@@ -729,7 +952,7 @@
           <span class="ig-highlight-label">Custom Closets</span>
         </a>
 
-        <a href="https://www.instagram.com/stories/highlights/18036316963589708/" target="_blank" class="ig-highlight-bubble">
+        <a href="https://www.instagram.com/stories/highlights/18036316963589708/" target="_blank" class="ig-highlight-bubble" data-category="custom-furniture">
           <div class="ig-highlight-ring"><div class="ig-highlight-inner">
             <img src="highlight-base.png" alt="Custom Furniture" />
             <div class="ig-bubble-text">Custom Furniture</div>
@@ -737,7 +960,7 @@
           <span class="ig-highlight-label">Custom Furniture</span>
         </a>
 
-        <a href="https://www.instagram.com/stories/highlights/17984391590593910/" target="_blank" class="ig-highlight-bubble">
+        <a href="https://www.instagram.com/stories/highlights/17984391590593910/" target="_blank" class="ig-highlight-bubble" data-category="epoxy-floors">
           <div class="ig-highlight-ring"><div class="ig-highlight-inner">
             <img src="highlight-base.png" alt="Epoxy Floors" />
             <div class="ig-bubble-text">Epoxy Floors</div>
@@ -745,7 +968,7 @@
           <span class="ig-highlight-label">Epoxy Floors</span>
         </a>
 
-        <a href="https://www.instagram.com/stories/highlights/18299882434135213/" target="_blank" class="ig-highlight-bubble">
+        <a href="https://www.instagram.com/stories/highlights/18299882434135213/" target="_blank" class="ig-highlight-bubble" data-category="drywall-repair">
           <div class="ig-highlight-ring"><div class="ig-highlight-inner">
             <img src="highlight-base.png" alt="Drywall Repair" />
             <div class="ig-bubble-text">Drywall Repair</div>
@@ -753,7 +976,7 @@
           <span class="ig-highlight-label">Drywall Repair</span>
         </a>
 
-        <a href="https://www.instagram.com/stories/highlights/17979381170405559/" target="_blank" class="ig-highlight-bubble">
+        <a href="https://www.instagram.com/stories/highlights/17979381170405559/" target="_blank" class="ig-highlight-bubble" data-category="paint">
           <div class="ig-highlight-ring"><div class="ig-highlight-inner">
             <img src="highlight-base.png" alt="Paint" />
             <div class="ig-bubble-text">Paint</div>
@@ -825,6 +1048,41 @@
     </div>
   </footer>
 
+  <!-- Portfolio tile lightbox -->
+  <div class="ig-modal-overlay" id="igModalOverlay">
+    <div class="ig-modal" id="igModal" role="dialog" aria-modal="true" aria-labelledby="igModalTitle">
+      <button type="button" class="ig-modal-close" id="igModalClose" aria-label="Close">&times;</button>
+
+      <!-- Compact mode: no on-site photos yet, link out to Instagram -->
+      <div class="ig-modal-compact" id="igModalCompact">
+        <div class="ig-modal-ring">
+          <div class="ig-modal-inner">
+            <img id="igModalImg" src="" alt="" />
+          </div>
+        </div>
+        <h3 class="ig-modal-title" id="igModalTitle"></h3>
+        <p class="ig-modal-sub">The full photos and videos for this project are on our Instagram Highlights.</p>
+        <a class="ig-modal-btn" id="igModalLink" href="#" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+          </svg>
+          View on Instagram
+        </a>
+      </div>
+
+      <!-- Gallery mode: real project photos hosted on-site -->
+      <div class="ig-modal-gallery" id="igModalGallery">
+        <h3 class="ig-gallery-title" id="igGalleryTitle"></h3>
+        <div class="ig-gallery-viewer">
+          <button type="button" class="ig-gallery-arrow ig-gallery-prev" id="igGalleryPrev" aria-label="Previous photo">&#10094;</button>
+          <img class="ig-gallery-img" id="igGalleryImg" src="" alt="" />
+          <button type="button" class="ig-gallery-arrow ig-gallery-next" id="igGalleryNext" aria-label="Next photo">&#10095;</button>
+        </div>
+        <div class="ig-gallery-counter" id="igGalleryCounter"></div>
+      </div>
+    </div>
+  </div>
+
   <script>
     const hamburger = document.getElementById('hamburger');
     const navLinks = document.getElementById('navLinks');
@@ -846,6 +1104,109 @@
     document.addEventListener('click', (e) => {
       if (!navLinks.contains(e.target) && !hamburger.contains(e.target)) {
         closeMenu();
+      }
+    });
+
+    // Portfolio tile lightbox
+    //
+    // As you finish more projects, add real photos to images/portfolio/<category>/
+    // (named 01.jpg, 02.jpg, ...) then list them here so that category opens as a
+    // photo gallery instead of linking out to Instagram. Categories left out of
+    // this list keep the "View on Instagram" popup automatically.
+    const PORTFOLIO_PHOTOS = {
+      'bath-remodel': [
+        'images/portfolio/bath-remodel/01.jpeg',
+        'images/portfolio/bath-remodel/02.jpeg'
+      ]
+    };
+
+    const igModalOverlay = document.getElementById('igModalOverlay');
+    const igModal = document.getElementById('igModal');
+    const igModalImg = document.getElementById('igModalImg');
+    const igModalTitle = document.getElementById('igModalTitle');
+    const igModalLink = document.getElementById('igModalLink');
+    const igModalClose = document.getElementById('igModalClose');
+    const igGalleryTitle = document.getElementById('igGalleryTitle');
+    const igGalleryImg = document.getElementById('igGalleryImg');
+    const igGalleryCounter = document.getElementById('igGalleryCounter');
+    const igGalleryPrev = document.getElementById('igGalleryPrev');
+    const igGalleryNext = document.getElementById('igGalleryNext');
+    let igLastFocused = null;
+    let igGalleryPhotos = [];
+    let igGalleryIndex = 0;
+
+    function updateGalleryImage() {
+      igGalleryImg.src = igGalleryPhotos[igGalleryIndex];
+      igGalleryImg.alt = igGalleryTitle.textContent + ' - photo ' + (igGalleryIndex + 1);
+      igGalleryCounter.textContent = (igGalleryIndex + 1) + ' / ' + igGalleryPhotos.length;
+      const multi = igGalleryPhotos.length > 1;
+      igGalleryPrev.style.display = multi ? '' : 'none';
+      igGalleryNext.style.display = multi ? '' : 'none';
+    }
+
+    function openIgModal(bubble) {
+      const label = bubble.querySelector('.ig-bubble-text');
+      const title = label ? label.textContent : '';
+      const category = bubble.dataset.category;
+      const photos = PORTFOLIO_PHOTOS[category];
+
+      igLastFocused = bubble;
+      igModalOverlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
+
+      if (photos && photos.length) {
+        igModal.classList.add('gallery-mode');
+        igGalleryPhotos = photos;
+        igGalleryIndex = 0;
+        igGalleryTitle.textContent = title;
+        updateGalleryImage();
+      } else {
+        igModal.classList.remove('gallery-mode');
+        const img = bubble.querySelector('.ig-highlight-inner img');
+        igModalImg.src = img ? img.src : '';
+        igModalImg.alt = img ? img.alt : '';
+        igModalTitle.textContent = title;
+        igModalLink.href = bubble.getAttribute('href');
+      }
+      igModalClose.focus();
+    }
+
+    function closeIgModal() {
+      igModalOverlay.classList.remove('open');
+      document.body.style.overflow = '';
+      if (igLastFocused) igLastFocused.focus();
+    }
+
+    function showPrevPhoto() {
+      igGalleryIndex = (igGalleryIndex - 1 + igGalleryPhotos.length) % igGalleryPhotos.length;
+      updateGalleryImage();
+    }
+
+    function showNextPhoto() {
+      igGalleryIndex = (igGalleryIndex + 1) % igGalleryPhotos.length;
+      updateGalleryImage();
+    }
+
+    document.querySelectorAll('.ig-highlight-bubble').forEach(bubble => {
+      bubble.addEventListener('click', (e) => {
+        e.preventDefault();
+        openIgModal(bubble);
+      });
+    });
+
+    igGalleryPrev.addEventListener('click', showPrevPhoto);
+    igGalleryNext.addEventListener('click', showNextPhoto);
+
+    igModalClose.addEventListener('click', closeIgModal);
+    igModalOverlay.addEventListener('click', (e) => {
+      if (e.target === igModalOverlay) closeIgModal();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (!igModalOverlay.classList.contains('open')) return;
+      if (e.key === 'Escape') closeIgModal();
+      if (igModal.classList.contains('gallery-mode')) {
+        if (e.key === 'ArrowLeft') showPrevPhoto();
+        if (e.key === 'ArrowRight') showNextPhoto();
       }
     });
   </script>
