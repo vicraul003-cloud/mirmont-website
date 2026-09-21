@@ -399,6 +399,26 @@
         border:1.5px solid rgba(122,66,18,0.22);
         border-bottom:1.5px solid rgba(122,66,18,0.22);
       }
+
+      .email-summary-row{
+        display:flex;
+        flex-direction:column;
+        align-items:stretch;
+        gap:0.5rem;
+      }
+      .email-summary-label{
+        margin-bottom:0.1rem;
+      }
+      .btn-email-summary{
+        width:100%;
+        box-sizing:border-box;
+        text-align:center;
+        padding:0.75rem 1rem;
+        border-radius:8px;
+      }
+      .email-summary-status{
+        margin-top:0.2rem;
+      }
       .project-edit.light-theme .ptab-btn.active{
         background:#b5651d;
         color:#ffffff !important;
@@ -790,14 +810,6 @@
               </div>
             </div>
 
-            <div class="email-summary-row">
-              <span class="email-summary-label">Email Summary:</span>
-              <button class="btn-email-summary" onclick="emailProjectSummary('${safecode}','${code}','financial')">Financial Overview</button>
-              <button class="btn-email-summary" onclick="emailProjectSummary('${safecode}','${code}','status')">Status, Notes &amp; Tasks</button>
-              <button class="btn-email-summary" onclick="emailProjectSummary('${safecode}','${code}','all')">Full Summary</button>
-              <span class="email-summary-status" id="emailSummaryStatus-${safecode}"></span>
-            </div>
-
             <div class="project-stats-row">
               <div class="project-stat-card stat-card-start" onclick="switchProjectTab('${safecode}','details')" title="Go to Project Details">
                 <span class="stat-label">Project Start</span>
@@ -1016,6 +1028,14 @@
                 <button class="btn-delete" onclick="deleteProject('${safecode}','${code}')">Delete Project</button>
                 <span class="edit-status" id="editStatus-${safecode}"></span>
               </div>
+            </div>
+
+            <div class="email-summary-row">
+              <span class="email-summary-label">Email:</span>
+              <button class="btn-email-summary" onclick="emailProjectSummary('${safecode}','${code}','financial')">Financial Overview</button>
+              <button class="btn-email-summary" onclick="emailProjectSummary('${safecode}','${code}','status')">Status, Notes &amp; Tasks</button>
+              <button class="btn-email-summary" onclick="emailProjectSummary('${safecode}','${code}','all')">Full Summary</button>
+              <span class="email-summary-status" id="emailSummaryStatus-${safecode}"></span>
             </div>
           </div>
         </div>`;
