@@ -436,6 +436,24 @@
       .quick-add-form.open .btn-add-mini{align-self:flex-start;}
       .project-quick-add .mini-form-status{margin-bottom:0;}
 
+      /* Always-visible inline month calendar for picking a task due date
+         (replaces the native date input, which needs a tap to reveal anything) */
+      .mini-calendar{background:var(--navy-dark);border:1px solid rgba(201,160,90,0.16);border-radius:8px;padding:0.6rem 0.65rem;width:100%;}
+      .mini-cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.45rem;}
+      .mini-cal-label{font-size:0.66rem;font-weight:600;letter-spacing:0.06em;color:var(--gold-light);}
+      .mini-cal-nav{background:none;border:1px solid rgba(201,160,90,0.3);color:var(--gold);width:1.5rem;height:1.5rem;border-radius:6px;font-size:0.8rem;line-height:1;cursor:pointer;transition:all 0.15s;}
+      .mini-cal-nav:hover{background:rgba(201,160,90,0.12);border-color:var(--gold);}
+      .mini-cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:0.56rem;font-weight:700;letter-spacing:0.04em;color:rgba(201,160,90,0.45);margin-bottom:0.25rem;}
+      .mini-cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+      .mini-cal-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:none;border:1px solid transparent;color:rgba(200,192,176,0.85);font-family:'Montserrat',sans-serif;font-size:0.68rem;border-radius:6px;cursor:pointer;transition:all 0.15s;}
+      .mini-cal-day:hover{border-color:rgba(201,160,90,0.4);}
+      .mini-cal-day.empty{visibility:hidden;cursor:default;}
+      .mini-cal-day.today{color:var(--gold-light);font-weight:700;}
+      .mini-cal-day.past{opacity:0.32;}
+      .mini-cal-day.selected{background:var(--gold);color:var(--navy-dark);font-weight:700;}
+      .mini-cal-clear{display:block;text-align:center;font-size:0.6rem;color:rgba(201,160,90,0.5);margin-top:0.4rem;cursor:pointer;text-decoration:underline;}
+      .mini-cal-clear:hover{color:var(--gold);}
+
       .project-card.mobile-expanded .project-mobile-open{display:block;grid-column:1 / -1;margin-top:8px;padding-top:8px;border-top:1px solid rgba(201,160,90,0.08);font-size:0.66rem;font-weight:600;letter-spacing:0.06em;color:var(--gold-light);text-align:center;cursor:pointer;}
       .project-card.mobile-expanded .project-mobile-open:hover{color:var(--gold);}
 
@@ -924,9 +942,19 @@
                 <button type="button" class="btn-add-mini" onclick="addNote('${safecode}','mobile')">Save</button>
               </div>
               <span class="mini-form-status" id="mobileNoteFormStatus-${safecode}"></span>
-              <div class="mini-form-row quick-add-form" id="quickAddTaskForm-${safecode}">
+              <div class="mini-form-row quick-add-form quick-add-task-form" id="quickAddTaskForm-${safecode}">
                 <input type="text" id="mobileTaskTitle-${safecode}" placeholder="Task — e.g. Order tile samples" />
-                <input type="date" id="mobileTaskDue-${safecode}" title="Due date" />
+                <input type="hidden" id="mobileTaskDue-${safecode}" />
+                <div class="mini-calendar" id="miniCal-${safecode}">
+                  <div class="mini-cal-header">
+                    <button type="button" class="mini-cal-nav" onclick="shiftMiniCalendar('${safecode}',-1)">&lsaquo;</button>
+                    <span class="mini-cal-label" id="miniCalLabel-${safecode}"></span>
+                    <button type="button" class="mini-cal-nav" onclick="shiftMiniCalendar('${safecode}',1)">&rsaquo;</button>
+                  </div>
+                  <div class="mini-cal-weekdays"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
+                  <div class="mini-cal-days" id="miniCalDays-${safecode}"></div>
+                  <span class="mini-cal-clear" id="miniCalClear-${safecode}" onclick="clearMiniCalendar('${safecode}')" style="display:none;">Clear date</span>
+                </div>
                 <button type="button" class="btn-add-mini" onclick="addTask('${safecode}','mobile')">Save</button>
               </div>
               <span class="mini-form-status" id="mobileTaskFormStatus-${safecode}"></span>
@@ -1433,14 +1461,94 @@
       noteForm.classList.toggle('open');
       taskForm.classList.remove('open');
     } else {
+      const opening = !taskForm.classList.contains('open');
       taskForm.classList.toggle('open');
       noteForm.classList.remove('open');
+      if(opening) initMiniCalendar(safecode);
     }
   }
 
   function closeQuickAddForm(safecode, type){
     const form = document.getElementById((type === 'note' ? 'quickAddNoteForm-' : 'quickAddTaskForm-') + safecode);
     if(form) form.classList.remove('open');
+  }
+
+  // ── Always-visible inline month calendar for the mobile quick-add task due
+  // date, so picking a date doesn't require tapping into a native field first
+  // (which, on iOS, shows nothing until tapped and can look blank/broken). ──
+  const miniCalState = {};
+  const MINI_CAL_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  function initMiniCalendar(safecode){
+    if(!miniCalState[safecode]){
+      const today = new Date();
+      miniCalState[safecode] = { year: today.getFullYear(), month: today.getMonth(), selectedDate: null };
+    }
+    renderMiniCalendar(safecode);
+  }
+
+  function shiftMiniCalendar(safecode, direction){
+    const state = miniCalState[safecode];
+    if(!state) return;
+    state.month += direction;
+    if(state.month < 0){ state.month = 11; state.year--; }
+    else if(state.month > 11){ state.month = 0; state.year++; }
+    renderMiniCalendar(safecode);
+  }
+
+  function renderMiniCalendar(safecode){
+    const state = miniCalState[safecode];
+    const labelEl = document.getElementById('miniCalLabel-' + safecode);
+    const daysEl = document.getElementById('miniCalDays-' + safecode);
+    const clearEl = document.getElementById('miniCalClear-' + safecode);
+    if(!state || !labelEl || !daysEl) return;
+
+    labelEl.textContent = MINI_CAL_MONTHS[state.month] + ' ' + state.year;
+
+    const startDow = new Date(state.year, state.month, 1).getDay();
+    const daysInMonth = new Date(state.year, state.month + 1, 0).getDate();
+    const todayStr = new Date().toISOString().slice(0,10);
+
+    let html = '';
+    for(let i = 0; i < startDow; i++){
+      html += '<span class="mini-cal-day empty"></span>';
+    }
+    for(let d = 1; d <= daysInMonth; d++){
+      const iso = state.year + '-' + String(state.month + 1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+      const classes = ['mini-cal-day'];
+      if(iso === todayStr) classes.push('today');
+      if(iso < todayStr && iso !== state.selectedDate) classes.push('past');
+      if(iso === state.selectedDate) classes.push('selected');
+      html += `<button type="button" class="${classes.join(' ')}" onclick="selectMiniCalendarDay('${safecode}','${iso}')">${d}</button>`;
+    }
+    daysEl.innerHTML = html;
+    if(clearEl) clearEl.style.display = state.selectedDate ? 'block' : 'none';
+  }
+
+  function selectMiniCalendarDay(safecode, iso){
+    const state = miniCalState[safecode];
+    if(!state) return;
+    state.selectedDate = iso;
+    const dueEl = document.getElementById('mobileTaskDue-' + safecode);
+    if(dueEl) dueEl.value = iso;
+    renderMiniCalendar(safecode);
+  }
+
+  function clearMiniCalendar(safecode){
+    const state = miniCalState[safecode];
+    if(!state) return;
+    state.selectedDate = null;
+    const dueEl = document.getElementById('mobileTaskDue-' + safecode);
+    if(dueEl) dueEl.value = '';
+    renderMiniCalendar(safecode);
+  }
+
+  function resetMiniCalendar(safecode){
+    const today = new Date();
+    miniCalState[safecode] = { year: today.getFullYear(), month: today.getMonth(), selectedDate: null };
+    const dueEl = document.getElementById('mobileTaskDue-' + safecode);
+    if(dueEl) dueEl.value = '';
+    renderMiniCalendar(safecode);
   }
 
   function openProjectDetail(safecode, code){
@@ -2196,7 +2304,7 @@
       status.textContent = '✓ Added.'; status.className = 'mini-form-status ok';
       setTimeout(() => { status.textContent = ''; }, 2000);
       logCrmActivity(safecode, 'Added task: "' + title + '"');
-      if(isMobile) closeQuickAddForm(safecode, 'task');
+      if(isMobile){ closeQuickAddForm(safecode, 'task'); resetMiniCalendar(safecode); }
     }).catch(e => { status.textContent = 'Error: ' + e.message; status.className = 'mini-form-status err'; });
   }
 
