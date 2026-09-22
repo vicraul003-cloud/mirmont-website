@@ -134,6 +134,9 @@
     .project-chip.chip-empty{background:rgba(200,192,176,0.06);color:rgba(200,192,176,0.35);}
     .project-chip.chip-overdue{background:rgba(255,120,120,0.14);color:#ff9a9a;}
     .project-mobile-open{display:none;}
+    .project-quick-add{display:none;}
+    .project-quick-add .quick-add-form{display:none;}
+    .project-quick-add .quick-add-form.open{display:flex;}
     .phase-badge{font-size:0.58rem;font-weight:600;letter-spacing:0.1em;padding:2px 8px;border:1px solid rgba(201,160,90,0.2);color:rgba(201,160,90,0.45);}
     .phase-badge.active{border-color:var(--gold);color:var(--gold);}
     .phase-badge.inactive{opacity:0.3;text-decoration:line-through;}
@@ -402,7 +405,8 @@
           "name    chevron"
           "code    chevron"
           "chips   chips"
-          "notes   tasks";
+          "notes   tasks"
+          "quickadd quickadd";
         column-gap:0.8rem;
         row-gap:6px;
         padding:0.85rem 1rem;
@@ -420,6 +424,18 @@
       .project-notes-list::before{content:'Notes';font-size:0.54rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(201,160,90,0.5);margin-bottom:2px;}
       .project-tasks-list::before{content:'Tasks';font-size:0.54rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(201,160,90,0.5);margin-bottom:2px;}
       .project-card.mobile-expanded .project-expand-btn{transform:rotate(180deg);color:var(--gold);}
+
+      /* Quick-add note/task, only shown once the row is tapped open */
+      .project-quick-add{grid-area:quickadd;}
+      .project-card.mobile-expanded .project-quick-add{display:block;}
+      .quick-add-toggles{display:flex;gap:8px;}
+      .quick-add-btn{background:none;border:1px solid rgba(201,160,90,0.35);color:var(--gold-light);font-family:'Montserrat',sans-serif;font-size:0.6rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;padding:0.4rem 0.85rem;border-radius:20px;cursor:pointer;transition:all 0.2s;}
+      .quick-add-btn:hover,.quick-add-btn.active{background:rgba(201,160,90,0.12);border-color:var(--gold);color:var(--gold);}
+      .quick-add-form.open{flex-direction:column;gap:0.5rem;margin-top:0.6rem;}
+      .quick-add-form.open textarea{min-height:44px;}
+      .quick-add-form.open .btn-add-mini{align-self:flex-start;}
+      .project-quick-add .mini-form-status{margin-bottom:0;}
+
       .project-card.mobile-expanded .project-mobile-open{display:block;grid-column:1 / -1;margin-top:8px;padding-top:8px;border-top:1px solid rgba(201,160,90,0.08);font-size:0.66rem;font-weight:600;letter-spacing:0.06em;color:var(--gold-light);text-align:center;cursor:pointer;}
       .project-card.mobile-expanded .project-mobile-open:hover{color:var(--gold);}
 
@@ -898,6 +914,23 @@
             </div>
             <div class="project-notes-list" id="notesPreview-${safecode}"><span class="preview-empty">No notes</span></div>
             <div class="project-tasks-list" id="tasksPreview-${safecode}"><span class="preview-empty">No tasks</span></div>
+            <div class="project-quick-add" id="quickAdd-${safecode}" onclick="event.stopPropagation()">
+              <div class="quick-add-toggles">
+                <button type="button" class="quick-add-btn" onclick="toggleQuickAddForm('${safecode}','note')">+ Note</button>
+                <button type="button" class="quick-add-btn" onclick="toggleQuickAddForm('${safecode}','task')">+ Task</button>
+              </div>
+              <div class="mini-form-row quick-add-form" id="quickAddNoteForm-${safecode}">
+                <textarea id="mobileNoteText-${safecode}" placeholder="Add a note…"></textarea>
+                <button type="button" class="btn-add-mini" onclick="addNote('${safecode}','mobile')">Save</button>
+              </div>
+              <span class="mini-form-status" id="mobileNoteFormStatus-${safecode}"></span>
+              <div class="mini-form-row quick-add-form" id="quickAddTaskForm-${safecode}">
+                <input type="text" id="mobileTaskTitle-${safecode}" placeholder="Task — e.g. Order tile samples" />
+                <input type="date" id="mobileTaskDue-${safecode}" title="Due date" />
+                <button type="button" class="btn-add-mini" onclick="addTask('${safecode}','mobile')">Save</button>
+              </div>
+              <span class="mini-form-status" id="mobileTaskFormStatus-${safecode}"></span>
+            </div>
             <div class="project-mobile-open" onclick="event.stopPropagation(); openProjectDetail('${safecode}','${code}')">Open Full Project &rsaquo;</div>
             <button class="project-expand-btn" id="expbtn-${safecode}">&#8964;</button>
           </div>
@@ -1387,6 +1420,27 @@
     const card = document.getElementById('card-' + safecode);
     if(!card) return;
     card.classList.toggle('mobile-expanded');
+  }
+
+  // Quick-add note/task forms inside the mobile expanded row: tapping "+ Note"
+  // or "+ Task" reveals its small form (closing the other one), and a
+  // successful save closes it again via closeQuickAddForm.
+  function toggleQuickAddForm(safecode, type){
+    const noteForm = document.getElementById('quickAddNoteForm-' + safecode);
+    const taskForm = document.getElementById('quickAddTaskForm-' + safecode);
+    if(!noteForm || !taskForm) return;
+    if(type === 'note'){
+      noteForm.classList.toggle('open');
+      taskForm.classList.remove('open');
+    } else {
+      taskForm.classList.toggle('open');
+      noteForm.classList.remove('open');
+    }
+  }
+
+  function closeQuickAddForm(safecode, type){
+    const form = document.getElementById((type === 'note' ? 'quickAddNoteForm-' : 'quickAddTaskForm-') + safecode);
+    if(form) form.classList.remove('open');
   }
 
   function openProjectDetail(safecode, code){
@@ -2055,9 +2109,14 @@
       : '<div class="mini-empty">No notes yet.</div>';
   }
 
-  function addNote(safecode){
-    const textEl = document.getElementById('noteText-' + safecode);
-    const status = document.getElementById('noteFormStatus-' + safecode);
+  // mode === 'mobile' reads/writes the compact quick-add fields inside the
+  // mobile tap-to-expand row instead of the full project-detail form; both
+  // write to the same crmNotes data so they stay in sync everywhere.
+  function addNote(safecode, mode){
+    const isMobile = mode === 'mobile';
+    const textEl = document.getElementById((isMobile ? 'mobileNoteText-' : 'noteText-') + safecode);
+    const status = document.getElementById((isMobile ? 'mobileNoteFormStatus-' : 'noteFormStatus-') + safecode);
+    if(!textEl || !status) return;
     const text = textEl.value.trim();
     if(!text){ status.textContent = 'Note cannot be empty.'; status.className = 'mini-form-status err'; return; }
     status.textContent = 'Saving…'; status.className = 'mini-form-status';
@@ -2068,6 +2127,7 @@
         status.textContent = '✓ Added.'; status.className = 'mini-form-status ok';
         setTimeout(() => { status.textContent = ''; }, 2000);
         logCrmActivity(safecode, 'Added a note: "' + (text.length > 60 ? text.slice(0,60) + '…' : text) + '"');
+        if(isMobile) closeQuickAddForm(safecode, 'note');
       })
       .catch(e => { status.textContent = 'Error: ' + e.message; status.className = 'mini-form-status err'; });
   }
@@ -2115,22 +2175,28 @@
       : '<div class="mini-empty">No tasks yet.</div>';
   }
 
-  function addTask(safecode){
-    const titleEl = document.getElementById('taskTitle-' + safecode);
-    const dueEl = document.getElementById('taskDue-' + safecode);
-    const assigneeEl = document.getElementById('taskAssignee-' + safecode);
-    const status = document.getElementById('taskFormStatus-' + safecode);
+  // mode === 'mobile' reads/writes the compact quick-add fields inside the
+  // mobile tap-to-expand row (no assignee field there, kept short) instead
+  // of the full project-detail form; both write to the same crmTasks data.
+  function addTask(safecode, mode){
+    const isMobile = mode === 'mobile';
+    const titleEl = document.getElementById((isMobile ? 'mobileTaskTitle-' : 'taskTitle-') + safecode);
+    const dueEl = document.getElementById((isMobile ? 'mobileTaskDue-' : 'taskDue-') + safecode);
+    const assigneeEl = document.getElementById((isMobile ? 'mobileTaskAssignee-' : 'taskAssignee-') + safecode);
+    const status = document.getElementById((isMobile ? 'mobileTaskFormStatus-' : 'taskFormStatus-') + safecode);
+    if(!titleEl || !dueEl || !status) return;
     const title = titleEl.value.trim();
     if(!title){ status.textContent = 'Task title is required.'; status.className = 'mini-form-status err'; return; }
     status.textContent = 'Saving…'; status.className = 'mini-form-status';
     db.ref('projects/' + safecode + '/crmTasks').push({
-      title, dueDate: dueEl.value || null, assignee: assigneeEl.value.trim() || null,
+      title, dueDate: dueEl.value || null, assignee: (assigneeEl && assigneeEl.value.trim()) || null,
       done: false, ts: Date.now()
     }).then(() => {
-      titleEl.value = ''; dueEl.value = ''; assigneeEl.value = '';
+      titleEl.value = ''; dueEl.value = ''; if(assigneeEl) assigneeEl.value = '';
       status.textContent = '✓ Added.'; status.className = 'mini-form-status ok';
       setTimeout(() => { status.textContent = ''; }, 2000);
       logCrmActivity(safecode, 'Added task: "' + title + '"');
+      if(isMobile) closeQuickAddForm(safecode, 'task');
     }).catch(e => { status.textContent = 'Error: ' + e.message; status.className = 'mini-form-status err'; });
   }
 
