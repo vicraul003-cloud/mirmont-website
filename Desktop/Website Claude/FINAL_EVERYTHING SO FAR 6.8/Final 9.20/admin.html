@@ -128,6 +128,12 @@
     .tasks-preview-item.overdue .task-preview-check{color:#ff9a9a;}
     .preview-empty{font-size:0.68rem;color:rgba(200,192,176,0.3);font-style:italic;}
     .preview-more{font-size:0.6rem;color:rgba(201,160,90,0.5);font-style:italic;}
+    /* Mobile-only "tap to expand" summary chips + open-project link (hidden on desktop) */
+    .project-chips{display:none;}
+    .project-chip{font-size:0.6rem;font-weight:600;padding:3px 8px;border-radius:20px;background:rgba(201,160,90,0.1);color:rgba(219,185,122,0.85);white-space:nowrap;}
+    .project-chip.chip-empty{background:rgba(200,192,176,0.06);color:rgba(200,192,176,0.35);}
+    .project-chip.chip-overdue{background:rgba(255,120,120,0.14);color:#ff9a9a;}
+    .project-mobile-open{display:none;}
     .phase-badge{font-size:0.58rem;font-weight:600;letter-spacing:0.1em;padding:2px 8px;border:1px solid rgba(201,160,90,0.2);color:rgba(201,160,90,0.45);}
     .phase-badge.active{border-color:var(--gold);color:var(--gold);}
     .phase-badge.inactive{opacity:0.3;text-decoration:line-through;}
@@ -387,6 +393,36 @@
 
     /* ── Mobile: cleaner stat cards + rectangle section tabs ── */
     @media (max-width: 640px) {
+      /* ── PROJECT LIST: compact row + tap-to-expand notes/tasks ── */
+      .project-list-header{display:none;}
+      .project-row{
+        display:grid;
+        grid-template-columns:1fr auto;
+        grid-template-areas:
+          "name    chevron"
+          "code    chevron"
+          "chips   chips"
+          "notes   tasks";
+        column-gap:0.8rem;
+        row-gap:6px;
+        padding:0.85rem 1rem;
+      }
+      .project-code{grid-area:code;}
+      .project-name{grid-area:name;}
+      .project-expand-btn{grid-area:chevron;transition:transform 0.2s,color 0.2s;}
+      .project-chips{grid-area:chips;display:flex;gap:6px;flex-wrap:wrap;}
+      .project-notes-list{grid-area:notes;display:none;}
+      .project-tasks-list{grid-area:tasks;display:none;}
+      .project-card.mobile-expanded .project-notes-list,
+      .project-card.mobile-expanded .project-tasks-list{display:flex;}
+      .project-card.mobile-expanded .project-notes-list{padding-top:6px;border-top:1px solid rgba(201,160,90,0.08);}
+      .project-card.mobile-expanded .project-tasks-list{padding-top:6px;border-top:1px solid rgba(201,160,90,0.08);}
+      .project-notes-list::before{content:'Notes';font-size:0.54rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(201,160,90,0.5);margin-bottom:2px;}
+      .project-tasks-list::before{content:'Tasks';font-size:0.54rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(201,160,90,0.5);margin-bottom:2px;}
+      .project-card.mobile-expanded .project-expand-btn{transform:rotate(180deg);color:var(--gold);}
+      .project-card.mobile-expanded .project-mobile-open{display:block;grid-column:1 / -1;margin-top:8px;padding-top:8px;border-top:1px solid rgba(201,160,90,0.08);font-size:0.66rem;font-weight:600;letter-spacing:0.06em;color:var(--gold-light);text-align:center;cursor:pointer;}
+      .project-card.mobile-expanded .project-mobile-open:hover{color:var(--gold);}
+
       .project-stats-row{grid-template-columns:repeat(2,1fr);gap:0.6rem;}
       .project-stat-card{padding:0.75rem 0.8rem;min-height:82px;}
       .project-stat-card .stat-label{font-size:0.6rem;}
@@ -853,11 +889,16 @@
       const safecode = code.replace(/[^a-zA-Z0-9]/g,'_');
       return `
         <div class="project-card" id="card-${safecode}">
-          <div class="project-row" onclick="openProjectDetail('${safecode}','${code}')">
+          <div class="project-row" onclick="handleProjectRowClick(event,'${safecode}','${code}')">
             <span class="project-code">${code}</span>
             <span class="project-name">${name}<span class="crm-status-badge" id="crmBadge-${safecode}" style="display:none;"></span></span>
+            <div class="project-chips" id="projectChips-${safecode}">
+              <span class="project-chip chip-empty" id="notesChip-${safecode}">No notes</span>
+              <span class="project-chip chip-empty" id="tasksChip-${safecode}">No tasks</span>
+            </div>
             <div class="project-notes-list" id="notesPreview-${safecode}"><span class="preview-empty">No notes</span></div>
             <div class="project-tasks-list" id="tasksPreview-${safecode}"><span class="preview-empty">No tasks</span></div>
+            <div class="project-mobile-open" onclick="event.stopPropagation(); openProjectDetail('${safecode}','${code}')">Open Full Project &rsaquo;</div>
             <button class="project-expand-btn" id="expbtn-${safecode}">&#8964;</button>
           </div>
           <div class="project-edit" id="edit-${safecode}">
@@ -1180,6 +1221,8 @@
     if(!cache) return;
     const notesEl = document.getElementById('notesPreview-' + safecode);
     const tasksEl = document.getElementById('tasksPreview-' + safecode);
+    const notesChipEl = document.getElementById('notesChip-' + safecode);
+    const tasksChipEl = document.getElementById('tasksChip-' + safecode);
     if(!notesEl || !tasksEl) return;
 
     // Notes: newest first
@@ -1199,15 +1242,43 @@
       const ad = a.dueDate || '9999-99-99', bd = b.dueDate || '9999-99-99';
       return ad.localeCompare(bd);
     });
+    const todayStr = new Date().toISOString().slice(0,10);
     if(!taskEntries.length){
       tasksEl.innerHTML = '<span class="preview-empty">No tasks</span>';
     } else {
       const shown = taskEntries.slice(0, PREVIEW_MAX);
-      const todayStr = new Date().toISOString().slice(0,10);
       tasksEl.innerHTML = shown.map(t => {
         const overdue = !t.done && t.dueDate && t.dueDate < todayStr;
         return `<span class="tasks-preview-item ${t.done?'done':''} ${overdue?'overdue':''}"><span class="task-preview-check">${t.done ? '✓' : '○'}</span><span class="task-preview-title">${escHtml(truncateText(t.title, 46))}</span></span>`;
       }).join('') + (taskEntries.length > PREVIEW_MAX ? `<span class="preview-more">+${taskEntries.length - PREVIEW_MAX} more</span>` : '');
+    }
+
+    // Mobile-only summary chips ("2 notes", "1 overdue", etc.) shown on the
+    // collapsed row; the full lists above are revealed on tap.
+    if(notesChipEl){
+      if(!notes.length){
+        notesChipEl.textContent = 'No notes';
+        notesChipEl.className = 'project-chip chip-empty';
+      } else {
+        notesChipEl.textContent = notes.length + (notes.length === 1 ? ' note' : ' notes');
+        notesChipEl.className = 'project-chip';
+      }
+    }
+    if(tasksChipEl){
+      if(!taskEntries.length){
+        tasksChipEl.textContent = 'No tasks';
+        tasksChipEl.className = 'project-chip chip-empty';
+      } else {
+        const openTasks = taskEntries.filter(t => !t.done);
+        const overdueTasks = openTasks.filter(t => t.dueDate && t.dueDate < todayStr);
+        if(overdueTasks.length){
+          tasksChipEl.textContent = overdueTasks.length + (overdueTasks.length === 1 ? ' overdue' : ' overdue');
+          tasksChipEl.className = 'project-chip chip-overdue';
+        } else {
+          tasksChipEl.textContent = taskEntries.length + (taskEntries.length === 1 ? ' task' : ' tasks');
+          tasksChipEl.className = 'project-chip';
+        }
+      }
     }
   }
 
@@ -1296,6 +1367,26 @@
       renderExpenses(safecode, projFinCache[safecode].expenses);
     }
     listenProjectFinancials(safecode);
+  }
+
+  // On mobile, tapping a project row expands it in place to reveal the full
+  // notes/tasks lists instead of jumping straight into the full project view
+  // (the row is too narrow on a phone to show everything at once). Desktop
+  // keeps the original behavior of opening the full project immediately,
+  // since the columns already show everything there.
+  const MOBILE_BREAKPOINT = '(max-width: 640px)';
+  function handleProjectRowClick(evt, safecode, code){
+    if(window.matchMedia(MOBILE_BREAKPOINT).matches){
+      toggleMobileExpand(safecode);
+    } else {
+      openProjectDetail(safecode, code);
+    }
+  }
+
+  function toggleMobileExpand(safecode){
+    const card = document.getElementById('card-' + safecode);
+    if(!card) return;
+    card.classList.toggle('mobile-expanded');
   }
 
   function openProjectDetail(safecode, code){
