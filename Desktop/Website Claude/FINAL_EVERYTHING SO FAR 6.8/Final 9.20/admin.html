@@ -387,6 +387,17 @@
     .project-edit.light-theme .btn-save:hover{background:#7a4212;}
     .project-edit.light-theme .btn-delete{border-color:rgba(192,57,43,0.4);color:rgba(192,57,43,0.8);}
     .project-edit.light-theme .btn-delete:hover{background:rgba(192,57,43,0.08);color:#c0392b;}
+    .project-edit.light-theme .mini-calendar{background:#ffffff;border-color:rgba(122,66,18,0.2);}
+    .project-edit.light-theme .mini-cal-label{color:#7a4212;}
+    .project-edit.light-theme .mini-cal-nav{border-color:rgba(122,66,18,0.3);color:#b5651d;}
+    .project-edit.light-theme .mini-cal-nav:hover{background:rgba(122,66,18,0.08);border-color:#7a4212;}
+    .project-edit.light-theme .mini-cal-weekdays{color:rgba(122,66,18,0.45);}
+    .project-edit.light-theme .mini-cal-day{color:#1c232b;}
+    .project-edit.light-theme .mini-cal-day:hover{border-color:rgba(122,66,18,0.4);}
+    .project-edit.light-theme .mini-cal-day.today{color:#b5651d;}
+    .project-edit.light-theme .mini-cal-day.selected{background:#b5651d;color:#ffffff;}
+    .project-edit.light-theme .mini-cal-clear{color:rgba(122,66,18,0.5);}
+    .project-edit.light-theme .mini-cal-clear:hover{color:#7a4212;}
     .project-edit.light-theme .expense-trade-chip{border-color:rgba(122,66,18,0.2);color:#6b7480;}
     .project-edit.light-theme .expense-trade-chip b{color:#7a4212;}
     .project-edit.light-theme .mini-note-item{background:#ffffff;border:1px solid rgba(122,66,18,0.12);}
@@ -405,6 +416,24 @@
     .project-edit.light-theme .timeline-meta{color:rgba(107,116,128,0.7);}
 
     /* ── Mobile: cleaner stat cards + rectangle section tabs ── */
+    /* Always-visible inline month calendar for picking a task due date
+         (replaces the native date input, which needs a tap to reveal anything) */
+    .mini-calendar{background:var(--navy-dark);border:1px solid rgba(201,160,90,0.16);border-radius:8px;padding:0.6rem 0.65rem;width:100%;}
+    .mini-cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.45rem;}
+    .mini-cal-label{font-size:0.66rem;font-weight:600;letter-spacing:0.06em;color:var(--gold-light);}
+    .mini-cal-nav{background:none;border:1px solid rgba(201,160,90,0.3);color:var(--gold);width:1.5rem;height:1.5rem;border-radius:6px;font-size:0.8rem;line-height:1;cursor:pointer;transition:all 0.15s;}
+    .mini-cal-nav:hover{background:rgba(201,160,90,0.12);border-color:var(--gold);}
+    .mini-cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:0.56rem;font-weight:700;letter-spacing:0.04em;color:rgba(201,160,90,0.45);margin-bottom:0.25rem;}
+    .mini-cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+    .mini-cal-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:none;border:1px solid transparent;color:rgba(200,192,176,0.85);font-family:'Montserrat',sans-serif;font-size:0.68rem;border-radius:6px;cursor:pointer;transition:all 0.15s;}
+    .mini-cal-day:hover{border-color:rgba(201,160,90,0.4);}
+    .mini-cal-day.empty{visibility:hidden;cursor:default;}
+    .mini-cal-day.today{color:var(--gold-light);font-weight:700;}
+    .mini-cal-day.past{opacity:0.32;}
+    .mini-cal-day.selected{background:var(--gold);color:var(--navy-dark);font-weight:700;}
+    .mini-cal-clear{display:block;text-align:center;font-size:0.6rem;color:rgba(201,160,90,0.5);margin-top:0.4rem;cursor:pointer;text-decoration:underline;}
+    .mini-cal-clear:hover{color:var(--gold);}
+
     @media (max-width: 640px) {
       /* ── PROJECT LIST: compact row + tap-to-expand notes/tasks ── */
       .project-list-header{display:none;}
@@ -445,24 +474,6 @@
       .quick-add-form.open textarea{min-height:44px;}
       .quick-add-form.open .btn-add-mini{align-self:flex-start;}
       .project-quick-add .mini-form-status{margin-bottom:0;}
-
-      /* Always-visible inline month calendar for picking a task due date
-         (replaces the native date input, which needs a tap to reveal anything) */
-      .mini-calendar{background:var(--navy-dark);border:1px solid rgba(201,160,90,0.16);border-radius:8px;padding:0.6rem 0.65rem;width:100%;}
-      .mini-cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.45rem;}
-      .mini-cal-label{font-size:0.66rem;font-weight:600;letter-spacing:0.06em;color:var(--gold-light);}
-      .mini-cal-nav{background:none;border:1px solid rgba(201,160,90,0.3);color:var(--gold);width:1.5rem;height:1.5rem;border-radius:6px;font-size:0.8rem;line-height:1;cursor:pointer;transition:all 0.15s;}
-      .mini-cal-nav:hover{background:rgba(201,160,90,0.12);border-color:var(--gold);}
-      .mini-cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:0.56rem;font-weight:700;letter-spacing:0.04em;color:rgba(201,160,90,0.45);margin-bottom:0.25rem;}
-      .mini-cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
-      .mini-cal-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:none;border:1px solid transparent;color:rgba(200,192,176,0.85);font-family:'Montserrat',sans-serif;font-size:0.68rem;border-radius:6px;cursor:pointer;transition:all 0.15s;}
-      .mini-cal-day:hover{border-color:rgba(201,160,90,0.4);}
-      .mini-cal-day.empty{visibility:hidden;cursor:default;}
-      .mini-cal-day.today{color:var(--gold-light);font-weight:700;}
-      .mini-cal-day.past{opacity:0.32;}
-      .mini-cal-day.selected{background:var(--gold);color:var(--navy-dark);font-weight:700;}
-      .mini-cal-clear{display:block;text-align:center;font-size:0.6rem;color:rgba(201,160,90,0.5);margin-top:0.4rem;cursor:pointer;text-decoration:underline;}
-      .mini-cal-clear:hover{color:var(--gold);}
 
       .project-card.mobile-expanded .project-mobile-open{display:block;grid-column:1 / -1;margin-top:8px;padding-top:8px;border-top:1px solid rgba(201,160,90,0.08);font-size:0.66rem;font-weight:600;letter-spacing:0.06em;color:var(--gold-light);text-align:center;cursor:pointer;}
       .project-card.mobile-expanded .project-mobile-open:hover{color:var(--gold);}
@@ -1278,7 +1289,17 @@
               <span class="mini-section-label">Tasks</span>
               <div class="mini-form-row">
                 <input type="text" id="taskTitle-${safecode}" placeholder="Task — e.g. Order tile samples" />
-                <input type="date" id="taskDue-${safecode}" title="Due date" />
+                <input type="hidden" id="taskDue-${safecode}" />
+                <div class="mini-calendar" id="miniCal-main-${safecode}">
+                  <div class="mini-cal-header">
+                    <button type="button" class="mini-cal-nav" onclick="shiftMiniCalendar('${safecode}',-1,'main')">&lsaquo;</button>
+                    <span class="mini-cal-label" id="miniCalLabel-main-${safecode}"></span>
+                    <button type="button" class="mini-cal-nav" onclick="shiftMiniCalendar('${safecode}',1,'main')">&rsaquo;</button>
+                  </div>
+                  <div class="mini-cal-weekdays"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
+                  <div class="mini-cal-days" id="miniCalDays-main-${safecode}"></div>
+                  <span class="mini-cal-clear" id="miniCalClear-main-${safecode}" onclick="clearMiniCalendar('${safecode}','main')" style="display:none;">Clear date</span>
+                </div>
                 <select id="taskTime-${safecode}" title="Start time (optional) — leave blank for an all-day reminder">${timeOptionsHtml()}</select>
                 <select id="taskDuration-${safecode}" title="Duration">
                   <option value="30">30 min</option>
@@ -1632,34 +1653,50 @@
     if(form) form.classList.remove('open');
   }
 
-  // ── Always-visible inline month calendar for the mobile quick-add task due
-  // date, so picking a date doesn't require tapping into a native field first
-  // (which, on iOS, shows nothing until tapped and can look blank/broken). ──
+  // ── Always-visible inline month calendar for a task's due date, so picking
+  // a date doesn't require tapping into a native field first (which, on iOS,
+  // shows nothing until tapped and can look blank/broken). Used both by the
+  // mobile quick-add row (which='mobile', the default) and the full Project
+  // Details > Tasks form (which='main') — each project can have one of each
+  // in the DOM at once, so state and element ids are kept separate per kind. ──
   const miniCalState = {};
   const MINI_CAL_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-  function initMiniCalendar(safecode){
-    if(!miniCalState[safecode]){
-      const today = new Date();
-      miniCalState[safecode] = { year: today.getFullYear(), month: today.getMonth(), selectedDate: null };
-    }
-    renderMiniCalendar(safecode);
+  function miniCalStateKey(safecode, which){ return (which === 'main') ? (safecode + '__main') : safecode; }
+  function miniCalIds(safecode, which){
+    const suffix = (which === 'main') ? ('main-' + safecode) : safecode;
+    return {
+      label: 'miniCalLabel-' + suffix,
+      days: 'miniCalDays-' + suffix,
+      clear: 'miniCalClear-' + suffix,
+      due: (which === 'main' ? 'taskDue-' : 'mobileTaskDue-') + safecode
+    };
   }
 
-  function shiftMiniCalendar(safecode, direction){
-    const state = miniCalState[safecode];
+  function initMiniCalendar(safecode, which){
+    const key = miniCalStateKey(safecode, which);
+    if(!miniCalState[key]){
+      const today = new Date();
+      miniCalState[key] = { year: today.getFullYear(), month: today.getMonth(), selectedDate: null };
+    }
+    renderMiniCalendar(safecode, which);
+  }
+
+  function shiftMiniCalendar(safecode, direction, which){
+    const state = miniCalState[miniCalStateKey(safecode, which)];
     if(!state) return;
     state.month += direction;
     if(state.month < 0){ state.month = 11; state.year--; }
     else if(state.month > 11){ state.month = 0; state.year++; }
-    renderMiniCalendar(safecode);
+    renderMiniCalendar(safecode, which);
   }
 
-  function renderMiniCalendar(safecode){
-    const state = miniCalState[safecode];
-    const labelEl = document.getElementById('miniCalLabel-' + safecode);
-    const daysEl = document.getElementById('miniCalDays-' + safecode);
-    const clearEl = document.getElementById('miniCalClear-' + safecode);
+  function renderMiniCalendar(safecode, which){
+    const state = miniCalState[miniCalStateKey(safecode, which)];
+    const ids = miniCalIds(safecode, which);
+    const labelEl = document.getElementById(ids.label);
+    const daysEl = document.getElementById(ids.days);
+    const clearEl = document.getElementById(ids.clear);
     if(!state || !labelEl || !daysEl) return;
 
     labelEl.textContent = MINI_CAL_MONTHS[state.month] + ' ' + state.year;
@@ -1667,6 +1704,7 @@
     const startDow = new Date(state.year, state.month, 1).getDay();
     const daysInMonth = new Date(state.year, state.month + 1, 0).getDate();
     const todayStr = new Date().toISOString().slice(0,10);
+    const whichArg = which === 'main' ? ",'main'" : '';
 
     let html = '';
     for(let i = 0; i < startDow; i++){
@@ -1678,36 +1716,36 @@
       if(iso === todayStr) classes.push('today');
       if(iso < todayStr && iso !== state.selectedDate) classes.push('past');
       if(iso === state.selectedDate) classes.push('selected');
-      html += `<button type="button" class="${classes.join(' ')}" onclick="selectMiniCalendarDay('${safecode}','${iso}')">${d}</button>`;
+      html += `<button type="button" class="${classes.join(' ')}" onclick="selectMiniCalendarDay('${safecode}','${iso}'${whichArg})">${d}</button>`;
     }
     daysEl.innerHTML = html;
     if(clearEl) clearEl.style.display = state.selectedDate ? 'block' : 'none';
   }
 
-  function selectMiniCalendarDay(safecode, iso){
-    const state = miniCalState[safecode];
+  function selectMiniCalendarDay(safecode, iso, which){
+    const state = miniCalState[miniCalStateKey(safecode, which)];
     if(!state) return;
     state.selectedDate = iso;
-    const dueEl = document.getElementById('mobileTaskDue-' + safecode);
+    const dueEl = document.getElementById(miniCalIds(safecode, which).due);
     if(dueEl) dueEl.value = iso;
-    renderMiniCalendar(safecode);
+    renderMiniCalendar(safecode, which);
   }
 
-  function clearMiniCalendar(safecode){
-    const state = miniCalState[safecode];
+  function clearMiniCalendar(safecode, which){
+    const state = miniCalState[miniCalStateKey(safecode, which)];
     if(!state) return;
     state.selectedDate = null;
-    const dueEl = document.getElementById('mobileTaskDue-' + safecode);
+    const dueEl = document.getElementById(miniCalIds(safecode, which).due);
     if(dueEl) dueEl.value = '';
-    renderMiniCalendar(safecode);
+    renderMiniCalendar(safecode, which);
   }
 
-  function resetMiniCalendar(safecode){
+  function resetMiniCalendar(safecode, which){
     const today = new Date();
-    miniCalState[safecode] = { year: today.getFullYear(), month: today.getMonth(), selectedDate: null };
-    const dueEl = document.getElementById('mobileTaskDue-' + safecode);
+    miniCalState[miniCalStateKey(safecode, which)] = { year: today.getFullYear(), month: today.getMonth(), selectedDate: null };
+    const dueEl = document.getElementById(miniCalIds(safecode, which).due);
     if(dueEl) dueEl.value = '';
-    renderMiniCalendar(safecode);
+    renderMiniCalendar(safecode, which);
   }
 
   function openProjectDetail(safecode, code){
@@ -1750,6 +1788,10 @@
 
   function switchProjectTab(safecode, tabKey){
     const group = TAB_GROUP_OF[tabKey] || tabKey; // 'details' has no entry, falls back to itself
+
+    // The Tasks panel's due-date mini-calendar is lazy-initialized the first
+    // time this tab is actually opened (mirrors the mobile quick-add form).
+    if(tabKey === 'tasks') initMiniCalendar(safecode, 'main');
 
     const tabBar = document.getElementById('projectTabs-' + safecode);
     if(tabBar){
@@ -2536,6 +2578,7 @@
       logCrmActivity(safecode, 'Added task: "' + title + '"');
       if(dueDate) syncTaskToGoogleCalendar(safecode, taskKey, title, dueDate, getProjectLabel(safecode), getClientName(safecode), startTime, durationMinutes);
       if(isMobile){ closeQuickAddForm(safecode, 'task'); resetMiniCalendar(safecode); }
+      else { resetMiniCalendar(safecode, 'main'); }
     }).catch(e => { status.textContent = 'Error: ' + e.message; status.className = 'mini-form-status err'; });
   }
 
