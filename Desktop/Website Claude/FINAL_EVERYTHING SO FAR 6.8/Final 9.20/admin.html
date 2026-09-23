@@ -404,6 +404,7 @@
     .scope-cost-inputs input{width:3.4rem;font-family:'Montserrat',sans-serif;font-size:0.72rem;font-variant-numeric:tabular-nums;text-align:right;padding:0.3rem 0.35rem;border-radius:5px;border:1px solid rgba(201,160,90,0.18);background:var(--navy-mid);color:var(--white);}
     .scope-cost-inputs input:focus{outline:none;border-color:rgba(201,160,90,0.5);}
     .scope-row-cost{flex:none;width:5.2rem;text-align:right;font-size:0.74rem;font-weight:700;font-variant-numeric:tabular-nums;color:var(--green);}
+    .scope-avg-tag{font-size:0.56rem;font-style:italic;color:var(--text-light);white-space:nowrap;flex:none;margin-right:0.3rem;}
     .scope-stat-cost{border-left-color:var(--green);}
     .scope-stat-cost .scope-stat-v{color:var(--green);}
 
@@ -432,6 +433,7 @@
     .project-edit.light-theme .scope-cost-label{color:#6b7480;}
     .project-edit.light-theme .scope-cost-inputs input{background:#f7f4ef;border-color:rgba(122,66,18,0.18);color:#1c232b;}
     .project-edit.light-theme .scope-row-cost{color:#1e8e3e;}
+    .project-edit.light-theme .scope-avg-tag{color:#6b7480;}
     .project-edit.light-theme .scope-stat-cost{border-left-color:#1e8e3e;}
     .project-edit.light-theme .scope-stat-cost .scope-stat-v{color:#1e8e3e;}
     .project-edit.light-theme .scope-export-preview{background:#1c232b;color:#f4efe4;border-color:rgba(122,66,18,0.18);}
@@ -928,6 +930,7 @@
       document.getElementById('adminUserLabel').textContent = user.email;
       buildPhaseToggles('newPhaseToggles', null); // all checked by default
       listenProjects();
+      computeGlobalScopeAverages();
       checkQboStatus();
       showQboRedirectNotice();
       checkGcalStatus();
@@ -1520,6 +1523,7 @@
                 <button type="button" class="scope-btn" onclick="expandAllScope('${safecode}')">Expand All</button>
                 <button type="button" class="scope-btn" onclick="collapseAllScope('${safecode}')">Collapse All</button>
                 <button type="button" class="scope-btn scope-btn-danger" onclick="clearAllScope('${safecode}')">Clear All</button>
+                <button type="button" class="scope-btn" title="Recalculate the Avg Mat./Avg Labor hints from all your projects' current data" onclick="refreshScopeAverages('${safecode}')">Refresh Averages</button>
               </div>
 
               <div class="scope-categories" id="scopeCategories-${safecode}"></div>
@@ -3108,6 +3112,75 @@
   const scopeNoteListeners = {};
   const scopeSaveTimers = {};
 
+  // safecode -> n/a; itemId -> { matAvg, matCount, laborAvg, laborCount }.
+  // Built once (on login) from every project's saved scopeOfWork data, so any
+  // project's checklist can show "what this item has historically cost you /
+  // your customers" right next to the fields where you enter THIS job's rate.
+  let scopeAvgCache = {};
+
+  function computeGlobalScopeAverages(afterLoad){
+    db.ref('projects').once('value', snap => {
+      const all = snap.val() || {};
+      const sums = {};
+      Object.keys(all).forEach(safecode => {
+        const proj = all[safecode] || {};
+        const items = (proj.scopeOfWork && proj.scopeOfWork.items) || {};
+        Object.keys(items).forEach(id => {
+          const it = items[id] || {};
+          if(!sums[id]) sums[id] = { matSum: 0, matCount: 0, laborSum: 0, laborCount: 0 };
+          const mat = parseFloat(it.material);
+          if(isFinite(mat) && mat > 0){ sums[id].matSum += mat; sums[id].matCount++; }
+          const lab = parseFloat(it.labor);
+          if(isFinite(lab) && lab > 0){ sums[id].laborSum += lab; sums[id].laborCount++; }
+        });
+      });
+      const avgs = {};
+      Object.keys(sums).forEach(id => {
+        const s2 = sums[id];
+        avgs[id] = {
+          matAvg: s2.matCount ? s2.matSum / s2.matCount : null,
+          matCount: s2.matCount,
+          laborAvg: s2.laborCount ? s2.laborSum / s2.laborCount : null,
+          laborCount: s2.laborCount
+        };
+      });
+      scopeAvgCache = avgs;
+      applyScopeAveragesToDom();
+      if(typeof afterLoad === 'function') afterLoad();
+    }).catch(e => console.error('Scope averages load failed:', e.message));
+  }
+
+  function applyScopeAveragesToDom(){
+    document.querySelectorAll('[data-scope-avg-mat-for]').forEach(el => {
+      const id = el.getAttribute('data-scope-avg-mat-for');
+      const a = scopeAvgCache[id];
+      if(a && a.matCount){
+        el.textContent = 'avg ' + formatMoney(a.matAvg);
+        el.title = 'Average material rate from ' + a.matCount + ' project' + (a.matCount === 1 ? '' : 's');
+        el.style.display = '';
+      } else {
+        el.textContent = '';
+        el.style.display = 'none';
+      }
+    });
+    document.querySelectorAll('[data-scope-avg-labor-for]').forEach(el => {
+      const id = el.getAttribute('data-scope-avg-labor-for');
+      const a = scopeAvgCache[id];
+      if(a && a.laborCount){
+        el.textContent = 'avg ' + formatMoney(a.laborAvg);
+        el.title = 'Average labor rate from ' + a.laborCount + ' project' + (a.laborCount === 1 ? '' : 's');
+        el.style.display = '';
+      } else {
+        el.textContent = '';
+        el.style.display = 'none';
+      }
+    });
+  }
+
+  function refreshScopeAverages(safecode){
+    computeGlobalScopeAverages(() => renderScopeCategories(safecode));
+  }
+
   function scopeItemState(safecode, id){
     const proj = scopeState[safecode] || (scopeState[safecode] = {});
     return proj[id] || (proj[id] = { checked: true, sqft: '', linft: '', count: '', material: '', labor: '' });
@@ -3137,12 +3210,17 @@
         inputsHtml = '<div class="scope-qty-inputs"><input type="number" min="0" step="1" placeholder="qty" data-scope-id="' + item.id + '" data-scope-field="count" value="' + escHtml(st.count) + '" oninput="handleScopeInput(\'' + safecode + '\',this)"></div>';
       }
       const unitNoun = item.unit === 'sqft' ? 'sq ft' : (item.unit === 'linft' ? 'lin ft' : 'each');
+      const avgData = scopeAvgCache[item.id];
+      const matAvgText = (avgData && avgData.matCount) ? ('avg ' + formatMoney(avgData.matAvg)) : '';
+      const laborAvgText = (avgData && avgData.laborCount) ? ('avg ' + formatMoney(avgData.laborAvg)) : '';
       const costInputsHtml =
         '<div class="scope-cost-inputs">' +
           '<span class="scope-cost-label">Mat.</span>' +
           '<input type="number" min="0" step="0.01" placeholder="0" title="Material cost per ' + unitNoun + ' &mdash; multiplied by the quantity above" data-scope-id="' + item.id + '" data-scope-field="material" value="' + escHtml(st.material) + '" oninput="handleScopeInput(\'' + safecode + '\',this)">' +
+          '<span class="scope-avg-tag" data-scope-avg-mat-for="' + item.id + '" title="Average material rate for this item across your projects"' + (matAvgText ? '' : ' style="display:none;"') + '>' + matAvgText + '</span>' +
           '<span class="scope-cost-label">Labor</span>' +
           '<input type="number" min="0" step="0.01" placeholder="0" title="Labor cost per ' + unitNoun + ' &mdash; multiplied by the quantity above" data-scope-id="' + item.id + '" data-scope-field="labor" value="' + escHtml(st.labor) + '" oninput="handleScopeInput(\'' + safecode + '\',this)">' +
+          '<span class="scope-avg-tag" data-scope-avg-labor-for="' + item.id + '" title="Average labor rate for this item across your projects"' + (laborAvgText ? '' : ' style="display:none;"') + '>' + laborAvgText + '</span>' +
         '</div>';
 
       return (
