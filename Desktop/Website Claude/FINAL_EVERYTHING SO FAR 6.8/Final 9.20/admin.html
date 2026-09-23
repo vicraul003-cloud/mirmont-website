@@ -175,6 +175,9 @@
     .permit-field-wrap{position:relative;}
     .permit-checklist-btn{position:absolute;right:0.5rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1.1rem;line-height:1;color:rgba(181,101,29,0.7);padding:0.15rem 0.3rem;}
     .permit-checklist-btn:hover{color:#7a4212;}
+    .location-map-btn{position:absolute;right:0.4rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem;line-height:1;color:rgba(181,101,29,0.7);padding:0.15rem 0.3rem;display:none;text-decoration:none;}
+    .location-map-btn.show{display:inline-block;}
+    .location-map-btn:hover{color:#7a4212;}
     .permit-modal-overlay{display:none;position:fixed;inset:0;background:rgba(20,20,20,0.55);z-index:200;align-items:center;justify-content:center;padding:1.5rem;}
     .permit-modal-overlay.open{display:flex;}
     .permit-modal{background:#ffffff;color:#1c232b;font-family:'IBM Plex Sans',sans-serif;width:100%;max-width:440px;max-height:85vh;display:flex;flex-direction:column;border:1px solid rgba(122,66,18,0.18);box-shadow:0 10px 40px rgba(0,0,0,0.25);}
@@ -1204,8 +1207,9 @@
               <div class="edit-field">
                 <label>Project Location</label>
                 <div class="location-field-wrap">
-                  <input type="text" id="editLocation-${safecode}" placeholder="e.g. 123 Main St, Land O' Lakes" onblur="autoSaveLocation('${safecode}')" style="padding-right:2.2rem;" />
-                  <span class="location-saved-check" id="locationSavedCheck-${safecode}">&#10003;</span>
+                  <input type="text" id="editLocation-${safecode}" placeholder="e.g. 123 Main St, Land O' Lakes" onblur="autoSaveLocation('${safecode}')" oninput="toggleLocationMapBtn('${safecode}')" style="padding-right:4.4rem;" />
+                  <span class="location-saved-check" id="locationSavedCheck-${safecode}" style="right:2.3rem;">&#10003;</span>
+                  <button type="button" class="location-map-btn" id="locationMapBtn-${safecode}" onclick="openLocationInMaps('${safecode}')" title="Open in Maps">&#128205;</button>
                 </div>
               </div>
               <div class="edit-field">
@@ -2075,7 +2079,26 @@
     db.ref('projects/' + safecode + '/location').once('value', snap => {
       const locEl = document.getElementById('editLocation-' + safecode);
       if(locEl) locEl.value = snap.val() || '';
+      toggleLocationMapBtn(safecode);
     });
+  }
+
+  function toggleLocationMapBtn(safecode){
+    const locEl = document.getElementById('editLocation-' + safecode);
+    const btn = document.getElementById('locationMapBtn-' + safecode);
+    if(!locEl || !btn) return;
+    btn.classList.toggle('show', locEl.value.trim().length > 0);
+  }
+
+  // Opens the saved address in Apple Maps — a maps.apple.com link is a
+  // recognized universal link on iOS/macOS, so tapping it hands off
+  // straight to the native Maps app instead of just showing a web page.
+  function openLocationInMaps(safecode){
+    const locEl = document.getElementById('editLocation-' + safecode);
+    if(!locEl) return;
+    const address = locEl.value.trim();
+    if(!address) return;
+    window.open('https://maps.apple.com/?q=' + encodeURIComponent(address), '_blank');
   }
 
   // Autosaves the Project Location field on blur, independent of the
