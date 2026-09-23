@@ -1099,7 +1099,7 @@
               </div>
               <div class="edit-field">
                 <label>Project Location</label>
-                <input type="text" id="editLocation-${safecode}" placeholder="e.g. 123 Main St, Land O' Lakes" />
+                <input type="text" id="editLocation-${safecode}" placeholder="e.g. 123 Main St, Land O' Lakes" onblur="autoSaveLocation('${safecode}')" />
               </div>
             </div>
 
@@ -1914,6 +1914,32 @@
       const locEl = document.getElementById('editLocation-' + safecode);
       if(locEl) locEl.value = snap.val() || '';
     });
+  }
+
+  // Autosaves the Project Location field on blur, independent of the
+  // "Save Changes" button (which still also saves it, harmlessly redundant,
+  // as a fallback in case blur didn't fire for some reason).
+  let locationSaveTimers = {};
+  function autoSaveLocation(safecode){
+    const locEl = document.getElementById('editLocation-' + safecode);
+    const status = document.getElementById('editStatus-' + safecode);
+    if(!locEl) return;
+    const value = locEl.value.trim();
+
+    clearTimeout(locationSaveTimers[safecode]);
+    locationSaveTimers[safecode] = setTimeout(() => {
+      db.ref('projects/' + safecode + '/location').set(value || null)
+        .then(() => {
+          if(status){
+            status.textContent = '✓ Location saved.';
+            status.className = 'edit-status ok';
+            setTimeout(() => { status.textContent = ''; status.className = 'edit-status'; }, 2000);
+          }
+        })
+        .catch(e => {
+          if(status){ status.textContent = 'Error saving location: ' + e.message; status.className = 'edit-status err'; }
+        });
+    }, 300);
   }
 
   function loadProjectDetailsFields(safecode){
