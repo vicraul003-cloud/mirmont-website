@@ -1,8 +1,9 @@
-// POST /api/gcal/create-event — creates an all-day event on the connected
-// Google account's primary calendar for a CRM task's due date. Called by
-// admin.html right after a task with a due date is saved.
+// POST /api/gcal/create-event — creates an event on the connected Google
+// account's primary calendar for a CRM task's due date: an all-day event by
+// default, or a timed event occupying a real block on the calendar when a
+// start time is given. Called by admin.html right after a task is saved.
 //
-// Body: { title: string, date: 'YYYY-MM-DD', notes?: string, location?: string }
+// Body: { title: string, date: 'YYYY-MM-DD', notes?: string, location?: string, startTime?: 'HH:MM', durationMinutes?: number }
 // Response: { eventId: string } on success
 
 import {
@@ -27,6 +28,11 @@ export async function onRequestPost(context) {
   const date = (body.date || '').trim();
   const notes = (body.notes || '').trim();
   const location = (body.location || '').trim();
+  const rawStartTime = (body.startTime || '').trim();
+  const startTime = /^\d{2}:\d{2}$/.test(rawStartTime) ? rawStartTime : null;
+  const durationMinutes = startTime
+    ? Math.min(Math.max(parseInt(body.durationMinutes, 10) || 60, 15), 480)
+    : null;
 
   if (!title) return jsonResponse({ error: 'missing_title' }, 400);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return jsonResponse({ error: 'invalid_date' }, 400);
@@ -41,7 +47,7 @@ export async function onRequestPost(context) {
   }
 
   try {
-    const event = await createCalendarEvent(tokens, { title, date, notes, location });
+    const event = await createCalendarEvent(tokens, { title, date, notes, location, startTime, durationMinutes });
     return jsonResponse({ eventId: event.id });
   } catch (e) {
     return jsonResponse({ error: 'create_failed', detail: e.message }, 502);

@@ -117,22 +117,39 @@ export async function getValidTokens(env) {
 // Creates an all-day event on the connected account's primary calendar.
 // `date` is a 'YYYY-MM-DD' string; Google's all-day events use an exclusive
 // end date, so end = date + 1 day.
-export async function createCalendarEvent(tokens, { title, date, notes, location }) {
-  const start = date;
-  const end = addOneDay(date);
+// The timezone used to interpret startTime/durationMinutes for timed events.
+// Mirmont operates in the Tampa Bay area, so this is fixed rather than
+// configurable — Google Calendar handles EST/EDT automatically for it.
+const EVENT_TIME_ZONE = 'America/New_York';
+
+export async function createCalendarEvent(tokens, { title, date, notes, location, startTime, durationMinutes }) {
+  const eventBody = {
+    summary: title,
+    description: notes || undefined,
+    location: location || undefined
+  };
+
+  if (startTime) {
+    // Timed event: a specific start time was given, so this occupies a real
+    // block on the calendar (e.g. a site visit at 2pm) instead of floating
+    // as an all-day reminder.
+    const duration = (durationMinutes && durationMinutes > 0) ? durationMinutes : 60;
+    const end = addMinutesToDateTime(date, startTime, duration);
+    eventBody.start = { dateTime: date + 'T' + startTime + ':00', timeZone: EVENT_TIME_ZONE };
+    eventBody.end = { dateTime: end.date + 'T' + end.time + ':00', timeZone: EVENT_TIME_ZONE };
+  } else {
+    // No start time — keep the original all-day behavior.
+    eventBody.start = { date: date };
+    eventBody.end = { date: addOneDay(date) };
+  }
+
   const resp = await fetch(CALENDAR_API_BASE + '/calendars/primary/events', {
     method: 'POST',
     headers: {
       Authorization: 'Bearer ' + tokens.access_token,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({
-      summary: title,
-      description: notes || undefined,
-      location: location || undefined,
-      start: { date: start },
-      end: { date: end }
-    })
+    body: JSON.stringify(eventBody)
   });
   if (!resp.ok) {
     const text = await resp.text().catch(() => '');
@@ -159,6 +176,22 @@ function addOneDay(isoDate) {
   const dt = new Date(Date.UTC(y, m - 1, d));
   dt.setUTCDate(dt.getUTCDate() + 1);
   return dt.toISOString().slice(0, 10);
+}
+
+// Adds `minutes` to a YYYY-MM-DD date + HH:MM time, rolling over into the
+// next day correctly (e.g. an 11:30pm task lasting 2 hours ends 1:30am the
+// next day). Uses Date's UTC fields purely as neutral clock arithmetic —
+// the actual timezone interpretation happens via EVENT_TIME_ZONE above.
+function addMinutesToDateTime(isoDate, hhmm, minutes) {
+  const [y, m, d] = isoDate.split('-').map(Number);
+  const [hh, mm] = hhmm.split(':').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d, hh, mm, 0));
+  dt.setUTCMinutes(dt.getUTCMinutes() + minutes);
+  const pad = n => String(n).padStart(2, '0');
+  return {
+    date: dt.getUTCFullYear() + '-' + pad(dt.getUTCMonth() + 1) + '-' + pad(dt.getUTCDate()),
+    time: pad(dt.getUTCHours()) + ':' + pad(dt.getUTCMinutes())
+  };
 }
 
 export function jsonResponse(obj, status) {

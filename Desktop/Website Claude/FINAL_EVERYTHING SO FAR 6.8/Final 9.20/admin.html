@@ -302,7 +302,7 @@
 
     .mini-form-row textarea{background:var(--navy-dark);border:1px solid rgba(201,160,90,0.18);color:var(--white);font-family:'Montserrat',sans-serif;font-size:0.75rem;padding:0.55rem 0.7rem;outline:none;transition:border-color 0.2s;flex:1 1 100%;min-height:52px;resize:vertical;}
     .mini-form-row textarea:focus{border-color:rgba(201,160,90,0.5);}
-    .mini-form-row input[type="date"]{flex:0 1 150px;color-scheme:dark;}
+    .mini-form-row input[type="date"],.mini-form-row input[type="time"]{flex:0 1 130px;color-scheme:dark;}
 
     .mini-note-item{background:var(--navy-dark);border:1px solid rgba(201,160,90,0.1);padding:0.6rem 0.9rem;}
     .mini-note-text{font-size:0.78rem;color:var(--off-white);line-height:1.6;white-space:pre-wrap;}
@@ -957,7 +957,7 @@
   // Best-effort: the task itself is already saved in Firebase regardless of
   // whether these succeed, so failures here are silent rather than shown to
   // the user (a truly broken connection is already visible in the status bar).
-  async function syncTaskToGoogleCalendar(safecode, taskKey, title, dueDate, projectLabel, clientName){
+  async function syncTaskToGoogleCalendar(safecode, taskKey, title, dueDate, projectLabel, clientName, startTime, durationMinutes){
     try {
       // Title is always "Client Name — Task", regardless of location.
       const eventTitle = clientName ? (clientName + ' — ' + title) : title;
@@ -975,7 +975,10 @@
       const resp = await fetch('/api/gcal/create-event', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: eventTitle, date: dueDate, notes: projectLabel, location: locationValue })
+        body: JSON.stringify({
+          title: eventTitle, date: dueDate, notes: projectLabel, location: locationValue,
+          startTime: startTime || null, durationMinutes: durationMinutes || null
+        })
       });
       const data = await resp.json();
       if(data && data.eventId){
@@ -1085,6 +1088,15 @@
                   <div class="mini-cal-days" id="miniCalDays-${safecode}"></div>
                   <span class="mini-cal-clear" id="miniCalClear-${safecode}" onclick="clearMiniCalendar('${safecode}')" style="display:none;">Clear date</span>
                 </div>
+                <input type="time" id="mobileTaskTime-${safecode}" title="Start time (optional) — leave blank for an all-day reminder" />
+                <select id="mobileTaskDuration-${safecode}" title="Duration">
+                  <option value="30">30 min</option>
+                  <option value="60" selected>1 hour</option>
+                  <option value="90">1.5 hours</option>
+                  <option value="120">2 hours</option>
+                  <option value="180">3 hours</option>
+                  <option value="240">4 hours</option>
+                </select>
                 <button type="button" class="btn-add-mini" onclick="addTask('${safecode}','mobile')">Save</button>
               </div>
               <span class="mini-form-status" id="mobileTaskFormStatus-${safecode}"></span>
@@ -1267,6 +1279,15 @@
               <div class="mini-form-row">
                 <input type="text" id="taskTitle-${safecode}" placeholder="Task — e.g. Order tile samples" />
                 <input type="date" id="taskDue-${safecode}" title="Due date" />
+                <input type="time" id="taskTime-${safecode}" title="Start time (optional) — leave blank for an all-day reminder" />
+                <select id="taskDuration-${safecode}" title="Duration">
+                  <option value="30">30 min</option>
+                  <option value="60" selected>1 hour</option>
+                  <option value="90">1.5 hours</option>
+                  <option value="120">2 hours</option>
+                  <option value="180">3 hours</option>
+                  <option value="240">4 hours</option>
+                </select>
                 <input type="text" id="taskAssignee-${safecode}" placeholder="Assigned to" style="flex:0 1 130px;" />
                 <button class="btn-add-mini" onclick="addTask('${safecode}')">Add</button>
               </div>
@@ -2318,6 +2339,17 @@
     return `${m}/${d}/${y}`;
   }
 
+  // '14:30' -> '2:30 PM'
+  function formatTime12(timeStr){
+    if(!timeStr) return '';
+    const [hStr,mStr] = timeStr.split(':');
+    let h = parseInt(hStr,10);
+    const m = mStr || '00';
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12; if(h === 0) h = 12;
+    return `${h}:${m} ${ampm}`;
+  }
+
   function formatTs(ts){
     if(!ts) return '';
     const d = new Date(ts);
@@ -2448,7 +2480,7 @@
           <input type="checkbox" class="task-check" ${t.done?'checked':''} onchange="toggleTaskDone('${safecode}','${key}',this.checked)" />
           <div class="task-main">
             <span class="task-title">${escHtml(t.title)}</span>
-            ${t.dueDate ? `<span class="task-due ${overdue?'overdue':''}">${formatDate(t.dueDate)}</span>` : ''}
+            ${t.dueDate ? `<span class="task-due ${overdue?'overdue':''}">${formatDate(t.dueDate)}${t.startTime ? ' · ' + formatTime12(t.startTime) : ''}</span>` : ''}
             ${t.assignee ? `<span class="task-assignee">${escHtml(t.assignee)}</span>` : ''}
           </div>
           <button class="mini-delete" onclick="deleteTask('${safecode}','${key}')">Remove</button>
@@ -2465,23 +2497,30 @@
     const titleEl = document.getElementById((isMobile ? 'mobileTaskTitle-' : 'taskTitle-') + safecode);
     const dueEl = document.getElementById((isMobile ? 'mobileTaskDue-' : 'taskDue-') + safecode);
     const assigneeEl = document.getElementById((isMobile ? 'mobileTaskAssignee-' : 'taskAssignee-') + safecode);
+    const timeEl = document.getElementById((isMobile ? 'mobileTaskTime-' : 'taskTime-') + safecode);
+    const durationEl = document.getElementById((isMobile ? 'mobileTaskDuration-' : 'taskDuration-') + safecode);
     const status = document.getElementById((isMobile ? 'mobileTaskFormStatus-' : 'taskFormStatus-') + safecode);
     if(!titleEl || !dueEl || !status) return;
     const title = titleEl.value.trim();
     if(!title){ status.textContent = 'Task title is required.'; status.className = 'mini-form-status err'; return; }
     status.textContent = 'Saving…'; status.className = 'mini-form-status';
     const dueDate = dueEl.value || null;
+    // A start time only means something alongside a due date — no due date, no time block.
+    const startTime = (dueDate && timeEl && timeEl.value) ? timeEl.value : null;
+    const durationMinutes = startTime ? (parseInt((durationEl && durationEl.value), 10) || 60) : null;
     const taskRef = db.ref('projects/' + safecode + '/crmTasks').push({
-      title, dueDate, assignee: (assigneeEl && assigneeEl.value.trim()) || null,
+      title, dueDate, startTime, durationMinutes,
+      assignee: (assigneeEl && assigneeEl.value.trim()) || null,
       done: false, ts: Date.now()
     });
     const taskKey = taskRef.key;
     taskRef.then(() => {
       titleEl.value = ''; dueEl.value = ''; if(assigneeEl) assigneeEl.value = '';
+      if(timeEl) timeEl.value = ''; if(durationEl) durationEl.value = '60';
       status.textContent = '✓ Added.'; status.className = 'mini-form-status ok';
       setTimeout(() => { status.textContent = ''; }, 2000);
       logCrmActivity(safecode, 'Added task: "' + title + '"');
-      if(dueDate) syncTaskToGoogleCalendar(safecode, taskKey, title, dueDate, getProjectLabel(safecode), getClientName(safecode));
+      if(dueDate) syncTaskToGoogleCalendar(safecode, taskKey, title, dueDate, getProjectLabel(safecode), getClientName(safecode), startTime, durationMinutes);
       if(isMobile){ closeQuickAddForm(safecode, 'task'); resetMiniCalendar(safecode); }
     }).catch(e => { status.textContent = 'Error: ' + e.message; status.className = 'mini-form-status err'; });
   }
@@ -2500,7 +2539,7 @@
           } else if(!done && !t.gcalEventId && t.dueDate){
             // Reopened and still has a due date but no calendar event (removed when it
             // was completed) — put it back on the calendar.
-            syncTaskToGoogleCalendar(safecode, key, t.title, t.dueDate, getProjectLabel(safecode), getClientName(safecode));
+            syncTaskToGoogleCalendar(safecode, key, t.title, t.dueDate, getProjectLabel(safecode), getClientName(safecode), t.startTime, t.durationMinutes);
           }
         });
       })
