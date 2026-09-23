@@ -361,6 +361,67 @@
     .mini-note-meta{display:flex;justify-content:space-between;align-items:center;margin-top:0.35rem;gap:0.6rem;}
     .mini-note-meta span{font-size:0.6rem;color:rgba(200,192,176,0.4);letter-spacing:0.05em;}
 
+    .scope-divider{border-top:1px solid rgba(201,160,90,0.12);margin:1.1rem 0;}
+    .scope-summary{display:flex;flex-wrap:wrap;gap:0.6rem;align-items:center;position:relative;margin:0.9rem 0 0.8rem;}
+    .scope-stat{background:var(--navy-dark);border:1px solid rgba(201,160,90,0.14);border-left:3px solid var(--gold);border-radius:6px;padding:0.55rem 0.8rem;flex:1 1 140px;}
+    .scope-stat-k{display:block;font-size:0.56rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-light);margin-bottom:0.25rem;}
+    .scope-stat-v{font-family:'Montserrat',sans-serif;font-variant-numeric:tabular-nums;font-size:1.05rem;font-weight:700;color:var(--gold-light);}
+    .scope-saved-note{position:absolute;top:-1.05rem;right:0.1rem;font-size:0.6rem;font-weight:700;color:var(--green);opacity:0;transition:opacity 0.3s:pointer-events:none;}
+    .scope-saved-note.show{opacity:1;}
+
+    .scope-toolbar{display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;margin-bottom:0.8rem;}
+    .scope-search{flex:1;min-width:150px;font-family:'Montserrat',sans-serif;font-size:0.75rem;padding:0.5rem 0.75rem;border-radius:16px;border:1px solid rgba(201,160,90,0.18);background:var(--navy-dark);color:var(--white);outline:none;}
+    .scope-search:focus{border-color:rgba(201,160,90,0.5);}
+    .scope-btn{font-family:'Montserrat',sans-serif;font-size:0.6rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:0.5rem 0.8rem;border-radius:16px;border:1px solid rgba(201,160,90,0.22);background:transparent;color:var(--gold-light);cursor:pointer;white-space:nowrap;transition:border-color 0.2s,color 0.2s,background 0.2s;}
+    .scope-btn:hover{border-color:var(--gold);}
+    .scope-btn-danger{color:#e07070;}
+    .scope-btn.scope-copied{background:var(--green);border-color:var(--green);color:#fff;}
+
+    .scope-category{background:var(--navy-dark);border:1px solid rgba(201,160,90,0.1);border-radius:8px;margin-bottom:0.55rem;overflow:hidden;}
+    .scope-cat-head{display:flex;align-items:center;gap:0.6rem;padding:0.65rem 0.85rem;cursor:pointer;user-select:none;}
+    .scope-chev{font-size:0.62rem;color:var(--gold);transition:transform 0.18s;flex:none;}
+    .scope-category.scope-collapsed .scope-chev{transform:rotate(-90deg);}
+    .scope-cat-name{font-weight:700;font-size:0.72rem;letter-spacing:0.02em;color:var(--gold-light);flex:1;}
+    .scope-cat-subtotal{font-size:0.62rem;color:var(--text-light);font-variant-numeric:tabular-nums;text-align:right;}
+    .scope-cat-body{border-top:1px solid rgba(201,160,90,0.08);}
+    .scope-category.scope-collapsed .scope-cat-body{display:none;}
+
+    .scope-item-row{display:flex;align-items:center;gap:0.6rem;padding:0.5rem 0.85rem;border-bottom:1px solid rgba(201,160,90,0.06);flex-wrap:wrap;}
+    .scope-item-row:last-child{border-bottom:none;}
+    .scope-item-row.scope-excluded{opacity:0.42;}
+    .scope-item-row.scope-hidden{display:none;}
+    .scope-item-row input[type="checkbox"]{width:15px;height:15px;accent-color:var(--gold);flex:none;cursor:pointer;}
+    .scope-item-name{flex:1 1 160px;font-size:0.74rem;color:var(--white);min-width:120px;}
+    .scope-unit-badge{font-size:0.52rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--gold);border:1px solid rgba(201,160,90,0.22);border-radius:9px;padding:0.12rem 0.4rem;flex:none;}
+    .scope-qty-inputs{display:flex;align-items:center;gap:0.3rem;flex:none;}
+    .scope-qty-inputs input{width:4rem;font-family:'Montserrat',sans-serif;font-size:0.74rem;font-variant-numeric:tabular-nums;text-align:right;padding:0.3rem 0.4rem;border-radius:5px;border:1px solid rgba(201,160,90,0.18);background:var(--navy-mid);color:var(--white);}
+    .scope-qty-inputs input:focus{outline:none;border-color:rgba(201,160,90,0.5);}
+    .scope-x{color:var(--text-light);font-size:0.68rem;}
+    .scope-result{flex:none;width:5.6rem;text-align:right;font-size:0.74rem;font-weight:700;font-variant-numeric:tabular-nums;color:var(--gold-light);}
+
+    .scope-export{margin-top:1rem;}
+    .scope-export-preview{width:100%;min-height:8rem;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.7rem;line-height:1.5;background:var(--navy-dark);border:1px solid rgba(201,160,90,0.18);border-radius:6px;padding:0.7rem;color:var(--off-white);white-space:pre-wrap;resize:vertical;margin-top:0.5rem;}
+
+    .project-edit.light-theme .scope-divider{border-top-color:rgba(122,66,18,0.14);}
+    .project-edit.light-theme .scope-stat{background:#ffffff;border-color:rgba(122,66,18,0.14);border-left-color:#b5651d;}
+    .project-edit.light-theme .scope-stat-k{color:#6b7480;}
+    .project-edit.light-theme .scope-stat-v{color:#7a4212;}
+    .project-edit.light-theme .scope-search{background:#ffffff;border-color:rgba(122,66,18,0.2);color:#1c232b;}
+    .project-edit.light-theme .scope-btn{border-color:rgba(122,66,18,0.25);color:#7a4212;}
+    .project-edit.light-theme .scope-btn:hover{border-color:#b5651d;}
+    .project-edit.light-theme .scope-btn-danger{color:#c0392b;}
+    .project-edit.light-theme .scope-category{background:#ffffff;border-color:rgba(122,66,18,0.12);}
+    .project-edit.light-theme .scope-cat-name{color:#7a4212;}
+    .project-edit.light-theme .scope-cat-subtotal{color:#6b7480;}
+    .project-edit.light-theme .scope-cat-body{border-top-color:rgba(122,66,18,0.08);}
+    .project-edit.light-theme .scope-item-row{border-bottom-color:rgba(122,66,18,0.06);}
+    .project-edit.light-theme .scope-item-name{color:#1c232b;}
+    .project-edit.light-theme .scope-unit-badge{color:#b5651d;border-color:rgba(122,66,18,0.25);}
+    .project-edit.light-theme .scope-qty-inputs input{background:#f7f4ef;border-color:rgba(122,66,18,0.18);color:#1c232b;}
+    .project-edit.light-theme .scope-x{color:#6b7480;}
+    .project-edit.light-theme .scope-result{color:#7a4212;}
+    .project-edit.light-theme .scope-export-preview{background:#1c232b;color:#f4efe4;border-color:rgba(122,66,18,0.18);}
+
     .task-item{background:var(--navy-dark);border:1px solid rgba(201,160,90,0.1);padding:0.55rem 0.9rem;display:flex;align-items:center;gap:0.7rem;flex-wrap:wrap;}
     .task-item.done{opacity:0.5;}
     .task-check{width:16px;height:16px;accent-color:var(--gold);cursor:pointer;flex:0 0 auto;}
@@ -642,6 +703,13 @@
         border-color:#b5651d;
         border-bottom-color:#b5651d;
       }
+
+      .scope-summary{flex-direction:column;align-items:stretch;}
+      .scope-item-row{gap:0.5rem;}
+      .scope-item-name{flex:1 1 100%;}
+      .scope-result{width:auto;margin-left:auto;}
+      .scope-toolbar{gap:0.4rem;}
+      .scope-search{flex:1 1 100%;}
     }
   </style>
 </head>
@@ -1322,6 +1390,7 @@
               <button class="ptab-btn active" data-group="financials" onclick="switchProjectTab('${safecode}','deposits')">Financials</button>
               <button class="ptab-btn" data-group="activity" onclick="switchProjectTab('${safecode}','notes')">Client Activity</button>
               <button class="ptab-btn" data-group="files" onclick="switchProjectTab('${safecode}','documents')">Files &amp; Settings</button>
+              <button class="ptab-btn" data-group="scope" onclick="switchProjectTab('${safecode}','scope')">Scope of Work</button>
             </div>
 
             <div class="project-subtabs open" id="subtabs-financials-${safecode}">
@@ -1406,6 +1475,45 @@
               </div>
               <span class="mini-form-status" id="noteFormStatus-${safecode}"></span>
               <div class="mini-list" id="noteList-${safecode}"><div class="mini-empty">No notes yet.</div></div>
+            </div>
+
+            <div class="mini-section project-tab-panel" id="tabPanel-scope-${safecode}">
+              <span class="mini-section-label">Scope Notes</span>
+              <div class="mini-form-row">
+                <textarea id="scopeNoteText-${safecode}" placeholder="Add a scope note — e.g. client preference, site condition, decision made"></textarea>
+              </div>
+              <div class="mini-form-row" style="margin-top:-0.2rem;">
+                <button class="btn-add-mini" onclick="addScopeNote('${safecode}')">Add Note</button>
+              </div>
+              <span class="mini-form-status" id="scopeNoteFormStatus-${safecode}"></span>
+              <div class="mini-list" id="scopeNoteList-${safecode}"><div class="mini-empty">No scope notes yet.</div></div>
+
+              <div class="scope-divider"></div>
+
+              <span class="mini-section-label">Scope Checklist</span>
+              <div class="scope-summary">
+                <div class="scope-stat"><span class="scope-stat-k">Square Footage</span><span class="scope-stat-v" id="scopeSqft-${safecode}">0 sq ft</span></div>
+                <div class="scope-stat"><span class="scope-stat-k">Linear Footage</span><span class="scope-stat-v" id="scopeLinft-${safecode}">0 lin ft</span></div>
+                <div class="scope-stat"><span class="scope-stat-k">Fixtures / Items</span><span class="scope-stat-v" id="scopeCount-${safecode}">0</span></div>
+                <span class="scope-saved-note" id="scopeSavedNote-${safecode}">&#10003; Saved</span>
+              </div>
+
+              <div class="scope-toolbar">
+                <input type="search" class="scope-search" id="scopeSearch-${safecode}" placeholder="Search scope items&hellip;" oninput="applyScopeSearch('${safecode}')">
+                <button type="button" class="scope-btn" onclick="expandAllScope('${safecode}')">Expand All</button>
+                <button type="button" class="scope-btn" onclick="collapseAllScope('${safecode}')">Collapse All</button>
+                <button type="button" class="scope-btn scope-btn-danger" onclick="clearAllScope('${safecode}')">Clear All</button>
+              </div>
+
+              <div class="scope-categories" id="scopeCategories-${safecode}"></div>
+
+              <div class="scope-export">
+                <div class="mini-form-row">
+                  <button type="button" class="btn-add-mini" onclick="generateScopeSummary('${safecode}')">Generate Summary</button>
+                  <button type="button" class="scope-btn" id="scopeCopyBtn-${safecode}" onclick="copyScopeSummary('${safecode}')">Copy to Clipboard</button>
+                </div>
+                <textarea class="scope-export-preview" id="scopeExportPreview-${safecode}" readonly placeholder="Click &quot;Generate Summary&quot; to build the scope-of-work text from the checked items above."></textarea>
+              </div>
             </div>
 
             <div class="mini-section project-tab-panel" id="tabPanel-tasks-${safecode}">
@@ -1688,7 +1796,7 @@
   // DOM nodes and let them reattach to the fresh ones - Firebase re-fires
   // 'value' immediately on attach, so the new elements hydrate right away.
   function resetProjectListeners(safecode){
-    [docListeners, invoiceListeners, noteListeners, taskListeners, timelineListeners].forEach(store => {
+    [docListeners, invoiceListeners, noteListeners, taskListeners, timelineListeners, scopeNoteListeners].forEach(store => {
       if(store[safecode]){
         try { store[safecode].off(); } catch(e){}
         delete store[safecode];
@@ -1726,6 +1834,8 @@
     listenNotes(safecode);
     listenTasks(safecode);
     listenTimeline(safecode);
+    loadScopeOfWork(safecode);
+    listenScopeNotes(safecode);
     loadProjectDetailsFields(safecode);
     loadProjectLocationField(safecode);
     loadPermitNoField(safecode);
@@ -2872,6 +2982,414 @@
   function deleteNote(safecode, key){
     if(!confirm('Remove this note?')) return;
     db.ref('projects/' + safecode + '/crmNotes/' + key).remove()
+      .catch(e => alert('Delete failed: ' + e.message));
+  }
+
+  // ── SCOPE OF WORK (per project) ──
+  // One shared data table drives every project's scope-of-work checklist.
+  // unit ('sqft' | 'linft' | 'count') decides which quantity inputs render
+  // and how a row rolls into the three grand totals - it's also the seam a
+  // future material-takeoff pass will hang coverage rates off of.
+  const SCOPE_OF_WORK = [
+    { cat: "Demolition & Protection", items: [
+      { id: "demo_interior", name: "Interior demolition (existing finishes)", unit: "sqft" },
+      { id: "demo_dumpster", name: "Debris removal / dumpster", unit: "count" },
+      { id: "demo_protection", name: "Floor & surface protection", unit: "sqft" }
+    ]},
+    { cat: "Structural & Framing", items: [
+      { id: "struct_wall_removal", name: "Wall removal (non-load-bearing)", unit: "linft" },
+      { id: "struct_new_framing", name: "New wall framing", unit: "linft" },
+      { id: "struct_openings", name: "Door / window rough openings", unit: "count" },
+      { id: "struct_beam", name: "Structural beam / header install", unit: "count" }
+    ]},
+    { cat: "Plumbing", items: [
+      { id: "plumb_fixtures", name: "Fixture rough-in (sinks, tubs, toilets)", unit: "count" },
+      { id: "plumb_supply", name: "Supply line relocation / new", unit: "linft" },
+      { id: "plumb_dwv", name: "Drain / waste / vent line work", unit: "linft" },
+      { id: "plumb_waterheater", name: "Water heater", unit: "count" }
+    ]},
+    { cat: "Electrical", items: [
+      { id: "elec_outlets", name: "New outlets & switches", unit: "count" },
+      { id: "elec_lighting", name: "New light fixtures / recessed cans", unit: "count" },
+      { id: "elec_panel", name: "Panel upgrade / relocation", unit: "count" },
+      { id: "elec_circuits", name: "Dedicated circuits (appliances, etc.)", unit: "count" }
+    ]},
+    { cat: "HVAC", items: [
+      { id: "hvac_duct", name: "Duct modification / extension", unit: "linft" },
+      { id: "hvac_vents", name: "Supply / return vents", unit: "count" },
+      { id: "hvac_unit", name: "Mini-split or unit install", unit: "count" }
+    ]},
+    { cat: "Insulation", items: [
+      { id: "insul_wall", name: "Wall insulation", unit: "sqft" },
+      { id: "insul_attic", name: "Attic / ceiling insulation", unit: "sqft" }
+    ]},
+    { cat: "Drywall & Wall Prep", items: [
+      { id: "dry_wall", name: "Wall drywall", unit: "sqft" },
+      { id: "dry_ceiling", name: "Ceiling drywall", unit: "sqft" },
+      { id: "dry_skim", name: "Skim coat / texture", unit: "sqft" }
+    ]},
+    { cat: "Flooring", items: [
+      { id: "floor_tile", name: "Tile flooring", unit: "sqft" },
+      { id: "floor_wood", name: "Hardwood / LVP / laminate", unit: "sqft" },
+      { id: "floor_carpet", name: "Carpet", unit: "sqft" },
+      { id: "floor_transitions", name: "Transition strips / thresholds", unit: "count" }
+    ]},
+    { cat: "Kitchen", items: [
+      { id: "kit_cabinets", name: "Base & upper cabinets", unit: "linft" },
+      { id: "kit_counters", name: "Countertops", unit: "sqft" },
+      { id: "kit_backsplash", name: "Backsplash tile", unit: "sqft" },
+      { id: "kit_island", name: "Kitchen island", unit: "count" },
+      { id: "kit_appliances", name: "Appliance installs", unit: "count" },
+      { id: "kit_sink", name: "Kitchen sink & faucet", unit: "count" }
+    ]},
+    { cat: "Bathroom(s)", items: [
+      { id: "bath_vanity", name: "Vanity & countertop", unit: "count" },
+      { id: "bath_wall_tile", name: "Shower / tub wall tile", unit: "sqft" },
+      { id: "bath_pan", name: "Shower pan / tub install", unit: "count" },
+      { id: "bath_floor_tile", name: "Bathroom floor tile", unit: "sqft" },
+      { id: "bath_toilet", name: "Toilet", unit: "count" },
+      { id: "bath_glass", name: "Shower glass / enclosure", unit: "count" }
+    ]},
+    { cat: "Doors, Trim & Millwork", items: [
+      { id: "trim_doors", name: "Interior doors", unit: "count" },
+      { id: "trim_base", name: "Baseboard", unit: "linft" },
+      { id: "trim_casing", name: "Door & window casing", unit: "linft" },
+      { id: "trim_crown", name: "Crown molding", unit: "linft" }
+    ]},
+    { cat: "Paint & Wall Finishes", items: [
+      { id: "paint_walls", name: "Interior wall paint", unit: "sqft" },
+      { id: "paint_ceiling", name: "Ceiling paint", unit: "sqft" },
+      { id: "paint_trim", name: "Trim & door paint", unit: "linft" }
+    ]},
+    { cat: "Windows & Exterior Doors", items: [
+      { id: "win_windows", name: "Window replacement", unit: "count" },
+      { id: "win_extdoors", name: "Exterior door replacement", unit: "count" }
+    ]},
+    { cat: "Exterior & Sitework", items: [
+      { id: "ext_siding", name: "Siding", unit: "sqft" },
+      { id: "ext_roofing", name: "Roofing", unit: "sqft" },
+      { id: "ext_deck", name: "Deck / patio", unit: "sqft" }
+    ]},
+    { cat: "Fixtures, Hardware & Finishes", items: [
+      { id: "fix_plumbing", name: "Plumbing fixtures (faucets, showerheads)", unit: "count" },
+      { id: "fix_cabinet_hw", name: "Cabinet hardware", unit: "count" },
+      { id: "fix_door_hw", name: "Door hardware / hinges", unit: "count" },
+      { id: "fix_decorative", name: "Decorative light fixtures", unit: "count" }
+    ]},
+    { cat: "Final Clean & Punch List", items: [
+      { id: "final_clean", name: "Final construction clean", unit: "sqft" },
+      { id: "final_punch", name: "Punch list items", unit: "count" }
+    ]}
+  ];
+  const SCOPE_UNIT_LABEL = { sqft: "sq ft", linft: "lin ft", count: "each" };
+
+  // safecode -> { itemId: {checked,l,w,linft,count} }, hydrated once per
+  // project-detail open via loadScopeOfWork (same once()-then-edit pattern
+  // as loadProjectDetailsFields, so typing here never fights a live listener).
+  const scopeState = {};
+  const scopeNoteListeners = {};
+  const scopeSaveTimers = {};
+
+  function scopeItemState(safecode, id){
+    const proj = scopeState[safecode] || (scopeState[safecode] = {});
+    return proj[id] || (proj[id] = { checked: true, l: '', w: '', linft: '', count: '' });
+  }
+
+  function loadScopeOfWork(safecode){
+    db.ref('projects/' + safecode + '/scopeOfWork/items').once('value', snap => {
+      const data = snap.val() || {};
+      const proj = {};
+      Object.keys(data).forEach(id => {
+        proj[id] = Object.assign({ checked: true, l: '', w: '', linft: '', count: '' }, data[id]);
+      });
+      scopeState[safecode] = proj;
+      renderScopeCategories(safecode);
+    });
+  }
+
+  function buildScopeCategoryHtml(safecode, cat, idx){
+    const rows = cat.items.map(item => {
+      const st = scopeItemState(safecode, item.id);
+      let inputsHtml = '';
+      if(item.unit === 'sqft'){
+        inputsHtml =
+          '<div class="scope-qty-inputs">' +
+            '<input type="number" min="0" step="0.1" placeholder="L ft" data-scope-id="' + item.id + '" data-scope-field="l" value="' + escHtml(st.l) + '" oninput="handleScopeInput(\'' + safecode + '\',this)">' +
+            '<span class="scope-x">&times;</span>' +
+            '<input type="number" min="0" step="0.1" placeholder="W ft" data-scope-id="' + item.id + '" data-scope-field="w" value="' + escHtml(st.w) + '" oninput="handleScopeInput(\'' + safecode + '\',this)">' +
+          '</div>';
+      } else if(item.unit === 'linft'){
+        inputsHtml = '<div class="scope-qty-inputs"><input type="number" min="0" step="0.1" placeholder="lin ft" data-scope-id="' + item.id + '" data-scope-field="linft" value="' + escHtml(st.linft) + '" oninput="handleScopeInput(\'' + safecode + '\',this)"></div>';
+      } else {
+        inputsHtml = '<div class="scope-qty-inputs"><input type="number" min="0" step="1" placeholder="qty" data-scope-id="' + item.id + '" data-scope-field="count" value="' + escHtml(st.count) + '" oninput="handleScopeInput(\'' + safecode + '\',this)"></div>';
+      }
+      return (
+        '<div class="scope-item-row' + (st.checked ? '' : ' scope-excluded') + '" data-scope-row-id="' + item.id + '" data-scope-name="' + escHtml(item.name.toLowerCase()) + '">' +
+          '<input type="checkbox" data-scope-id="' + item.id + '" data-scope-field="checked" ' + (st.checked ? 'checked' : '') + ' onchange="handleScopeInput(\'' + safecode + '\',this)">' +
+          '<span class="scope-item-name">' + escHtml(item.name) + '</span>' +
+          '<span class="scope-unit-badge">' + SCOPE_UNIT_LABEL[item.unit] + '</span>' +
+          inputsHtml +
+          '<span class="scope-result" data-scope-result-for="' + item.id + '">&mdash;</span>' +
+        '</div>'
+      );
+    }).join('');
+
+    return (
+      '<div class="scope-category" data-scope-cat-idx="' + idx + '">' +
+        '<div class="scope-cat-head" onclick="toggleScopeCategory(\'' + safecode + '\',' + idx + ')">' +
+          '<span class="scope-chev">&#9660;</span>' +
+          '<span class="scope-cat-name">' + escHtml(cat.cat) + '</span>' +
+          '<span class="scope-cat-subtotal" data-scope-cat-subtotal="' + idx + '"></span>' +
+        '</div>' +
+        '<div class="scope-cat-body">' + rows + '</div>' +
+      '</div>'
+    );
+  }
+
+  function renderScopeCategories(safecode){
+    const container = document.getElementById('scopeCategories-' + safecode);
+    if(!container) return;
+    container.innerHTML = SCOPE_OF_WORK.map((cat, idx) => buildScopeCategoryHtml(safecode, cat, idx)).join('');
+    recalcScopeTotals(safecode);
+  }
+
+  function scopeRound1(n){ return Math.round(n * 10) / 10; }
+  function scopeFmt(n){ return (Math.round(n * 10) / 10).toLocaleString('en-US'); }
+
+  function computeScopeRow(safecode, item){
+    const st = scopeItemState(safecode, item.id);
+    if(item.unit === 'sqft'){
+      const l = parseFloat(st.l), w = parseFloat(st.w);
+      const val = (isFinite(l) && isFinite(w)) ? l * w : 0;
+      return { value: val, label: val ? (scopeRound1(val) + ' sq ft') : '—' };
+    }
+    if(item.unit === 'linft'){
+      const lf = parseFloat(st.linft);
+      const v2 = isFinite(lf) ? lf : 0;
+      return { value: v2, label: v2 ? (scopeRound1(v2) + ' lin ft') : '—' };
+    }
+    const c = parseFloat(st.count);
+    const v3 = isFinite(c) ? c : 0;
+    return { value: v3, label: v3 ? (v3 + ' each') : '—' };
+  }
+
+  function recalcScopeTotals(safecode){
+    const scope = document.getElementById('tabPanel-scope-' + safecode);
+    if(!scope) return;
+    let grandSqft = 0, grandLinft = 0, grandCount = 0;
+
+    SCOPE_OF_WORK.forEach((cat, idx) => {
+      let catSqft = 0, catLinft = 0, catCount = 0;
+      cat.items.forEach(item => {
+        const st = scopeItemState(safecode, item.id);
+        const r = computeScopeRow(safecode, item);
+        const resultEl = scope.querySelector('[data-scope-result-for="' + item.id + '"]');
+        if(resultEl) resultEl.textContent = r.label;
+        const rowEl = scope.querySelector('.scope-item-row[data-scope-row-id="' + item.id + '"]');
+        if(rowEl) rowEl.classList.toggle('scope-excluded', !st.checked);
+        if(st.checked){
+          if(item.unit === 'sqft') catSqft += r.value;
+          else if(item.unit === 'linft') catLinft += r.value;
+          else catCount += r.value;
+        }
+      });
+      grandSqft += catSqft; grandLinft += catLinft; grandCount += catCount;
+
+      const parts = [];
+      if(catSqft) parts.push(scopeFmt(catSqft) + ' sq ft');
+      if(catLinft) parts.push(scopeFmt(catLinft) + ' lin ft');
+      if(catCount) parts.push(scopeFmt(catCount) + ' each');
+      const subtotalEl = scope.querySelector('[data-scope-cat-subtotal="' + idx + '"]');
+      if(subtotalEl) subtotalEl.textContent = parts.join(' · ');
+    });
+
+    const sqftEl = document.getElementById('scopeSqft-' + safecode);
+    const linftEl = document.getElementById('scopeLinft-' + safecode);
+    const countEl = document.getElementById('scopeCount-' + safecode);
+    if(sqftEl) sqftEl.textContent = scopeFmt(grandSqft) + ' sq ft';
+    if(linftEl) linftEl.textContent = scopeFmt(grandLinft) + ' lin ft';
+    if(countEl) countEl.textContent = scopeFmt(grandCount);
+  }
+
+  function handleScopeInput(safecode, el){
+    const id = el.getAttribute('data-scope-id');
+    const field = el.getAttribute('data-scope-field');
+    if(!id || !field) return;
+    const st = scopeItemState(safecode, id);
+    if(field === 'checked') st.checked = el.checked;
+    else st[field] = el.value;
+    recalcScopeTotals(safecode);
+    clearTimeout(scopeSaveTimers[safecode + '__' + id]);
+    scopeSaveTimers[safecode + '__' + id] = setTimeout(() => saveScopeItem(safecode, id), 500);
+  }
+
+  function saveScopeItem(safecode, id){
+    const st = scopeItemState(safecode, id);
+    db.ref('projects/' + safecode + '/scopeOfWork/items/' + id).set(st)
+      .then(() => flashScopeSaved(safecode))
+      .catch(e => console.error('Scope of Work save failed:', e.message));
+  }
+
+  function flashScopeSaved(safecode){
+    const note = document.getElementById('scopeSavedNote-' + safecode);
+    if(!note) return;
+    note.classList.add('show');
+    clearTimeout(note._hideTimer);
+    note._hideTimer = setTimeout(() => note.classList.remove('show'), 1600);
+  }
+
+  function toggleScopeCategory(safecode, idx){
+    const catEl = document.querySelector('#tabPanel-scope-' + safecode + ' .scope-category[data-scope-cat-idx="' + idx + '"]');
+    if(catEl) catEl.classList.toggle('scope-collapsed');
+  }
+
+  function expandAllScope(safecode){
+    document.querySelectorAll('#tabPanel-scope-' + safecode + ' .scope-category').forEach(c => c.classList.remove('scope-collapsed'));
+  }
+
+  function collapseAllScope(safecode){
+    document.querySelectorAll('#tabPanel-scope-' + safecode + ' .scope-category').forEach(c => c.classList.add('scope-collapsed'));
+  }
+
+  function applyScopeSearch(safecode){
+    const searchEl = document.getElementById('scopeSearch-' + safecode);
+    const q = (searchEl ? searchEl.value : '').trim().toLowerCase();
+    document.querySelectorAll('#tabPanel-scope-' + safecode + ' .scope-item-row').forEach(row => {
+      const name = row.getAttribute('data-scope-name') || '';
+      row.classList.toggle('scope-hidden', q.length > 0 && name.indexOf(q) === -1);
+    });
+    document.querySelectorAll('#tabPanel-scope-' + safecode + ' .scope-category').forEach(catEl => {
+      if(!q){ catEl.style.display = ''; return; }
+      const anyVisible = Array.prototype.some.call(catEl.querySelectorAll('.scope-item-row'), row => !row.classList.contains('scope-hidden'));
+      catEl.style.display = anyVisible ? '' : 'none';
+      if(anyVisible) catEl.classList.remove('scope-collapsed');
+    });
+  }
+
+  function clearAllScope(safecode){
+    if(!confirm('Clear all scope of work items for this project? This cannot be undone.')) return;
+    scopeState[safecode] = {};
+    db.ref('projects/' + safecode + '/scopeOfWork/items').remove()
+      .then(() => {
+        renderScopeCategories(safecode);
+        const preview = document.getElementById('scopeExportPreview-' + safecode);
+        if(preview) preview.value = '';
+      })
+      .catch(e => alert('Clear failed: ' + e.message));
+  }
+
+  function generateScopeSummary(safecode){
+    const nameEl = document.getElementById('editName-' + safecode);
+    const name = (nameEl && nameEl.value.trim()) || 'Untitled Project';
+    const dateIso = new Date().toISOString().slice(0, 10);
+    const lines = [];
+    lines.push('MIRMONT CONSTRUCTION — SCOPE OF WORK');
+    lines.push(name);
+    lines.push('Date: ' + formatDate(dateIso));
+    lines.push('');
+
+    let grandSqft = 0, grandLinft = 0, grandCount = 0;
+
+    SCOPE_OF_WORK.forEach(cat => {
+      const rowLines = [];
+      cat.items.forEach(item => {
+        const st = scopeItemState(safecode, item.id);
+        if(!st.checked) return;
+        const r = computeScopeRow(safecode, item);
+        if(!r.value) return;
+        let detail = '';
+        if(item.unit === 'sqft'){
+          const l = parseFloat(st.l), w = parseFloat(st.w);
+          detail = (isFinite(l) && isFinite(w)) ? (' (' + scopeRound1(l) + '\' × ' + scopeRound1(w) + '\')') : '';
+          grandSqft += r.value;
+        } else if(item.unit === 'linft'){
+          grandLinft += r.value;
+        } else {
+          grandCount += r.value;
+        }
+        rowLines.push(' - ' + item.name + ': ' + r.label + detail);
+      });
+      if(rowLines.length){
+        lines.push(cat.cat.toUpperCase());
+        lines.push.apply(lines, rowLines);
+        lines.push('');
+      }
+    });
+
+    lines.push('PROJECT TOTALS');
+    lines.push(' Square footage: ' + scopeFmt(grandSqft) + ' sq ft');
+    lines.push(' Linear footage: ' + scopeFmt(grandLinft) + ' lin ft');
+    lines.push(' Fixtures / items: ' + scopeFmt(grandCount) + ' each');
+
+    const preview = document.getElementById('scopeExportPreview-' + safecode);
+    if(preview) preview.value = lines.join('\n');
+  }
+
+  function copyScopeSummary(safecode){
+    const ta = document.getElementById('scopeExportPreview-' + safecode);
+    if(!ta) return;
+    if(!ta.value.trim()) generateScopeSummary(safecode);
+    const text = ta.value;
+    const btn = document.getElementById('scopeCopyBtn-' + safecode);
+    function flashCopied(){
+      if(!btn) return;
+      const original = btn.textContent;
+      btn.textContent = 'Copied!';
+      btn.classList.add('scope-copied');
+      setTimeout(() => { btn.textContent = original; btn.classList.remove('scope-copied'); }, 1500);
+    }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(flashCopied).catch(() => { ta.focus(); ta.select(); });
+    } else {
+      ta.focus(); ta.select();
+    }
+  }
+
+  // ── SCOPE OF WORK: NOTES (per project, separate from the general Notes tab) ──
+  function listenScopeNotes(safecode){
+    if(scopeNoteListeners[safecode]) return;
+    const ref = db.ref('projects/' + safecode + '/scopeNotes');
+    ref.on('value', snap => renderScopeNotes(safecode, snap.val()));
+    scopeNoteListeners[safecode] = ref;
+  }
+
+  function renderScopeNotes(safecode, data){
+    const list = document.getElementById('scopeNoteList-' + safecode);
+    if(!list) return;
+    const entries = data ? Object.entries(data).sort((a, b) => (b[1].ts || 0) - (a[1].ts || 0)) : [];
+    list.innerHTML = entries.length
+      ? entries.map(([key, n]) => `
+        <div class="mini-note-item">
+          <div class="mini-note-text">${escHtml(n.text)}</div>
+          <div class="mini-note-meta">
+            <span>${escHtml(n.author || 'Admin')} · ${formatTs(n.ts)}</span>
+            <button class="mini-delete" onclick="deleteScopeNote('${safecode}','${key}')">Remove</button>
+          </div>
+        </div>`).join('')
+      : '<div class="mini-empty">No scope notes yet.</div>';
+  }
+
+  function addScopeNote(safecode){
+    const textEl = document.getElementById('scopeNoteText-' + safecode);
+    const status = document.getElementById('scopeNoteFormStatus-' + safecode);
+    if(!textEl || !status) return;
+    const text = textEl.value.trim();
+    if(!text){ status.textContent = 'Note cannot be empty.'; status.className = 'mini-form-status err'; return; }
+    status.textContent = 'Saving…'; status.className = 'mini-form-status';
+    const author = (auth.currentUser && auth.currentUser.email) || 'Admin';
+    db.ref('projects/' + safecode + '/scopeNotes').push({ text, ts: Date.now(), author })
+      .then(() => {
+        textEl.value = '';
+        status.textContent = '✓ Added.'; status.className = 'mini-form-status ok';
+        setTimeout(() => { status.textContent = ''; }, 2000);
+        logCrmActivity(safecode, 'Added a scope note: "' + (text.length > 60 ? text.slice(0, 60) + '…' : text) + '"');
+      })
+      .catch(e => { status.textContent = 'Error: ' + e.message; status.className = 'mini-form-status err'; });
+  }
+
+  function deleteScopeNote(safecode, key){
+    if(!confirm('Remove this scope note?')) return;
+    db.ref('projects/' + safecode + '/scopeNotes/' + key).remove()
       .catch(e => alert('Delete failed: ' + e.message));
   }
 
