@@ -1628,6 +1628,7 @@
               <select class="email-summary-select" id="emailReportType-${safecode}">
                 <option value="financial">Financial Overview</option>
                 <option value="status">Status, Notes &amp; Tasks</option>
+                <option value="scope">Scope of Work</option>
                 <option value="all" selected>Full Summary</option>
               </select>
               <button class="btn-email-summary" onclick="emailProjectSummary('${safecode}','${code}',document.getElementById('emailReportType-${safecode}').value)">Send</button>
@@ -3624,6 +3625,74 @@
     });
   }
 
+  function buildScopeOfWorkSummary(safecode){
+    return Promise.all([
+      fetchOnce('projects/' + safecode + '/scopeOfWork/items'),
+      fetchOnce('projects/' + safecode + '/scopeNotes')
+    ]).then(([items, notes]) => {
+      items = items || {};
+      const lines = ['SCOPE OF WORK', '-------------'];
+      let grandSqft = 0, grandLinft = 0, grandCount = 0;
+      let anyChecked = false;
+
+      SCOPE_OF_WORK.forEach(cat => {
+        const rowLines = [];
+        cat.items.forEach(item => {
+          const raw = items[item.id];
+          if(!raw || raw.checked === false) return;
+          let value = 0, label = '', detail = '';
+          if(item.unit === 'sqft'){
+            const l = parseFloat(raw.l), w = parseFloat(raw.w);
+            value = (isFinite(l) && isFinite(w)) ? l * w : 0;
+            if(!value) return;
+            label = scopeRound1(value) + ' sq ft';
+            detail = ' (' + scopeRound1(l) + '\' × ' + scopeRound1(w) + '\')';
+            grandSqft += value;
+          } else if(item.unit === 'linft'){
+            const lf = parseFloat(raw.linft);
+            value = isFinite(lf) ? lf : 0;
+            if(!value) return;
+            label = scopeRound1(value) + ' lin ft';
+            grandLinft += value;
+          } else {
+            const c = parseFloat(raw.count);
+            value = isFinite(c) ? c : 0;
+            if(!value) return;
+            label = value + ' each';
+            grandCount += value;
+          }
+          anyChecked = true;
+          rowLines.push(' - ' + item.name + ': ' + label + detail);
+        });
+        if(rowLines.length){
+          lines.push(cat.cat.toUpperCase());
+          lines.push.apply(lines, rowLines);
+          lines.push('');
+        }
+      });
+
+      if(!anyChecked){
+        lines.push('No scope of work items recorded yet.', '');
+      } else {
+        lines.push('TOTALS');
+        lines.push(' Square footage: ' + scopeFmt(grandSqft) + ' sq ft');
+        lines.push(' Linear footage: ' + scopeFmt(grandLinft) + ' lin ft');
+        lines.push(' Fixtures / items: ' + scopeFmt(grandCount) + ' each');
+        lines.push('');
+      }
+
+      lines.push('SCOPE NOTES', '-----------');
+      const noteEntries = notes ? Object.values(notes).sort((a, b) => (b.ts || 0) - (a.ts || 0)) : [];
+      if(noteEntries.length){
+        noteEntries.forEach(n => lines.push('- (' + formatTs(n.ts) + ' — ' + (n.author || 'Admin') + ') ' + (n.text || '')));
+      } else {
+        lines.push('No scope notes recorded.');
+      }
+
+      return lines.join('\n');
+    });
+  }
+
   function emailProjectSummary(safecode, code, type){
     const statusEl = document.getElementById('emailSummaryStatus-' + safecode);
     const buttons = document.querySelectorAll('#edit-' + safecode + ' .btn-email-summary');
@@ -3639,10 +3708,14 @@
     } else if(type === 'status'){
       sectionsPromise = buildStatusNotesTasksSummary(safecode).then(s => [s]);
       summaryLabel = 'Status, Notes & Tasks';
+    } else if(type === 'scope'){
+      sectionsPromise = buildScopeOfWorkSummary(safecode).then(s => [s]);
+      summaryLabel = 'Scope of Work';
     } else {
       sectionsPromise = Promise.all([
         buildFinancialSummary(safecode),
         buildStatusNotesTasksSummary(safecode),
+        buildScopeOfWorkSummary(safecode),
         buildDocumentsInvoicesSummary(safecode)
       ]);
       summaryLabel = 'Full Summary';
