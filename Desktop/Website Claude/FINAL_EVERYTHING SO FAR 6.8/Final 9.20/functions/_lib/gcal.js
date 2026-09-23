@@ -117,7 +117,7 @@ export async function getValidTokens(env) {
 // Creates an all-day event on the connected account's primary calendar.
 // `date` is a 'YYYY-MM-DD' string; Google's all-day events use an exclusive
 // end date, so end = date + 1 day.
-export async function createCalendarEvent(tokens, { title, date, notes }) {
+export async function createCalendarEvent(tokens, { title, date, notes, location }) {
   const start = date;
   const end = addOneDay(date);
   const resp = await fetch(CALENDAR_API_BASE + '/calendars/primary/events', {
@@ -129,6 +129,7 @@ export async function createCalendarEvent(tokens, { title, date, notes }) {
     body: JSON.stringify({
       summary: title,
       description: notes || undefined,
+      location: location || undefined,
       start: { date: start },
       end: { date: end }
     })

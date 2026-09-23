@@ -935,15 +935,25 @@
     return code + ' — ' + allProjects[code];
   }
 
+  // Just the client name (no project code) — used to prefix the calendar
+  // event title and fill its Location field, so which project a task
+  // belongs to is visible at a glance without opening the event.
+  function getClientName(safecode){
+    const code = Object.keys(allProjects).find(c => c.replace(/[^a-zA-Z0-9]/g,'_') === safecode);
+    if(!code) return '';
+    return allProjects[code] || '';
+  }
+
   // Best-effort: the task itself is already saved in Firebase regardless of
   // whether these succeed, so failures here are silent rather than shown to
   // the user (a truly broken connection is already visible in the status bar).
-  async function syncTaskToGoogleCalendar(safecode, taskKey, title, dueDate, projectLabel){
+  async function syncTaskToGoogleCalendar(safecode, taskKey, title, dueDate, projectLabel, clientName){
     try {
+      const eventTitle = clientName ? (clientName + ' — ' + title) : title;
       const resp = await fetch('/api/gcal/create-event', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, date: dueDate, notes: projectLabel })
+        body: JSON.stringify({ title: eventTitle, date: dueDate, notes: projectLabel, location: clientName || '' })
       });
       const data = await resp.json();
       if(data && data.eventId){
@@ -2405,7 +2415,7 @@
       status.textContent = '✓ Added.'; status.className = 'mini-form-status ok';
       setTimeout(() => { status.textContent = ''; }, 2000);
       logCrmActivity(safecode, 'Added task: "' + title + '"');
-      if(dueDate) syncTaskToGoogleCalendar(safecode, taskKey, title, dueDate, getProjectLabel(safecode));
+      if(dueDate) syncTaskToGoogleCalendar(safecode, taskKey, title, dueDate, getProjectLabel(safecode), getClientName(safecode));
       if(isMobile){ closeQuickAddForm(safecode, 'task'); resetMiniCalendar(safecode); }
     }).catch(e => { status.textContent = 'Error: ' + e.message; status.className = 'mini-form-status err'; });
   }
@@ -2424,7 +2434,7 @@
           } else if(!done && !t.gcalEventId && t.dueDate){
             // Reopened and still has a due date but no calendar event (removed when it
             // was completed) — put it back on the calendar.
-            syncTaskToGoogleCalendar(safecode, key, t.title, t.dueDate, getProjectLabel(safecode));
+            syncTaskToGoogleCalendar(safecode, key, t.title, t.dueDate, getProjectLabel(safecode), getClientName(safecode));
           }
         });
       })
