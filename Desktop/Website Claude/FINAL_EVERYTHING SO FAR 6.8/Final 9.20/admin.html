@@ -1281,7 +1281,7 @@
               </div>
               <div class="project-stat-card stat-card-value stat-card-edit">
                 <span class="stat-label">Total Project Value</span>
-                <input type="number" class="stat-value-input" id="projTotalValue-${safecode}" step="0.01" min="0" placeholder="0.00" onclick="event.stopPropagation();" onchange="saveProjectDetails('${safecode}')" />
+                <input type="text" inputmode="decimal" class="stat-value-input" id="projTotalValue-${safecode}" placeholder="$0.00" onclick="event.stopPropagation();" onfocus="event.stopPropagation();focusCurrencyInput(this);" onblur="saveProjectDetails('${safecode}')" />
                 <span class="stat-subtext" id="statValueAdjusted-${safecode}" style="display:none;"></span>
               </div>
               <div class="project-stat-card stat-card-paid" onclick="switchProjectTab('${safecode}','deposits')" title="Go to Deposits &amp; Payments">
@@ -2150,6 +2150,23 @@
     return '$' + num.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
   }
 
+  // The Total Project Value box shows a formatted "$7,000.00" while at rest
+  // (a native number input can't display that), so it's a text field that
+  // shows the raw digits while focused for easy typing, and reformats
+  // itself back to currency on blur (see saveProjectDetails).
+  function parseCurrencyInput(str){
+    if(str == null) return null;
+    const cleaned = String(str).replace(/[^0-9.\-]/g, '');
+    if(cleaned === '') return null;
+    const n = parseFloat(cleaned);
+    return isNaN(n) ? null : n;
+  }
+
+  function focusCurrencyInput(el){
+    const n = parseCurrencyInput(el.value);
+    el.value = (n === null) ? '' : String(n);
+  }
+
   function sumAmounts(obj){
     if(!obj) return 0;
     return Object.values(obj).reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
@@ -2362,7 +2379,7 @@
       const dueDateEl = document.getElementById('projBalanceDueDate-' + safecode);
       setStatDateField(startEl, fin.startDate);
       setStatDateField(compEl, fin.estCompletionDate);
-      if(valueEl) valueEl.value = (fin.totalValue !== undefined && fin.totalValue !== null) ? fin.totalValue : '';
+      if(valueEl) valueEl.value = (fin.totalValue !== undefined && fin.totalValue !== null) ? formatMoney(fin.totalValue) : '';
       setStatDateField(dueDateEl, fin.balanceDueDate);
     });
   }
@@ -2373,11 +2390,12 @@
     const valueEl = document.getElementById('projTotalValue-' + safecode);
     const dueDateEl = document.getElementById('projBalanceDueDate-' + safecode);
     if(!valueEl) return;
-    const parsedValue = valueEl.value === '' ? null : parseFloat(valueEl.value);
+    const parsedValue = parseCurrencyInput(valueEl.value);
+    valueEl.value = (parsedValue === null) ? '' : formatMoney(parsedValue);
     db.ref('projects/' + safecode + '/financials').update({
       startDate: (startEl && startEl.dataset.raw) || null,
       estCompletionDate: (compEl && compEl.dataset.raw) || null,
-      totalValue: (parsedValue === null || isNaN(parsedValue)) ? null : parsedValue,
+      totalValue: parsedValue,
       balanceDueDate: (dueDateEl && dueDateEl.dataset.raw) || null
     }).then(() => {
       const check = document.getElementById('statsSavedCheck-' + safecode);
