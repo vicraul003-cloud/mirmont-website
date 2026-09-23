@@ -248,6 +248,7 @@
     .btn-email-summary{background:none;border:1px solid rgba(201,160,90,0.3);color:var(--gold-light);font-family:'Montserrat',sans-serif;font-size:0.62rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:0.55rem 1rem;cursor:pointer;transition:background 0.2s,border-color 0.2s;}
     .btn-email-summary:hover{background:rgba(201,160,90,0.12);border-color:var(--gold);}
     .btn-email-summary:disabled{opacity:0.5;cursor:wait;}
+    .email-summary-select{background:var(--navy-dark);border:1px solid rgba(201,160,90,0.3);color:var(--gold-light);font-family:'Montserrat',sans-serif;font-size:0.62rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:0.55rem 0.7rem;cursor:pointer;outline:none;}
     .email-summary-status{font-size:0.66rem;font-style:italic;color:var(--text-light);}
     .email-summary-status.ok{color:#7fd66a;font-style:normal;}
     .email-summary-status.err{color:var(--red);font-style:normal;}
@@ -399,6 +400,7 @@
     .project-edit.light-theme .email-summary-label{color:#6b7480;}
     .project-edit.light-theme .btn-email-summary{border-color:rgba(122,66,18,0.25);color:#7a4212;}
     .project-edit.light-theme .btn-email-summary:hover{background:rgba(122,66,18,0.08);border-color:#7a4212;}
+    .project-edit.light-theme .email-summary-select{background:#ffffff;border-color:rgba(122,66,18,0.25);color:#7a4212;font-family:'IBM Plex Sans',sans-serif;}
     .project-edit.light-theme .email-summary-status{color:#6b7480;}
     .project-edit.light-theme .email-summary-status.ok{color:#1e8e3e;}
     .project-edit.light-theme .email-summary-status.err{color:#c0392b;}
@@ -560,6 +562,10 @@
       }
       .email-summary-label{
         margin-bottom:0.1rem;
+      }
+      .email-summary-select{
+        width:100%;
+        box-sizing:border-box;
       }
       .btn-email-summary{
         width:100%;
@@ -1481,10 +1487,13 @@
             </div>
 
             <div class="email-summary-row">
-              <span class="email-summary-label">Email:</span>
-              <button class="btn-email-summary" onclick="emailProjectSummary('${safecode}','${code}','financial')">Financial Overview</button>
-              <button class="btn-email-summary" onclick="emailProjectSummary('${safecode}','${code}','status')">Status, Notes &amp; Tasks</button>
-              <button class="btn-email-summary" onclick="emailProjectSummary('${safecode}','${code}','all')">Full Summary</button>
+              <span class="email-summary-label">Email Report:</span>
+              <select class="email-summary-select" id="emailReportType-${safecode}">
+                <option value="financial">Financial Overview</option>
+                <option value="status">Status, Notes &amp; Tasks</option>
+                <option value="all" selected>Full Summary</option>
+              </select>
+              <button class="btn-email-summary" onclick="emailProjectSummary('${safecode}','${code}',document.getElementById('emailReportType-${safecode}').value)">Send</button>
               <span class="email-summary-status" id="emailSummaryStatus-${safecode}"></span>
             </div>
           </div>
