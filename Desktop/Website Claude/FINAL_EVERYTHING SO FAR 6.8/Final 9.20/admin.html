@@ -465,6 +465,13 @@
     .mini-cal-clear:hover{color:var(--gold);}
 
     @media (max-width: 640px) {
+      /* Project Location and Permit No. each take the full row (spanning
+         both grid columns) on narrow screens, instead of being squeezed
+         into a half-width column where the value gets cut off. Project
+         Code and Client Name stay side by side as the first row. */
+      .edit-grid .edit-field:nth-child(3),
+      .edit-grid .edit-field:nth-child(4){grid-column:1 / -1;}
+
       /* ── PROJECT LIST: compact row + tap-to-expand notes/tasks ── */
       .project-list-header{display:none;}
       .project-row{
