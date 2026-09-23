@@ -399,6 +399,14 @@
     .scope-x{color:var(--text-light);font-size:0.68rem;}
     .scope-result{flex:none;width:5.6rem;text-align:right;font-size:0.74rem;font-weight:700;font-variant-numeric:tabular-nums;color:var(--gold-light);}
 
+    .scope-cost-inputs{display:flex;align-items:center;gap:0.25rem;flex:none;padding-left:0.5rem;border-left:1px solid rgba(201,160,90,0.14);}
+    .scope-cost-label{font-size:0.54rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:var(--text-light);}
+    .scope-cost-inputs input{width:3.4rem;font-family:'Montserrat',sans-serif;font-size:0.72rem;font-variant-numeric:tabular-nums;text-align:right;padding:0.3rem 0.35rem;border-radius:5px;border:1px solid rgba(201,160,90,0.18);background:var(--navy-mid);color:var(--white);}
+    .scope-cost-inputs input:focus{outline:none;border-color:rgba(201,160,90,0.5);}
+    .scope-row-cost{flex:none;width:5.2rem;text-align:right;font-size:0.74rem;font-weight:700;font-variant-numeric:tabular-nums;color:var(--green);}
+    .scope-stat-cost{border-left-color:var(--green);}
+    .scope-stat-cost .scope-stat-v{color:var(--green);}
+
     .scope-export{margin-top:1rem;}
     .scope-export-preview{width:100%;min-height:8rem;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.7rem;line-height:1.5;background:var(--navy-dark);border:1px solid rgba(201,160,90,0.18);border-radius:6px;padding:0.7rem;color:var(--off-white);white-space:pre-wrap;resize:vertical;margin-top:0.5rem;}
 
@@ -420,6 +428,12 @@
     .project-edit.light-theme .scope-qty-inputs input{background:#f7f4ef;border-color:rgba(122,66,18,0.18);color:#1c232b;}
     .project-edit.light-theme .scope-x{color:#6b7480;}
     .project-edit.light-theme .scope-result{color:#7a4212;}
+    .project-edit.light-theme .scope-cost-inputs{border-left-color:rgba(122,66,18,0.14);}
+    .project-edit.light-theme .scope-cost-label{color:#6b7480;}
+    .project-edit.light-theme .scope-cost-inputs input{background:#f7f4ef;border-color:rgba(122,66,18,0.18);color:#1c232b;}
+    .project-edit.light-theme .scope-row-cost{color:#1e8e3e;}
+    .project-edit.light-theme .scope-stat-cost{border-left-color:#1e8e3e;}
+    .project-edit.light-theme .scope-stat-cost .scope-stat-v{color:#1e8e3e;}
     .project-edit.light-theme .scope-export-preview{background:#1c232b;color:#f4efe4;border-color:rgba(122,66,18,0.18);}
 
     .task-item{background:var(--navy-dark);border:1px solid rgba(201,160,90,0.1);padding:0.55rem 0.9rem;display:flex;align-items:center;gap:0.7rem;flex-wrap:wrap;}
@@ -708,6 +722,8 @@
       .scope-item-row{gap:0.5rem;}
       .scope-item-name{flex:1 1 100%;}
       .scope-result{width:auto;margin-left:auto;}
+      .scope-cost-inputs{flex:1 1 100%;justify-content:flex-end;border-left:none;padding-left:0;padding-top:0.35rem;border-top:1px dashed rgba(201,160,90,0.14);margin-top:0.2rem;}
+      .scope-row-cost{width:auto;margin-left:auto;}
       .scope-toolbar{gap:0.4rem;}
       .scope-search{flex:1 1 100%;}
     }
@@ -1495,6 +1511,7 @@
                 <div class="scope-stat"><span class="scope-stat-k">Square Footage</span><span class="scope-stat-v" id="scopeSqft-${safecode}">0 sq ft</span></div>
                 <div class="scope-stat"><span class="scope-stat-k">Linear Footage</span><span class="scope-stat-v" id="scopeLinft-${safecode}">0 lin ft</span></div>
                 <div class="scope-stat"><span class="scope-stat-k">Fixtures / Items</span><span class="scope-stat-v" id="scopeCount-${safecode}">0</span></div>
+                <div class="scope-stat scope-stat-cost"><span class="scope-stat-k">Estimated Cost</span><span class="scope-stat-v" id="scopeCost-${safecode}">$0.00</span></div>
                 <span class="scope-saved-note" id="scopeSavedNote-${safecode}">&#10003; Saved</span>
               </div>
 
@@ -3093,7 +3110,7 @@
 
   function scopeItemState(safecode, id){
     const proj = scopeState[safecode] || (scopeState[safecode] = {});
-    return proj[id] || (proj[id] = { checked: true, l: '', w: '', linft: '', count: '' });
+    return proj[id] || (proj[id] = { checked: true, l: '', w: '', linft: '', count: '', material: '', labor: '' });
   }
 
   function loadScopeOfWork(safecode){
@@ -3101,7 +3118,7 @@
       const data = snap.val() || {};
       const proj = {};
       Object.keys(data).forEach(id => {
-        proj[id] = Object.assign({ checked: true, l: '', w: '', linft: '', count: '' }, data[id]);
+        proj[id] = Object.assign({ checked: true, l: '', w: '', linft: '', count: '', material: '', labor: '' }, data[id]);
       });
       scopeState[safecode] = proj;
       renderScopeCategories(safecode);
@@ -3124,6 +3141,14 @@
       } else {
         inputsHtml = '<div class="scope-qty-inputs"><input type="number" min="0" step="1" placeholder="qty" data-scope-id="' + item.id + '" data-scope-field="count" value="' + escHtml(st.count) + '" oninput="handleScopeInput(\'' + safecode + '\',this)"></div>';
       }
+      const costInputsHtml =
+        '<div class="scope-cost-inputs">' +
+          '<span class="scope-cost-label">Mat.</span>' +
+          '<input type="number" min="0" step="0.01" placeholder="0" data-scope-id="' + item.id + '" data-scope-field="material" value="' + escHtml(st.material) + '" oninput="handleScopeInput(\'' + safecode + '\',this)">' +
+          '<span class="scope-cost-label">Labor</span>' +
+          '<input type="number" min="0" step="0.01" placeholder="0" data-scope-id="' + item.id + '" data-scope-field="labor" value="' + escHtml(st.labor) + '" oninput="handleScopeInput(\'' + safecode + '\',this)">' +
+        '</div>';
+
       return (
         '<div class="scope-item-row' + (st.checked ? '' : ' scope-excluded') + '" data-scope-row-id="' + item.id + '" data-scope-name="' + escHtml(item.name.toLowerCase()) + '">' +
           '<input type="checkbox" data-scope-id="' + item.id + '" data-scope-field="checked" ' + (st.checked ? 'checked' : '') + ' onchange="handleScopeInput(\'' + safecode + '\',this)">' +
@@ -3131,6 +3156,8 @@
           '<span class="scope-unit-badge">' + SCOPE_UNIT_LABEL[item.unit] + '</span>' +
           inputsHtml +
           '<span class="scope-result" data-scope-result-for="' + item.id + '">&mdash;</span>' +
+          costInputsHtml +
+          '<span class="scope-row-cost" data-scope-cost-for="' + item.id + '">$0.00</span>' +
         '</div>'
       );
     }).join('');
@@ -3174,32 +3201,44 @@
     return { value: v3, label: v3 ? (v3 + ' each') : '—' };
   }
 
+  function computeScopeCost(safecode, item){
+    const st = scopeItemState(safecode, item.id);
+    const mat = parseFloat(st.material);
+    const lab = parseFloat(st.labor);
+    return (isFinite(mat) ? mat : 0) + (isFinite(lab) ? lab : 0);
+  }
+
   function recalcScopeTotals(safecode){
     const scope = document.getElementById('tabPanel-scope-' + safecode);
     if(!scope) return;
-    let grandSqft = 0, grandLinft = 0, grandCount = 0;
+    let grandSqft = 0, grandLinft = 0, grandCount = 0, grandCost = 0;
 
     SCOPE_OF_WORK.forEach((cat, idx) => {
-      let catSqft = 0, catLinft = 0, catCount = 0;
+      let catSqft = 0, catLinft = 0, catCount = 0, catCost = 0;
       cat.items.forEach(item => {
         const st = scopeItemState(safecode, item.id);
         const r = computeScopeRow(safecode, item);
+        const cost = computeScopeCost(safecode, item);
         const resultEl = scope.querySelector('[data-scope-result-for="' + item.id + '"]');
         if(resultEl) resultEl.textContent = r.label;
+        const costEl = scope.querySelector('[data-scope-cost-for="' + item.id + '"]');
+        if(costEl) costEl.textContent = formatMoney(cost);
         const rowEl = scope.querySelector('.scope-item-row[data-scope-row-id="' + item.id + '"]');
         if(rowEl) rowEl.classList.toggle('scope-excluded', !st.checked);
         if(st.checked){
           if(item.unit === 'sqft') catSqft += r.value;
           else if(item.unit === 'linft') catLinft += r.value;
           else catCount += r.value;
+          catCost += cost;
         }
       });
-      grandSqft += catSqft; grandLinft += catLinft; grandCount += catCount;
+      grandSqft += catSqft; grandLinft += catLinft; grandCount += catCount; grandCost += catCost;
 
       const parts = [];
       if(catSqft) parts.push(scopeFmt(catSqft) + ' sq ft');
       if(catLinft) parts.push(scopeFmt(catLinft) + ' lin ft');
       if(catCount) parts.push(scopeFmt(catCount) + ' each');
+      if(catCost) parts.push(formatMoney(catCost));
       const subtotalEl = scope.querySelector('[data-scope-cat-subtotal="' + idx + '"]');
       if(subtotalEl) subtotalEl.textContent = parts.join(' · ');
     });
@@ -3207,9 +3246,11 @@
     const sqftEl = document.getElementById('scopeSqft-' + safecode);
     const linftEl = document.getElementById('scopeLinft-' + safecode);
     const countEl = document.getElementById('scopeCount-' + safecode);
+    const costEl = document.getElementById('scopeCost-' + safecode);
     if(sqftEl) sqftEl.textContent = scopeFmt(grandSqft) + ' sq ft';
     if(linftEl) linftEl.textContent = scopeFmt(grandLinft) + ' lin ft';
     if(countEl) countEl.textContent = scopeFmt(grandCount);
+    if(costEl) costEl.textContent = formatMoney(grandCost);
   }
 
   function handleScopeInput(safecode, el){
@@ -3289,7 +3330,7 @@
     lines.push('Date: ' + formatDate(dateIso));
     lines.push('');
 
-    let grandSqft = 0, grandLinft = 0, grandCount = 0;
+    let grandSqft = 0, grandLinft = 0, grandCount = 0, grandMaterial = 0, grandLabor = 0;
 
     SCOPE_OF_WORK.forEach(cat => {
       const rowLines = [];
@@ -3297,7 +3338,8 @@
         const st = scopeItemState(safecode, item.id);
         if(!st.checked) return;
         const r = computeScopeRow(safecode, item);
-        if(!r.value) return;
+        const cost = computeScopeCost(safecode, item);
+        if(!r.value && !cost) return;
         let detail = '';
         if(item.unit === 'sqft'){
           const l = parseFloat(st.l), w = parseFloat(st.w);
@@ -3308,7 +3350,11 @@
         } else {
           grandCount += r.value;
         }
-        rowLines.push(' - ' + item.name + ': ' + r.label + detail);
+        const mat = parseFloat(st.material); const matVal = isFinite(mat) ? mat : 0;
+        const lab = parseFloat(st.labor); const labVal = isFinite(lab) ? lab : 0;
+        grandMaterial += matVal; grandLabor += labVal;
+        const costStr = cost ? (' [Material: ' + formatMoney(matVal) + ', Labor: ' + formatMoney(labVal) + ', Item Total: ' + formatMoney(cost) + ']') : '';
+        rowLines.push(' - ' + item.name + ': ' + (r.value ? r.label : 'cost only') + detail + costStr);
       });
       if(rowLines.length){
         lines.push(cat.cat.toUpperCase());
@@ -3321,6 +3367,11 @@
     lines.push(' Square footage: ' + scopeFmt(grandSqft) + ' sq ft');
     lines.push(' Linear footage: ' + scopeFmt(grandLinft) + ' lin ft');
     lines.push(' Fixtures / items: ' + scopeFmt(grandCount) + ' each');
+    lines.push('');
+    lines.push('ESTIMATED COST');
+    lines.push(' Material: ' + formatMoney(grandMaterial));
+    lines.push(' Labor: ' + formatMoney(grandLabor));
+    lines.push(' Total: ' + formatMoney(grandMaterial + grandLabor));
 
     const preview = document.getElementById('scopeExportPreview-' + safecode);
     if(preview) preview.value = lines.join('\n');
@@ -3633,6 +3684,7 @@
       items = items || {};
       const lines = ['SCOPE OF WORK', '-------------'];
       let grandSqft = 0, grandLinft = 0, grandCount = 0;
+      let grandMaterial = 0, grandLabor = 0;
       let anyChecked = false;
 
       SCOPE_OF_WORK.forEach(cat => {
@@ -3644,25 +3696,28 @@
           if(item.unit === 'sqft'){
             const l = parseFloat(raw.l), w = parseFloat(raw.w);
             value = (isFinite(l) && isFinite(w)) ? l * w : 0;
-            if(!value) return;
             label = scopeRound1(value) + ' sq ft';
-            detail = ' (' + scopeRound1(l) + '\' × ' + scopeRound1(w) + '\')';
+            detail = value ? (' (' + scopeRound1(l) + '\' × ' + scopeRound1(w) + '\')') : '';
             grandSqft += value;
           } else if(item.unit === 'linft'){
             const lf = parseFloat(raw.linft);
             value = isFinite(lf) ? lf : 0;
-            if(!value) return;
             label = scopeRound1(value) + ' lin ft';
             grandLinft += value;
           } else {
             const c = parseFloat(raw.count);
             value = isFinite(c) ? c : 0;
-            if(!value) return;
             label = value + ' each';
             grandCount += value;
           }
+          const mat = parseFloat(raw.material); const matVal = isFinite(mat) ? mat : 0;
+          const lab = parseFloat(raw.labor); const labVal = isFinite(lab) ? lab : 0;
+          const cost = matVal + labVal;
+          if(!value && !cost) return;
+          grandMaterial += matVal; grandLabor += labVal;
           anyChecked = true;
-          rowLines.push(' - ' + item.name + ': ' + label + detail);
+          const costStr = cost ? (' [Material: ' + formatMoney(matVal) + ', Labor: ' + formatMoney(labVal) + ', Item Total: ' + formatMoney(cost) + ']') : '';
+          rowLines.push(' - ' + item.name + ': ' + (value ? label : 'cost only') + detail + costStr);
         });
         if(rowLines.length){
           lines.push(cat.cat.toUpperCase());
@@ -3678,6 +3733,11 @@
         lines.push(' Square footage: ' + scopeFmt(grandSqft) + ' sq ft');
         lines.push(' Linear footage: ' + scopeFmt(grandLinft) + ' lin ft');
         lines.push(' Fixtures / items: ' + scopeFmt(grandCount) + ' each');
+        lines.push('');
+        lines.push('ESTIMATED COST');
+        lines.push(' Material: ' + formatMoney(grandMaterial));
+        lines.push(' Labor: ' + formatMoney(grandLabor));
+        lines.push(' Total: ' + formatMoney(grandMaterial + grandLabor));
         lines.push('');
       }
 
