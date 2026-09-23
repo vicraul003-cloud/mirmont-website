@@ -171,6 +171,29 @@ export async function deleteCalendarEvent(tokens, eventId) {
   }
 }
 
+// Updates an existing event's title only (date/time/location untouched) --
+// used to mark a completed task's event done-looking (strikethrough title)
+// without moving or removing it, and to restore the plain title if the task
+// is reopened. A 404/410 (event already gone) is treated as success, same
+// reasoning as deleteCalendarEvent.
+export async function updateCalendarEvent(tokens, eventId, { title }) {
+  const resp = await fetch(
+    CALENDAR_API_BASE + '/calendars/primary/events/' + encodeURIComponent(eventId),
+    {
+      method: 'PATCH',
+      headers: {
+        Authorization: 'Bearer ' + tokens.access_token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ summary: title })
+    }
+  );
+  if (!resp.ok && resp.status !== 404 && resp.status !== 410) {
+    const text = await resp.text().catch(() => '');
+    throw new Error('Calendar event update failed (' + resp.status + '): ' + text);
+  }
+}
+
 function addOneDay(isoDate) {
   const [y, m, d] = isoDate.split('-').map(Number);
   const dt = new Date(Date.UTC(y, m - 1, d));

@@ -1052,6 +1052,24 @@
     } catch(e){ /* best-effort */ }
   }
 
+  // Renders a title with a visual strikethrough by interleaving the Unicode
+  // "combining long stroke overlay" character after every character — Google
+  // Calendar (and most calendar apps) don't support rich text in event
+  // titles, so this is a plain-text trick rather than real formatting.
+  function strikeThroughTitle(text){
+    return text.split('').map(ch => ch + '\u0336').join('');
+  }
+
+  async function updateCalendarEventTitle(eventId, title){
+    try {
+      await fetch('/api/gcal/update-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId, title })
+      });
+    } catch(e){ /* best-effort */ }
+  }
+
   async function searchQuickBooks(){
     const input = document.getElementById('qboSearchInput');
     const resultsEl = document.getElementById('qboResults');
@@ -2778,13 +2796,16 @@
           const t = snap.val();
           if(!t) return;
           logCrmActivity(safecode, (done ? 'Completed task: "' : 'Reopened task: "') + t.title + '"');
-          if(done && t.gcalEventId){
-            // Completed — clear its calendar reminder, it's no longer something to plan around.
-            removeTaskFromGoogleCalendar(t.gcalEventId);
-            db.ref('projects/' + safecode + '/crmTasks/' + key + '/gcalEventId').remove();
-          } else if(!done && !t.gcalEventId && t.dueDate){
-            // Reopened and still has a due date but no calendar event (removed when it
-            // was completed) — put it back on the calendar.
+          if(t.gcalEventId){
+            // Leave the event exactly where it was created — just strike
+            // through its title when completed (and restore it if reopened)
+            // so it's visually distinguishable without moving or removing it.
+            const clientName = getClientName(safecode);
+            const plainTitle = clientName ? (clientName + ' — ' + t.title) : t.title;
+            updateCalendarEventTitle(t.gcalEventId, done ? strikeThroughTitle(plainTitle) : plainTitle);
+          } else if(!done && t.dueDate){
+            // No calendar event yet for some reason (e.g. the task was created
+            // before Google Calendar was connected) — put it on the calendar now.
             syncTaskToGoogleCalendar(safecode, key, t.title, t.dueDate, getProjectLabel(safecode), getClientName(safecode), t.startTime, t.durationMinutes);
           }
         });
