@@ -90,6 +90,13 @@
     .form-status.ok{color:var(--green);}
     .form-status.err{color:var(--red);}
 
+    /* ── GOOGLE CALENDAR SYNC STATUS ── */
+    .gcal-status-bar{display:flex;flex-wrap:wrap;align-items:center;gap:0.5rem;font-size:0.68rem;color:rgba(200,192,176,0.55);padding:0.7rem 0;margin-bottom:1.5rem;border-bottom:1px solid rgba(201,160,90,0.1);}
+    .gcal-status-bar a{color:var(--gold-light);text-decoration:underline;cursor:pointer;}
+    .gcal-status-bar a:hover{color:var(--gold);}
+    .gcal-status-bar.connected{color:rgba(127,214,106,0.85);}
+    .gcal-status-icon{font-size:0.8rem;}
+
     /* ── QUICKBOOKS SEARCH ── */
     .qbo-box{border:1px solid rgba(201,160,90,0.15);background:var(--navy-dark);padding:1rem 1.2rem;margin-bottom:1.5rem;}
     .qbo-status{font-size:0.72rem;color:var(--text-light);}
@@ -593,6 +600,8 @@
 
   <div class="console-body">
 
+    <div class="gcal-status-bar" id="gcalStatusBar"><span class="gcal-status-icon">📅</span> Checking Google Calendar connection…</div>
+
     <button class="btn-back-projects" id="backToProjectsBtn" onclick="closeProjectDetail()">&larr; Back to Projects</button>
 
     <div id="projectListSection">
@@ -737,6 +746,8 @@
       listenProjects();
       checkQboStatus();
       showQboRedirectNotice();
+      checkGcalStatus();
+      showGcalRedirectNotice();
     } else {
       document.getElementById('loginScreen').style.display = 'flex';
       document.getElementById('console').classList.remove('visible');
@@ -862,6 +873,93 @@
     try { await fetch('/api/qbo/disconnect', { method: 'POST' }); } catch(e){}
     clearPendingQboQuote();
     checkQboStatus();
+  }
+
+  // ── GOOGLE CALENDAR SYNC ──
+  // Any task with a due date automatically becomes an all-day event on
+  // whichever Google account is connected here; see functions/api/gcal/*.js.
+  function showGcalRedirectNotice(){
+    const params = new URLSearchParams(window.location.search);
+    const gcal = params.get('gcal');
+    if(!gcal) return;
+    const bar = document.getElementById('gcalStatusBar');
+    if(bar){
+      if(gcal === 'connected'){
+        bar.innerHTML = '<span class="gcal-status-icon">📅</span> ✓ Google Calendar connected.';
+        bar.className = 'gcal-status-bar connected';
+        setTimeout(checkGcalStatus, 3000);
+      } else {
+        bar.innerHTML = '<span class="gcal-status-icon">📅</span> Google Calendar connection failed (' +
+          escHtml(params.get('gcal_msg') || 'unknown error') + ').';
+        bar.className = 'gcal-status-bar';
+      }
+    }
+    // Clean the query string so refreshing doesn't re-show the notice.
+    const cleanUrl = window.location.pathname;
+    window.history.replaceState({}, document.title, cleanUrl);
+  }
+
+  async function checkGcalStatus(){
+    const bar = document.getElementById('gcalStatusBar');
+    if(!bar) return;
+    try {
+      const resp = await fetch('/api/gcal/status');
+      const data = await resp.json();
+      if(data.connected){
+        bar.innerHTML = '<span class="gcal-status-icon">📅</span> Google Calendar connected — tasks with a due date sync automatically. ' +
+          '<a onclick="disconnectGcal();return false;" href="#">Disconnect</a>';
+        bar.className = 'gcal-status-bar connected';
+      } else if(data.configured === false){
+        bar.innerHTML = '<span class="gcal-status-icon">📅</span> Google Calendar sync is not set up yet.';
+        bar.className = 'gcal-status-bar';
+      } else {
+        bar.innerHTML = '<span class="gcal-status-icon">📅</span> <a href="/api/gcal/connect">Connect Google Calendar</a> to sync tasks automatically.';
+        bar.className = 'gcal-status-bar';
+      }
+    } catch(e){
+      bar.innerHTML = '<span class="gcal-status-icon">📅</span> Google Calendar status unavailable.';
+      bar.className = 'gcal-status-bar';
+    }
+  }
+
+  async function disconnectGcal(){
+    if(!confirm('Disconnect Google Calendar? Tasks will keep saving here, they just won\'t sync to your calendar anymore.')) return;
+    try { await fetch('/api/gcal/disconnect', { method: 'POST' }); } catch(e){}
+    checkGcalStatus();
+  }
+
+  // Maps a safecode back to "CODE — Client Name" for calendar event descriptions.
+  function getProjectLabel(safecode){
+    const code = Object.keys(allProjects).find(c => c.replace(/[^a-zA-Z0-9]/g,'_') === safecode);
+    if(!code) return '';
+    return code + ' — ' + allProjects[code];
+  }
+
+  // Best-effort: the task itself is already saved in Firebase regardless of
+  // whether these succeed, so failures here are silent rather than shown to
+  // the user (a truly broken connection is already visible in the status bar).
+  async function syncTaskToGoogleCalendar(safecode, taskKey, title, dueDate, projectLabel){
+    try {
+      const resp = await fetch('/api/gcal/create-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, date: dueDate, notes: projectLabel })
+      });
+      const data = await resp.json();
+      if(data && data.eventId){
+        db.ref('projects/' + safecode + '/crmTasks/' + taskKey + '/gcalEventId').set(data.eventId);
+      }
+    } catch(e){ /* best-effort */ }
+  }
+
+  async function removeTaskFromGoogleCalendar(eventId){
+    try {
+      await fetch('/api/gcal/delete-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId })
+      });
+    } catch(e){ /* best-effort */ }
   }
 
   async function searchQuickBooks(){
@@ -2296,14 +2394,18 @@
     const title = titleEl.value.trim();
     if(!title){ status.textContent = 'Task title is required.'; status.className = 'mini-form-status err'; return; }
     status.textContent = 'Saving…'; status.className = 'mini-form-status';
-    db.ref('projects/' + safecode + '/crmTasks').push({
-      title, dueDate: dueEl.value || null, assignee: (assigneeEl && assigneeEl.value.trim()) || null,
+    const dueDate = dueEl.value || null;
+    const taskRef = db.ref('projects/' + safecode + '/crmTasks').push({
+      title, dueDate, assignee: (assigneeEl && assigneeEl.value.trim()) || null,
       done: false, ts: Date.now()
-    }).then(() => {
+    });
+    const taskKey = taskRef.key;
+    taskRef.then(() => {
       titleEl.value = ''; dueEl.value = ''; if(assigneeEl) assigneeEl.value = '';
       status.textContent = '✓ Added.'; status.className = 'mini-form-status ok';
       setTimeout(() => { status.textContent = ''; }, 2000);
       logCrmActivity(safecode, 'Added task: "' + title + '"');
+      if(dueDate) syncTaskToGoogleCalendar(safecode, taskKey, title, dueDate, getProjectLabel(safecode));
       if(isMobile){ closeQuickAddForm(safecode, 'task'); resetMiniCalendar(safecode); }
     }).catch(e => { status.textContent = 'Error: ' + e.message; status.className = 'mini-form-status err'; });
   }
@@ -2313,7 +2415,17 @@
       .then(() => {
         db.ref('projects/' + safecode + '/crmTasks/' + key).once('value', snap => {
           const t = snap.val();
-          if(t) logCrmActivity(safecode, (done ? 'Completed task: "' : 'Reopened task: "') + t.title + '"');
+          if(!t) return;
+          logCrmActivity(safecode, (done ? 'Completed task: "' : 'Reopened task: "') + t.title + '"');
+          if(done && t.gcalEventId){
+            // Completed — clear its calendar reminder, it's no longer something to plan around.
+            removeTaskFromGoogleCalendar(t.gcalEventId);
+            db.ref('projects/' + safecode + '/crmTasks/' + key + '/gcalEventId').remove();
+          } else if(!done && !t.gcalEventId && t.dueDate){
+            // Reopened and still has a due date but no calendar event (removed when it
+            // was completed) — put it back on the calendar.
+            syncTaskToGoogleCalendar(safecode, key, t.title, t.dueDate, getProjectLabel(safecode));
+          }
         });
       })
       .catch(e => alert('Update failed: ' + e.message));
@@ -2321,6 +2433,10 @@
 
   function deleteTask(safecode, key){
     if(!confirm('Remove this task?')) return;
+    db.ref('projects/' + safecode + '/crmTasks/' + key).once('value', snap => {
+      const t = snap.val();
+      if(t && t.gcalEventId) removeTaskFromGoogleCalendar(t.gcalEventId);
+    });
     db.ref('projects/' + safecode + '/crmTasks/' + key).remove()
       .catch(e => alert('Delete failed: ' + e.message));
   }
