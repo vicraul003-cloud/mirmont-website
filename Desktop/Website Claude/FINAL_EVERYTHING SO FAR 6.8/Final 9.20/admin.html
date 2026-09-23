@@ -1403,13 +1403,13 @@
             </div>
 
             <div class="project-tabs" id="projectTabs-${safecode}">
-              <button class="ptab-btn active" data-group="financials" onclick="switchProjectTab('${safecode}','deposits')">Financials</button>
+              <button class="ptab-btn" data-group="financials" onclick="switchProjectTab('${safecode}','deposits')">Financials</button>
               <button class="ptab-btn" data-group="activity" onclick="switchProjectTab('${safecode}','notes')">Client Activity</button>
               <button class="ptab-btn" data-group="files" onclick="switchProjectTab('${safecode}','documents')">Files &amp; Settings</button>
-              <button class="ptab-btn" data-group="scope" onclick="switchProjectTab('${safecode}','scope')">Scope of Work</button>
+              <button class="ptab-btn active" data-group="scope" onclick="switchProjectTab('${safecode}','scope')">Scope of Work</button>
             </div>
 
-            <div class="project-subtabs open" id="subtabs-financials-${safecode}">
+            <div class="project-subtabs" id="subtabs-financials-${safecode}">
               <button class="psub-btn active" data-tab="deposits" onclick="switchProjectTab('${safecode}','deposits')">Deposits &amp; Payments</button>
               <button class="psub-btn" data-tab="expenses" onclick="switchProjectTab('${safecode}','expenses')">Expenses</button>
               <button class="psub-btn" data-tab="changeorders" onclick="switchProjectTab('${safecode}','changeorders')">Change Orders</button>
@@ -1428,7 +1428,7 @@
               <button class="psub-btn" data-tab="sections" onclick="switchProjectTab('${safecode}','sections')">Active Sections</button>
             </div>
 
-            <div class="mini-section project-tab-panel active" id="tabPanel-deposits-${safecode}">
+            <div class="mini-section project-tab-panel" id="tabPanel-deposits-${safecode}">
               <span class="mini-section-label">Deposits &amp; Payments</span>
               <div class="mini-form-row">
                 <input type="number" id="depAmount-${safecode}" placeholder="Amount" step="0.01" min="0" />
@@ -1493,7 +1493,7 @@
               <div class="mini-list" id="noteList-${safecode}"><div class="mini-empty">No notes yet.</div></div>
             </div>
 
-            <div class="mini-section project-tab-panel" id="tabPanel-scope-${safecode}">
+            <div class="mini-section project-tab-panel active" id="tabPanel-scope-${safecode}">
               <span class="mini-section-label">Scope Notes</span>
               <div class="mini-form-row">
                 <textarea id="scopeNoteText-${safecode}" placeholder="Add a scope note — e.g. client preference, site condition, decision made"></textarea>
