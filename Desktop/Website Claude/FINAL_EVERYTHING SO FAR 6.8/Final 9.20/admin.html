@@ -642,6 +642,10 @@
           <label for="newName">Client Name</label>
           <input type="text" id="newName" placeholder="e.g. Williams Family" autocomplete="off" />
         </div>
+        <div class="form-field">
+          <label for="newLocation">Project Location</label>
+          <input type="text" id="newLocation" placeholder="e.g. 123 Main St, Land O' Lakes" autocomplete="off" />
+        </div>
       </div>
 
       <span class="phase-toggle-label">Active Sections for this Project</span>
@@ -769,6 +773,7 @@
   function createProject(){
     const code = document.getElementById('newCode').value.trim().toUpperCase();
     const name = document.getElementById('newName').value.trim();
+    const location = document.getElementById('newLocation').value.trim();
     const status = document.getElementById('createStatus');
     if(!code || !name){
       status.textContent = 'Please fill in both fields.';
@@ -787,6 +792,7 @@
     const updates = {};
     updates['admin_projects/' + code] = name;
     updates['projects/' + safecode + '/activePhases'] = activePhases;
+    if(location) updates['projects/' + safecode + '/location'] = location;
     const linkedQuote = pendingQboQuote; // capture before it's cleared below
     if(linkedQuote){
       updates['projects/' + safecode + '/financials/totalValue'] = linkedQuote.totalAmt;
@@ -801,6 +807,7 @@
         }
         document.getElementById('newCode').value = '';
         document.getElementById('newName').value = '';
+        document.getElementById('newLocation').value = '';
         buildPhaseToggles('newPhaseToggles', null); // reset to all checked
         clearPendingQboQuote();
         btn.disabled = false;
@@ -949,11 +956,21 @@
   // the user (a truly broken connection is already visible in the status bar).
   async function syncTaskToGoogleCalendar(safecode, taskKey, title, dueDate, projectLabel, clientName){
     try {
-      const eventTitle = clientName ? (clientName + ' — ' + title) : title;
+      // Prefer the project's own location (job-site address, set on the project)
+      // over the client name — falls back to client name for projects that
+      // don't have a location set yet.
+      let displayLabel = clientName || '';
+      try {
+        const locSnap = await db.ref('projects/' + safecode + '/location').once('value');
+        const loc = (locSnap.val() || '').toString().trim();
+        if(loc) displayLabel = loc;
+      } catch(e) { /* fall back to clientName */ }
+
+      const eventTitle = displayLabel ? (displayLabel + ' — ' + title) : title;
       const resp = await fetch('/api/gcal/create-event', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: eventTitle, date: dueDate, notes: projectLabel, location: clientName || '' })
+        body: JSON.stringify({ title: eventTitle, date: dueDate, notes: projectLabel, location: displayLabel })
       });
       const data = await resp.json();
       if(data && data.eventId){
@@ -1079,6 +1096,10 @@
               <div class="edit-field">
                 <label>Client Name</label>
                 <input type="text" id="editName-${safecode}" value="${name}" />
+              </div>
+              <div class="edit-field">
+                <label>Project Location</label>
+                <input type="text" id="editLocation-${safecode}" placeholder="e.g. 123 Main St, Land O' Lakes" />
               </div>
             </div>
 
@@ -1526,6 +1547,7 @@
     listenTasks(safecode);
     listenTimeline(safecode);
     loadProjectDetailsFields(safecode);
+    loadProjectLocationField(safecode);
 
     // Financials keep a live cache (projFinCache) independent of the DOM, so
     // repaint straight from it instead of tearing down those 4 listeners.
@@ -1725,6 +1747,7 @@
   // ── SAVE PROJECT ──
   function saveProject(safecode, code){
     const nameEl  = document.getElementById('editName-' + safecode);
+    const locEl   = document.getElementById('editLocation-' + safecode);
     const status  = document.getElementById('editStatus-' + safecode);
     const newName = nameEl.value.trim();
     if(!newName){ status.textContent = 'Name cannot be empty.'; status.className = 'edit-status err'; return; }
@@ -1737,6 +1760,7 @@
     const updates = {};
     updates['admin_projects/' + code] = newName;
     updates['projects/' + safecode + '/activePhases'] = activePhases;
+    updates['projects/' + safecode + '/location'] = (locEl && locEl.value.trim()) || null;
 
     db.ref().update(updates)
       .then(() => {
@@ -1885,6 +1909,13 @@
   }
 
   // ── PROJECT DETAILS (start date / est. completion / total value) ──
+  function loadProjectLocationField(safecode){
+    db.ref('projects/' + safecode + '/location').once('value', snap => {
+      const locEl = document.getElementById('editLocation-' + safecode);
+      if(locEl) locEl.value = snap.val() || '';
+    });
+  }
+
   function loadProjectDetailsFields(safecode){
     db.ref('projects/' + safecode + '/financials').once('value', snap => {
       const fin = snap.val() || {};
