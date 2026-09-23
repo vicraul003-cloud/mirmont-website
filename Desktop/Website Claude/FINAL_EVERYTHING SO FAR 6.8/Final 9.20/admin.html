@@ -302,7 +302,7 @@
 
     .mini-form-row textarea{background:var(--navy-dark);border:1px solid rgba(201,160,90,0.18);color:var(--white);font-family:'Montserrat',sans-serif;font-size:0.75rem;padding:0.55rem 0.7rem;outline:none;transition:border-color 0.2s;flex:1 1 100%;min-height:52px;resize:vertical;}
     .mini-form-row textarea:focus{border-color:rgba(201,160,90,0.5);}
-    .mini-form-row input[type="date"],.mini-form-row input[type="time"]{flex:0 1 130px;color-scheme:dark;}
+    .mini-form-row input[type="date"]{flex:0 1 150px;color-scheme:dark;}
 
     .mini-note-item{background:var(--navy-dark);border:1px solid rgba(201,160,90,0.1);padding:0.6rem 0.9rem;}
     .mini-note-text{font-size:0.78rem;color:var(--off-white);line-height:1.6;white-space:pre-wrap;}
@@ -1088,7 +1088,7 @@
                   <div class="mini-cal-days" id="miniCalDays-${safecode}"></div>
                   <span class="mini-cal-clear" id="miniCalClear-${safecode}" onclick="clearMiniCalendar('${safecode}')" style="display:none;">Clear date</span>
                 </div>
-                <input type="time" id="mobileTaskTime-${safecode}" title="Start time (optional) — leave blank for an all-day reminder" />
+                <select id="mobileTaskTime-${safecode}" title="Start time (optional) — leave blank for an all-day reminder">${timeOptionsHtml()}</select>
                 <select id="mobileTaskDuration-${safecode}" title="Duration">
                   <option value="30">30 min</option>
                   <option value="60" selected>1 hour</option>
@@ -1279,7 +1279,7 @@
               <div class="mini-form-row">
                 <input type="text" id="taskTitle-${safecode}" placeholder="Task — e.g. Order tile samples" />
                 <input type="date" id="taskDue-${safecode}" title="Due date" />
-                <input type="time" id="taskTime-${safecode}" title="Start time (optional) — leave blank for an all-day reminder" />
+                <select id="taskTime-${safecode}" title="Start time (optional) — leave blank for an all-day reminder">${timeOptionsHtml()}</select>
                 <select id="taskDuration-${safecode}" title="Duration">
                   <option value="30">30 min</option>
                   <option value="60" selected>1 hour</option>
@@ -2337,6 +2337,20 @@
     if(parts.length !== 3) return dateStr;
     const [y,m,d] = parts;
     return `${m}/${d}/${y}`;
+  }
+
+  // Builds <option> elements for the Start Time dropdown: 7:00 AM through
+  // 8:00 PM in 30-minute steps, plus a blank "no specific time" default
+  // (leaving it unselected keeps the task an all-day reminder).
+  function timeOptionsHtml(){
+    let html = '<option value="">No specific time</option>';
+    for(let mins = 7*60; mins <= 20*60; mins += 30){
+      const hh = String(Math.floor(mins/60)).padStart(2,'0');
+      const mm = String(mins % 60).padStart(2,'0');
+      const value = hh + ':' + mm;
+      html += `<option value="${value}">${formatTime12(value)}</option>`;
+    }
+    return html;
   }
 
   // '14:30' -> '2:30 PM'
