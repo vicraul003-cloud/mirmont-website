@@ -298,6 +298,24 @@
     .stat-card-profit.stat-profit-negative{background:#f3b8b0;border-color:#c0392b;}
     .stat-card-profit.stat-profit-negative .stat-label{color:#7a2419;}
     .stat-card-profit.stat-profit-negative .stat-value{color:#5c150c;}
+    .project-stats-row{position:relative;}
+    .project-stat-card.stat-card-edit{cursor:default;overflow:visible;}
+    .project-stat-card.stat-card-edit:hover{transform:none;box-shadow:none;}
+    .stat-date-input{background:transparent;border:none;border-bottom:1px solid rgba(28,35,43,0.25);color:#1c232b;font:inherit;font-size:1.05rem;font-weight:700;font-family:'Montserrat',sans-serif;padding:0.1rem 0;width:100%;cursor:pointer;}
+    .stat-date-input:focus{outline:none;border-bottom-color:#7a4212;}
+    .stat-date-input::placeholder{color:rgba(28,35,43,0.4);font-weight:600;}
+    .stat-value-input{background:transparent;border:none;border-bottom:1px solid rgba(28,35,43,0.25);color:#1c232b;font:inherit;font-size:1.05rem;font-weight:700;font-family:'Montserrat',sans-serif;padding:0.1rem 0;width:100%;}
+    .stat-value-input:focus{outline:none;border-bottom-color:#7a4212;}
+    .stat-value-input::placeholder{color:rgba(28,35,43,0.4);font-weight:600;}
+    .mini-calendar.stat-mini-calendar{display:none;position:absolute;top:100%;left:0;z-index:60;margin-top:0.4rem;width:220px;max-width:220px;box-shadow:0 8px 22px rgba(0,0,0,0.3);}
+    .mini-calendar.stat-mini-calendar.show{display:block;}
+    .stat-balance-due-date{margin-top:0.45rem;position:relative;}
+    .stat-balance-due-date .mini-calendar.stat-mini-calendar{left:auto;right:0;}
+    .stat-balance-due-date label{display:block;font-size:0.52rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#6b7480;margin-bottom:0.1rem;}
+    .stat-balance-link{display:inline-block;margin-top:0.45rem;font-size:0.58rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#c0392b;cursor:pointer;text-decoration:underline;}
+    .stat-card-balance.stat-balance-clear .stat-balance-link{color:#1e8e3e;}
+    .stats-saved-check{position:absolute;top:-1.15rem;right:0.1rem;font-size:0.62rem;font-weight:700;color:#1e8e3e;opacity:0;transition:opacity 0.3s;pointer-events:none;}
+    .stats-saved-check.show{opacity:1;}
     .expense-trade-breakdown{display:flex;flex-wrap:wrap;gap:6px;margin-top:0.7rem;}
     .expense-trade-chip{font-size:0.6rem;letter-spacing:0.04em;padding:3px 9px;border:1px solid rgba(201,160,90,0.18);color:rgba(200,192,176,0.7);white-space:nowrap;}
     .expense-trade-chip b{color:var(--gold-light);font-weight:700;}
@@ -1232,17 +1250,39 @@
               <button type="button" class="stats-toggle-btn" id="statsToggleBtn-${safecode}" onclick="toggleStatsRow('${safecode}')" title="Show/hide stats" aria-label="Show/hide stats">^</button>
             </div>
             <div class="project-stats-row" id="statsRow-${safecode}">
-              <div class="project-stat-card stat-card-start" onclick="switchProjectTab('${safecode}','details')" title="Go to Project Details">
+              <span class="stats-saved-check" id="statsSavedCheck-${safecode}">&#10003; Saved</span>
+              <div class="project-stat-card stat-card-start stat-card-edit">
                 <span class="stat-label">Project Start</span>
-                <span class="stat-value" id="statStart-${safecode}">—</span>
+                <input type="text" class="stat-date-input" id="projStart-${safecode}" placeholder="Not set" readonly onclick="event.stopPropagation();toggleStatCalendar('${safecode}','stat-start')" />
+                <div class="mini-calendar stat-mini-calendar" id="statCal-start-${safecode}">
+                  <div class="mini-cal-header">
+                    <button type="button" class="mini-cal-nav" onclick="event.stopPropagation();shiftMiniCalendar('${safecode}',-1,'stat-start')">&lsaquo;</button>
+                    <span class="mini-cal-label" id="miniCalLabel-statstart-${safecode}"></span>
+                    <button type="button" class="mini-cal-nav" onclick="event.stopPropagation();shiftMiniCalendar('${safecode}',1,'stat-start')">&rsaquo;</button>
+                  </div>
+                  <div class="mini-cal-weekdays"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
+                  <div class="mini-cal-days" id="miniCalDays-statstart-${safecode}"></div>
+                  <span class="mini-cal-clear" id="miniCalClear-statstart-${safecode}" onclick="event.stopPropagation();clearMiniCalendar('${safecode}','stat-start')" style="display:none;">Clear date</span>
+                </div>
               </div>
-              <div class="project-stat-card stat-card-completion" onclick="switchProjectTab('${safecode}','details')" title="Go to Project Details">
+              <div class="project-stat-card stat-card-completion stat-card-edit">
                 <span class="stat-label">Est. Completion</span>
-                <span class="stat-value" id="statCompletion-${safecode}">—</span>
+                <input type="text" class="stat-date-input" id="projEstCompletion-${safecode}" placeholder="Not set" readonly onclick="event.stopPropagation();toggleStatCalendar('${safecode}','stat-completion')" />
+                <div class="mini-calendar stat-mini-calendar" id="statCal-completion-${safecode}">
+                  <div class="mini-cal-header">
+                    <button type="button" class="mini-cal-nav" onclick="event.stopPropagation();shiftMiniCalendar('${safecode}',-1,'stat-completion')">&lsaquo;</button>
+                    <span class="mini-cal-label" id="miniCalLabel-statcompletion-${safecode}"></span>
+                    <button type="button" class="mini-cal-nav" onclick="event.stopPropagation();shiftMiniCalendar('${safecode}',1,'stat-completion')">&rsaquo;</button>
+                  </div>
+                  <div class="mini-cal-weekdays"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
+                  <div class="mini-cal-days" id="miniCalDays-statcompletion-${safecode}"></div>
+                  <span class="mini-cal-clear" id="miniCalClear-statcompletion-${safecode}" onclick="event.stopPropagation();clearMiniCalendar('${safecode}','stat-completion')" style="display:none;">Clear date</span>
+                </div>
               </div>
-              <div class="project-stat-card stat-card-value" onclick="switchProjectTab('${safecode}','details')" title="Go to Project Details">
+              <div class="project-stat-card stat-card-value stat-card-edit">
                 <span class="stat-label">Total Project Value</span>
-                <span class="stat-value" id="statValue-${safecode}">$0.00</span>
+                <input type="number" class="stat-value-input" id="projTotalValue-${safecode}" step="0.01" min="0" placeholder="0.00" onclick="event.stopPropagation();" onchange="saveProjectDetails('${safecode}')" />
+                <span class="stat-subtext" id="statValueAdjusted-${safecode}" style="display:none;"></span>
               </div>
               <div class="project-stat-card stat-card-paid" onclick="switchProjectTab('${safecode}','deposits')" title="Go to Deposits &amp; Payments">
                 <span class="stat-label">Deposits Paid</span>
@@ -1252,10 +1292,24 @@
                 <span class="stat-label">Total Expenses</span>
                 <span class="stat-value" id="statExpenses-${safecode}">$0.00</span>
               </div>
-              <div class="project-stat-card stat-card-balance" id="statBalanceCard-${safecode}" onclick="switchProjectTab('${safecode}','deposits')" title="Go to Deposits &amp; Payments">
+              <div class="project-stat-card stat-card-balance stat-card-edit" id="statBalanceCard-${safecode}">
                 <span class="stat-label">Balance Due</span>
                 <span class="stat-value" id="statBalance-${safecode}">$0.00</span>
-                <span class="stat-subtext" id="statBalanceDueDate-${safecode}"></span>
+                <div class="stat-balance-due-date">
+                  <label>Due Date</label>
+                  <input type="text" class="stat-date-input" id="projBalanceDueDate-${safecode}" placeholder="Not set" readonly onclick="event.stopPropagation();toggleStatCalendar('${safecode}','stat-balance')" />
+                  <div class="mini-calendar stat-mini-calendar" id="statCal-balance-${safecode}">
+                    <div class="mini-cal-header">
+                      <button type="button" class="mini-cal-nav" onclick="event.stopPropagation();shiftMiniCalendar('${safecode}',-1,'stat-balance')">&lsaquo;</button>
+                      <span class="mini-cal-label" id="miniCalLabel-statbalance-${safecode}"></span>
+                      <button type="button" class="mini-cal-nav" onclick="event.stopPropagation();shiftMiniCalendar('${safecode}',1,'stat-balance')">&rsaquo;</button>
+                    </div>
+                    <div class="mini-cal-weekdays"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
+                    <div class="mini-cal-days" id="miniCalDays-statbalance-${safecode}"></div>
+                    <span class="mini-cal-clear" id="miniCalClear-statbalance-${safecode}" onclick="event.stopPropagation();clearMiniCalendar('${safecode}','stat-balance')" style="display:none;">Clear date</span>
+                  </div>
+                </div>
+                <span class="stat-balance-link" onclick="switchProjectTab('${safecode}','deposits')" title="Go to Deposits &amp; Payments">View payments &rsaquo;</span>
               </div>
               <div class="project-stat-card stat-card-profit" id="statProfitCard-${safecode}" onclick="switchProjectTab('${safecode}','expenses')" title="Go to Expenses">
                 <span class="stat-label">Net Profit</span>
@@ -1265,14 +1319,13 @@
             </div>
 
             <div class="project-tabs" id="projectTabs-${safecode}">
-              <button class="ptab-btn active" data-group="details" onclick="switchProjectTab('${safecode}','details')">Project Details</button>
-              <button class="ptab-btn" data-group="financials" onclick="switchProjectTab('${safecode}','deposits')">Financials</button>
+              <button class="ptab-btn active" data-group="financials" onclick="switchProjectTab('${safecode}','deposits')">Financials</button>
               <button class="ptab-btn" data-group="activity" onclick="switchProjectTab('${safecode}','notes')">Client Activity</button>
               <button class="ptab-btn" data-group="files" onclick="switchProjectTab('${safecode}','documents')">Files &amp; Settings</button>
             </div>
 
-            <div class="project-subtabs" id="subtabs-financials-${safecode}">
-              <button class="psub-btn" data-tab="deposits" onclick="switchProjectTab('${safecode}','deposits')">Deposits &amp; Payments</button>
+            <div class="project-subtabs open" id="subtabs-financials-${safecode}">
+              <button class="psub-btn active" data-tab="deposits" onclick="switchProjectTab('${safecode}','deposits')">Deposits &amp; Payments</button>
               <button class="psub-btn" data-tab="expenses" onclick="switchProjectTab('${safecode}','expenses')">Expenses</button>
               <button class="psub-btn" data-tab="changeorders" onclick="switchProjectTab('${safecode}','changeorders')">Change Orders</button>
               <button class="psub-btn" data-tab="invoices" onclick="switchProjectTab('${safecode}','invoices')">Invoices &amp; Quotes</button>
@@ -1290,31 +1343,7 @@
               <button class="psub-btn" data-tab="sections" onclick="switchProjectTab('${safecode}','sections')">Active Sections</button>
             </div>
 
-            <div class="mini-section project-tab-panel active" id="tabPanel-details-${safecode}">
-              <span class="mini-section-label">Project Details</span>
-              <div class="mini-form-row">
-                <div class="mini-field">
-                  <label>Start Date</label>
-                  <input type="date" id="projStart-${safecode}" />
-                </div>
-                <div class="mini-field">
-                  <label>Est. Completion</label>
-                  <input type="date" id="projEstCompletion-${safecode}" />
-                </div>
-                <div class="mini-field">
-                  <label>Total Project Value</label>
-                  <input type="number" id="projTotalValue-${safecode}" step="0.01" min="0" placeholder="0.00" />
-                </div>
-                <div class="mini-field">
-                  <label>Balance Due Date</label>
-                  <input type="date" id="projBalanceDueDate-${safecode}" />
-                </div>
-                <button class="btn-add-mini" onclick="saveProjectDetails('${safecode}')">Save</button>
-              </div>
-              <span class="mini-form-status" id="projDetailsFormStatus-${safecode}"></span>
-            </div>
-
-            <div class="mini-section project-tab-panel" id="tabPanel-deposits-${safecode}">
+            <div class="mini-section project-tab-panel active" id="tabPanel-deposits-${safecode}">
               <span class="mini-section-label">Deposits &amp; Payments</span>
               <div class="mini-form-row">
                 <input type="number" id="depAmount-${safecode}" placeholder="Amount" step="0.01" min="0" />
@@ -1764,16 +1793,41 @@
   const miniCalState = {};
   const MINI_CAL_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-  function miniCalStateKey(safecode, which){ return (which === 'main') ? (safecode + '__main') : safecode; }
+  function miniCalStateKey(safecode, which){ return which ? (safecode + '__' + which) : safecode; }
+  function isStatWhich(which){ return which === 'stat-start' || which === 'stat-completion' || which === 'stat-balance'; }
   function miniCalIds(safecode, which){
-    const suffix = (which === 'main') ? ('main-' + safecode) : safecode;
-    return {
-      label: 'miniCalLabel-' + suffix,
-      days: 'miniCalDays-' + suffix,
-      clear: 'miniCalClear-' + suffix,
-      due: (which === 'main' ? 'taskDue-' : 'mobileTaskDue-') + safecode
-    };
+    if(which === 'main') return { label:'miniCalLabel-main-'+safecode, days:'miniCalDays-main-'+safecode, clear:'miniCalClear-main-'+safecode, due:'taskDue-'+safecode };
+    if(which === 'stat-start') return { label:'miniCalLabel-statstart-'+safecode, days:'miniCalDays-statstart-'+safecode, clear:'miniCalClear-statstart-'+safecode, due:'projStart-'+safecode };
+    if(which === 'stat-completion') return { label:'miniCalLabel-statcompletion-'+safecode, days:'miniCalDays-statcompletion-'+safecode, clear:'miniCalClear-statcompletion-'+safecode, due:'projEstCompletion-'+safecode };
+    if(which === 'stat-balance') return { label:'miniCalLabel-statbalance-'+safecode, days:'miniCalDays-statbalance-'+safecode, clear:'miniCalClear-statbalance-'+safecode, due:'projBalanceDueDate-'+safecode };
+    return { label:'miniCalLabel-'+safecode, days:'miniCalDays-'+safecode, clear:'miniCalClear-'+safecode, due:'mobileTaskDue-'+safecode };
   }
+
+  // Popover control for the three stats-row date pickers: clicking a date
+  // box opens its calendar (closing any other open one for this project
+  // first); a click outside any popover or its input closes them all.
+  function toggleStatCalendar(safecode, which){
+    const suffix = which.replace('stat-','');
+    const pop = document.getElementById('statCal-' + suffix + '-' + safecode);
+    if(!pop) return;
+    const isOpen = pop.classList.contains('show');
+    document.querySelectorAll('#edit-' + safecode + ' .stat-mini-calendar.show').forEach(el => el.classList.remove('show'));
+    if(!isOpen){
+      pop.classList.add('show');
+      initMiniCalendar(safecode, which);
+    }
+  }
+
+  function closeStatCalendar(safecode, which){
+    const suffix = which.replace('stat-','');
+    const pop = document.getElementById('statCal-' + suffix + '-' + safecode);
+    if(pop) pop.classList.remove('show');
+  }
+
+  document.addEventListener('click', function(e){
+    if(e.target.closest && (e.target.closest('.stat-mini-calendar') || e.target.closest('.stat-date-input'))) return;
+    document.querySelectorAll('.stat-mini-calendar.show').forEach(el => el.classList.remove('show'));
+  });
 
   function initMiniCalendar(safecode, which){
     const key = miniCalStateKey(safecode, which);
@@ -1806,7 +1860,7 @@
     const startDow = new Date(state.year, state.month, 1).getDay();
     const daysInMonth = new Date(state.year, state.month + 1, 0).getDate();
     const todayStr = new Date().toISOString().slice(0,10);
-    const whichArg = which === 'main' ? ",'main'" : '';
+    const whichArg = which ? (",'" + which + "'") : '';
 
     let html = '';
     for(let i = 0; i < startDow; i++){
@@ -1829,7 +1883,16 @@
     if(!state) return;
     state.selectedDate = iso;
     const dueEl = document.getElementById(miniCalIds(safecode, which).due);
-    if(dueEl) dueEl.value = iso;
+    if(dueEl){
+      if(isStatWhich(which)){
+        dueEl.dataset.raw = iso;
+        dueEl.value = formatDate(iso);
+        saveProjectDetails(safecode);
+        closeStatCalendar(safecode, which);
+      } else {
+        dueEl.value = iso;
+      }
+    }
     renderMiniCalendar(safecode, which);
   }
 
@@ -1838,7 +1901,16 @@
     if(!state) return;
     state.selectedDate = null;
     const dueEl = document.getElementById(miniCalIds(safecode, which).due);
-    if(dueEl) dueEl.value = '';
+    if(dueEl){
+      if(isStatWhich(which)){
+        dueEl.dataset.raw = '';
+        dueEl.value = '';
+        saveProjectDetails(safecode);
+        closeStatCalendar(safecode, which);
+      } else {
+        dueEl.value = '';
+      }
+    }
     renderMiniCalendar(safecode, which);
   }
 
@@ -2271,6 +2343,16 @@
       .then(() => loadPermitInspections(currentPermitSafecode));
   }
 
+  // The three date boxes in the stats row are readonly text inputs (so
+  // clicking opens the popover mini-calendar instead of a native picker);
+  // dataset.raw holds the actual ISO date used for saving/Firebase, while
+  // .value holds the human-readable text shown to the user.
+  function setStatDateField(el, iso){
+    if(!el) return;
+    el.dataset.raw = iso || '';
+    el.value = iso ? formatDate(iso) : '';
+  }
+
   function loadProjectDetailsFields(safecode){
     db.ref('projects/' + safecode + '/financials').once('value', snap => {
       const fin = snap.val() || {};
@@ -2278,10 +2360,10 @@
       const compEl  = document.getElementById('projEstCompletion-' + safecode);
       const valueEl = document.getElementById('projTotalValue-' + safecode);
       const dueDateEl = document.getElementById('projBalanceDueDate-' + safecode);
-      if(startEl) startEl.value = fin.startDate || '';
-      if(compEl)  compEl.value  = fin.estCompletionDate || '';
+      setStatDateField(startEl, fin.startDate);
+      setStatDateField(compEl, fin.estCompletionDate);
       if(valueEl) valueEl.value = (fin.totalValue !== undefined && fin.totalValue !== null) ? fin.totalValue : '';
-      if(dueDateEl) dueDateEl.value = fin.balanceDueDate || '';
+      setStatDateField(dueDateEl, fin.balanceDueDate);
     });
   }
 
@@ -2290,19 +2372,22 @@
     const compEl  = document.getElementById('projEstCompletion-' + safecode);
     const valueEl = document.getElementById('projTotalValue-' + safecode);
     const dueDateEl = document.getElementById('projBalanceDueDate-' + safecode);
-    const status  = document.getElementById('projDetailsFormStatus-' + safecode);
+    if(!valueEl) return;
     const parsedValue = valueEl.value === '' ? null : parseFloat(valueEl.value);
-    status.textContent = 'Saving…'; status.className = 'mini-form-status';
     db.ref('projects/' + safecode + '/financials').update({
-      startDate: startEl.value || null,
-      estCompletionDate: compEl.value || null,
+      startDate: (startEl && startEl.dataset.raw) || null,
+      estCompletionDate: (compEl && compEl.dataset.raw) || null,
       totalValue: (parsedValue === null || isNaN(parsedValue)) ? null : parsedValue,
-      balanceDueDate: dueDateEl.value || null
+      balanceDueDate: (dueDateEl && dueDateEl.dataset.raw) || null
     }).then(() => {
-      status.textContent = '✓ Saved.'; status.className = 'mini-form-status ok';
-      setTimeout(() => { status.textContent = ''; }, 2000);
+      const check = document.getElementById('statsSavedCheck-' + safecode);
+      if(check){
+        check.classList.add('show');
+        clearTimeout(check._hideTimer);
+        check._hideTimer = setTimeout(() => { check.classList.remove('show'); }, 2000);
+      }
       logCrmActivity(safecode, 'Updated project details (dates/value)');
-    }).catch(e => { status.textContent = 'Error: ' + e.message; status.className = 'mini-form-status err'; });
+    }).catch(e => { alert('Error saving project details: ' + e.message); });
   }
 
   // ── PROJECT STATS ROW + DEPOSITS + CHANGE ORDERS (always recomputed together) ──
@@ -2334,8 +2419,11 @@
   function renderProjectStats(safecode){
     const cache = projFinCache[safecode];
     if(!cache) return;
-    const startEl = document.getElementById('statStart-' + safecode);
-    if(!startEl) return;
+    // Project Start / Est. Completion / Total Project Value / Balance Due Date
+    // are now editable boxes populated by loadProjectDetailsFields, not by
+    // this function — it only drives the still-read-only computed cards.
+    const paidEl = document.getElementById('statPaid-' + safecode);
+    if(!paidEl) return;
     const fin = cache.financials || {};
     const totalValue = Number(fin.totalValue) || 0;
     const coTotal = sumAmounts(cache.changeOrders);
@@ -2345,14 +2433,18 @@
     const balanceDue = adjustedTotal - paidTotal;
     const netProfit = adjustedTotal - expenseTotal;
 
-    startEl.textContent = fin.startDate ? formatDate(fin.startDate) : '—';
-    document.getElementById('statCompletion-' + safecode).textContent = fin.estCompletionDate ? formatDate(fin.estCompletionDate) : '—';
-    document.getElementById('statValue-' + safecode).textContent = formatMoney(adjustedTotal);
-    document.getElementById('statPaid-' + safecode).textContent = formatMoney(paidTotal);
+    const valueAdjEl = document.getElementById('statValueAdjusted-' + safecode);
+    if(valueAdjEl){
+      if(coTotal){
+        valueAdjEl.textContent = 'Adjusted: ' + formatMoney(adjustedTotal) + ' (incl. change orders)';
+        valueAdjEl.style.display = '';
+      } else {
+        valueAdjEl.style.display = 'none';
+      }
+    }
+    paidEl.textContent = formatMoney(paidTotal);
     document.getElementById('statExpenses-' + safecode).textContent = formatMoney(expenseTotal);
     document.getElementById('statBalance-' + safecode).textContent = formatMoney(balanceDue);
-    const dueDateEl = document.getElementById('statBalanceDueDate-' + safecode);
-    if(dueDateEl) dueDateEl.textContent = fin.balanceDueDate ? ('Due ' + formatDate(fin.balanceDueDate)) : '';
     const balCard = document.getElementById('statBalanceCard-' + safecode);
     if(balCard) balCard.classList.toggle('stat-balance-clear', adjustedTotal > 0 && balanceDue <= 0);
     const profitEl = document.getElementById('statNetProfit-' + safecode);
