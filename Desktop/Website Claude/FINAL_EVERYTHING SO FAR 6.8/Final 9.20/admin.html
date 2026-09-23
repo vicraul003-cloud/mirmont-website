@@ -392,19 +392,20 @@
     .scope-item-row.scope-hidden{display:none;}
     .scope-item-row input[type="checkbox"]{width:15px;height:15px;accent-color:var(--gold);flex:none;cursor:pointer;}
     .scope-item-name{flex:1 1 160px;font-size:0.74rem;color:var(--white);min-width:120px;}
-    .scope-unit-badge{font-size:0.52rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--gold);border:1px solid rgba(201,160,90,0.22);border-radius:9px;padding:0.12rem 0.4rem;flex:none;}
+    .scope-unit-badge{font-size:0.52rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--gold);border:1px solid rgba(201,160,90,0.22);border-radius:9px;padding:0.12rem 0.2rem;flex:none;width:3.8rem;text-align:center;box-sizing:border-box;}
     .scope-qty-inputs{display:flex;align-items:center;gap:0.3rem;flex:none;}
     .scope-qty-inputs input{width:4rem;font-family:'Montserrat',sans-serif;font-size:0.74rem;font-variant-numeric:tabular-nums;text-align:right;padding:0.3rem 0.4rem;border-radius:5px;border:1px solid rgba(201,160,90,0.18);background:var(--navy-mid);color:var(--white);}
     .scope-qty-inputs input:focus{outline:none;border-color:rgba(201,160,90,0.5);}
     .scope-x{color:var(--text-light);font-size:0.68rem;}
     .scope-result{flex:none;width:5.6rem;text-align:right;font-size:0.74rem;font-weight:700;font-variant-numeric:tabular-nums;color:var(--gold-light);}
 
-    .scope-cost-inputs{display:flex;align-items:center;gap:0.25rem;flex:none;padding-left:0.5rem;border-left:1px solid rgba(201,160,90,0.14);}
+    .scope-cost-inputs{display:flex;align-items:center;gap:0.6rem;flex:none;padding-left:0.5rem;border-left:1px solid rgba(201,160,90,0.14);}
+    .scope-cost-group{display:flex;align-items:center;gap:0.25rem;flex:none;}
     .scope-cost-label{font-size:0.54rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:var(--text-light);}
     .scope-cost-inputs input{width:3.4rem;font-family:'Montserrat',sans-serif;font-size:0.72rem;font-variant-numeric:tabular-nums;text-align:right;padding:0.3rem 0.35rem;border-radius:5px;border:1px solid rgba(201,160,90,0.18);background:var(--navy-mid);color:var(--white);}
     .scope-cost-inputs input:focus{outline:none;border-color:rgba(201,160,90,0.5);}
     .scope-row-cost{flex:none;width:5.2rem;text-align:right;font-size:0.74rem;font-weight:700;font-variant-numeric:tabular-nums;color:var(--green);}
-    .scope-avg-tag{font-size:0.56rem;font-style:italic;color:var(--text-light);white-space:nowrap;flex:none;margin-right:0.3rem;}
+    .scope-avg-tag{font-size:0.56rem;font-style:italic;color:var(--text-light);white-space:nowrap;flex:none;margin-right:0.3rem;width:4.6rem;overflow:hidden;text-overflow:ellipsis;display:inline-block;}
     .scope-stat-cost{border-left-color:var(--green);}
     .scope-stat-cost .scope-stat-v{color:var(--green);}
 
@@ -724,7 +725,9 @@
       .scope-item-row{gap:0.5rem;}
       .scope-item-name{flex:1 1 100%;}
       .scope-result{width:auto;margin-left:auto;}
-      .scope-cost-inputs{flex:1 1 100%;justify-content:flex-end;border-left:none;padding-left:0;padding-top:0.35rem;border-top:1px dashed rgba(201,160,90,0.14);margin-top:0.2rem;}
+      .scope-cost-inputs{flex:1 1 100%;flex-wrap:wrap;row-gap:0.3rem;justify-content:flex-end;border-left:none;padding-left:0;padding-top:0.35rem;border-top:1px dashed rgba(201,160,90,0.14);margin-top:0.2rem;}
+      .scope-cost-group{flex:none;}
+      .scope-avg-tag{width:3.4rem;}
       .scope-row-cost{width:auto;margin-left:auto;}
       .scope-toolbar{gap:0.4rem;}
       .scope-search{flex:1 1 100%;}
@@ -3185,10 +3188,10 @@
       if(a && a.matCount){
         el.textContent = 'avg ' + formatMoney(a.matAvg);
         el.title = 'Average material rate from ' + a.matCount + ' estimate' + (a.matCount === 1 ? '' : 's');
-        el.style.display = '';
+        el.style.visibility = 'visible';
       } else {
         el.textContent = '';
-        el.style.display = 'none';
+        el.style.visibility = 'hidden';
       }
     });
     document.querySelectorAll('[data-scope-avg-labor-for]').forEach(el => {
@@ -3197,10 +3200,10 @@
       if(a && a.laborCount){
         el.textContent = 'avg ' + formatMoney(a.laborAvg);
         el.title = 'Average labor rate from ' + a.laborCount + ' estimate' + (a.laborCount === 1 ? '' : 's');
-        el.style.display = '';
+        el.style.visibility = 'visible';
       } else {
         el.textContent = '';
-        el.style.display = 'none';
+        el.style.visibility = 'hidden';
       }
     });
   }
@@ -3243,12 +3246,16 @@
       const laborAvgText = (avgData && avgData.laborCount) ? ('avg ' + formatMoney(avgData.laborAvg)) : '';
       const costInputsHtml =
         '<div class="scope-cost-inputs">' +
-          '<span class="scope-cost-label">Mat.</span>' +
-          '<input type="number" min="0" step="0.01" placeholder="0" title="Material cost per ' + unitNoun + ' &mdash; multiplied by the quantity above" data-scope-id="' + item.id + '" data-scope-field="material" value="' + escHtml(st.material) + '" oninput="handleScopeInput(\'' + safecode + '\',this)">' +
-          '<span class="scope-avg-tag" data-scope-avg-mat-for="' + item.id + '" title="Average material rate for this item across your projects"' + (matAvgText ? '' : ' style="display:none;"') + '>' + matAvgText + '</span>' +
-          '<span class="scope-cost-label">Labor</span>' +
-          '<input type="number" min="0" step="0.01" placeholder="0" title="Labor cost per ' + unitNoun + ' &mdash; multiplied by the quantity above" data-scope-id="' + item.id + '" data-scope-field="labor" value="' + escHtml(st.labor) + '" oninput="handleScopeInput(\'' + safecode + '\',this)">' +
-          '<span class="scope-avg-tag" data-scope-avg-labor-for="' + item.id + '" title="Average labor rate for this item across your projects"' + (laborAvgText ? '' : ' style="display:none;"') + '>' + laborAvgText + '</span>' +
+          '<span class="scope-cost-group">' +
+            '<span class="scope-cost-label">Mat.</span>' +
+            '<input type="number" min="0" step="0.01" placeholder="0" title="Material cost per ' + unitNoun + ' &mdash; multiplied by the quantity above" data-scope-id="' + item.id + '" data-scope-field="material" value="' + escHtml(st.material) + '" oninput="handleScopeInput(\'' + safecode + '\',this)">' +
+            '<span class="scope-avg-tag" data-scope-avg-mat-for="' + item.id + '" title="Average material rate for this item across your projects"' + (matAvgText ? '' : ' style="visibility:hidden;"') + '>' + matAvgText + '</span>' +
+          '</span>' +
+          '<span class="scope-cost-group">' +
+            '<span class="scope-cost-label">Labor</span>' +
+            '<input type="number" min="0" step="0.01" placeholder="0" title="Labor cost per ' + unitNoun + ' &mdash; multiplied by the quantity above" data-scope-id="' + item.id + '" data-scope-field="labor" value="' + escHtml(st.labor) + '" oninput="handleScopeInput(\'' + safecode + '\',this)">' +
+            '<span class="scope-avg-tag" data-scope-avg-labor-for="' + item.id + '" title="Average labor rate for this item across your projects"' + (laborAvgText ? '' : ' style="visibility:hidden;"') + '>' + laborAvgText + '</span>' +
+          '</span>' +
         '</div>';
 
       return (
