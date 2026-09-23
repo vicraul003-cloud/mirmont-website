@@ -1403,10 +1403,10 @@
             </div>
 
             <div class="project-tabs" id="projectTabs-${safecode}">
+              <button class="ptab-btn active" data-group="scope" onclick="switchProjectTab('${safecode}','scope')">Scope of Work</button>
               <button class="ptab-btn" data-group="financials" onclick="switchProjectTab('${safecode}','deposits')">Financials</button>
               <button class="ptab-btn" data-group="activity" onclick="switchProjectTab('${safecode}','notes')">Client Activity</button>
               <button class="ptab-btn" data-group="files" onclick="switchProjectTab('${safecode}','documents')">Files &amp; Settings</button>
-              <button class="ptab-btn active" data-group="scope" onclick="switchProjectTab('${safecode}','scope')">Scope of Work</button>
             </div>
 
             <div class="project-subtabs" id="subtabs-financials-${safecode}">
@@ -3141,12 +3141,13 @@
       } else {
         inputsHtml = '<div class="scope-qty-inputs"><input type="number" min="0" step="1" placeholder="qty" data-scope-id="' + item.id + '" data-scope-field="count" value="' + escHtml(st.count) + '" oninput="handleScopeInput(\'' + safecode + '\',this)"></div>';
       }
+      const unitNoun = item.unit === 'sqft' ? 'sq ft' : (item.unit === 'linft' ? 'lin ft' : 'each');
       const costInputsHtml =
         '<div class="scope-cost-inputs">' +
           '<span class="scope-cost-label">Mat.</span>' +
-          '<input type="number" min="0" step="0.01" placeholder="0" data-scope-id="' + item.id + '" data-scope-field="material" value="' + escHtml(st.material) + '" oninput="handleScopeInput(\'' + safecode + '\',this)">' +
+          '<input type="number" min="0" step="0.01" placeholder="0" title="Material cost per ' + unitNoun + ' &mdash; multiplied by the quantity above" data-scope-id="' + item.id + '" data-scope-field="material" value="' + escHtml(st.material) + '" oninput="handleScopeInput(\'' + safecode + '\',this)">' +
           '<span class="scope-cost-label">Labor</span>' +
-          '<input type="number" min="0" step="0.01" placeholder="0" data-scope-id="' + item.id + '" data-scope-field="labor" value="' + escHtml(st.labor) + '" oninput="handleScopeInput(\'' + safecode + '\',this)">' +
+          '<input type="number" min="0" step="0.01" placeholder="0" title="Labor cost per ' + unitNoun + ' &mdash; multiplied by the quantity above" data-scope-id="' + item.id + '" data-scope-field="labor" value="' + escHtml(st.labor) + '" oninput="handleScopeInput(\'' + safecode + '\',this)">' +
         '</div>';
 
       return (
@@ -3205,7 +3206,9 @@
     const st = scopeItemState(safecode, item.id);
     const mat = parseFloat(st.material);
     const lab = parseFloat(st.labor);
-    return (isFinite(mat) ? mat : 0) + (isFinite(lab) ? lab : 0);
+    const rate = (isFinite(mat) ? mat : 0) + (isFinite(lab) ? lab : 0);
+    const r = computeScopeRow(safecode, item);
+    return rate * r.value;
   }
 
   function recalcScopeTotals(safecode){
@@ -3338,8 +3341,8 @@
         const st = scopeItemState(safecode, item.id);
         if(!st.checked) return;
         const r = computeScopeRow(safecode, item);
+        if(!r.value) return;
         const cost = computeScopeCost(safecode, item);
-        if(!r.value && !cost) return;
         let detail = '';
         if(item.unit === 'sqft'){
           const l = parseFloat(st.l), w = parseFloat(st.w);
@@ -3350,11 +3353,12 @@
         } else {
           grandCount += r.value;
         }
-        const mat = parseFloat(st.material); const matVal = isFinite(mat) ? mat : 0;
-        const lab = parseFloat(st.labor); const labVal = isFinite(lab) ? lab : 0;
-        grandMaterial += matVal; grandLabor += labVal;
-        const costStr = cost ? (' [Material: ' + formatMoney(matVal) + ', Labor: ' + formatMoney(labVal) + ', Item Total: ' + formatMoney(cost) + ']') : '';
-        rowLines.push(' - ' + item.name + ': ' + (r.value ? r.label : 'cost only') + detail + costStr);
+        const mat = parseFloat(st.material); const matRate = isFinite(mat) ? mat : 0;
+        const lab = parseFloat(st.labor); const labRate = isFinite(lab) ? lab : 0;
+        const matSubtotal = matRate * r.value, labSubtotal = labRate * r.value;
+        grandMaterial += matSubtotal; grandLabor += labSubtotal;
+        const costStr = cost ? (' [Material: ' + formatMoney(matSubtotal) + ', Labor: ' + formatMoney(labSubtotal) + ', Item Total: ' + formatMoney(cost) + ']') : '';
+        rowLines.push(' - ' + item.name + ': ' + r.label + detail + costStr);
       });
       if(rowLines.length){
         lines.push(cat.cat.toUpperCase());
@@ -3710,14 +3714,15 @@
             label = value + ' each';
             grandCount += value;
           }
-          const mat = parseFloat(raw.material); const matVal = isFinite(mat) ? mat : 0;
-          const lab = parseFloat(raw.labor); const labVal = isFinite(lab) ? lab : 0;
-          const cost = matVal + labVal;
-          if(!value && !cost) return;
-          grandMaterial += matVal; grandLabor += labVal;
+          if(!value) return;
+          const mat = parseFloat(raw.material); const matRate = isFinite(mat) ? mat : 0;
+          const lab = parseFloat(raw.labor); const labRate = isFinite(lab) ? lab : 0;
+          const matSubtotal = matRate * value, labSubtotal = labRate * value;
+          const cost = matSubtotal + labSubtotal;
+          grandMaterial += matSubtotal; grandLabor += labSubtotal;
           anyChecked = true;
-          const costStr = cost ? (' [Material: ' + formatMoney(matVal) + ', Labor: ' + formatMoney(labVal) + ', Item Total: ' + formatMoney(cost) + ']') : '';
-          rowLines.push(' - ' + item.name + ': ' + (value ? label : 'cost only') + detail + costStr);
+          const costStr = cost ? (' [Material: ' + formatMoney(matSubtotal) + ', Labor: ' + formatMoney(labSubtotal) + ', Item Total: ' + formatMoney(cost) + ']') : '';
+          rowLines.push(' - ' + item.name + ': ' + label + detail + costStr);
         });
         if(rowLines.length){
           lines.push(cat.cat.toUpperCase());
