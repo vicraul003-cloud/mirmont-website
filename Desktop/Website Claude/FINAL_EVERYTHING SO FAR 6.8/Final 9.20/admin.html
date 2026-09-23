@@ -326,6 +326,13 @@
     .mini-form-row textarea{background:var(--navy-dark);border:1px solid rgba(201,160,90,0.18);color:var(--white);font-family:'Montserrat',sans-serif;font-size:0.75rem;padding:0.55rem 0.7rem;outline:none;transition:border-color 0.2s;flex:1 1 100%;min-height:52px;resize:vertical;}
     .mini-form-row textarea:focus{border-color:rgba(201,160,90,0.5);}
     .mini-form-row input[type="date"]{flex:0 1 150px;color-scheme:dark;}
+    .task-form-desktop{flex-direction:column;align-items:stretch;max-width:420px;}
+    .task-form-desktop input[type="text"]{flex:none;width:100%;min-width:0;}
+    .task-form-desktop .mini-calendar{flex:none;}
+    .task-form-desktop .task-form-row-group{display:flex;gap:0.5rem;}
+    .task-form-desktop .task-form-row-group select{flex:1;min-width:0;}
+    .task-form-desktop .task-form-row-group input[type="text"]{flex:1;width:auto;min-width:0;}
+    .task-form-desktop .task-form-row-group .btn-add-mini{flex:none;}
 
     .mini-note-item{background:var(--navy-dark);border:1px solid rgba(201,160,90,0.1);padding:0.6rem 0.9rem;}
     .mini-note-text{font-size:0.78rem;color:var(--off-white);line-height:1.6;white-space:pre-wrap;}
@@ -1357,7 +1364,7 @@
 
             <div class="mini-section project-tab-panel" id="tabPanel-tasks-${safecode}">
               <span class="mini-section-label">Tasks</span>
-              <div class="mini-form-row">
+              <div class="mini-form-row task-form-desktop">
                 <input type="text" id="taskTitle-${safecode}" placeholder="Task — e.g. Order tile samples" />
                 <input type="hidden" id="taskDue-${safecode}" />
                 <div class="mini-calendar" id="miniCal-main-${safecode}">
@@ -1370,17 +1377,21 @@
                   <div class="mini-cal-days" id="miniCalDays-main-${safecode}"></div>
                   <span class="mini-cal-clear" id="miniCalClear-main-${safecode}" onclick="clearMiniCalendar('${safecode}','main')" style="display:none;">Clear date</span>
                 </div>
-                <select id="taskTime-${safecode}" title="Start time (optional) — leave blank for an all-day reminder">${timeOptionsHtml()}</select>
-                <select id="taskDuration-${safecode}" title="Duration">
-                  <option value="30">30 min</option>
-                  <option value="60" selected>1 hour</option>
-                  <option value="90">1.5 hours</option>
-                  <option value="120">2 hours</option>
-                  <option value="180">3 hours</option>
-                  <option value="240">4 hours</option>
-                </select>
-                <input type="text" id="taskAssignee-${safecode}" placeholder="Assigned to" style="flex:0 1 130px;" />
-                <button class="btn-add-mini" onclick="addTask('${safecode}')">Add</button>
+                <div class="task-form-row-group">
+                  <select id="taskTime-${safecode}" title="Start time (optional) — leave blank for an all-day reminder">${timeOptionsHtml()}</select>
+                  <select id="taskDuration-${safecode}" title="Duration">
+                    <option value="30">30 min</option>
+                    <option value="60" selected>1 hour</option>
+                    <option value="90">1.5 hours</option>
+                    <option value="120">2 hours</option>
+                    <option value="180">3 hours</option>
+                    <option value="240">4 hours</option>
+                  </select>
+                </div>
+                <div class="task-form-row-group">
+                  <input type="text" id="taskAssignee-${safecode}" placeholder="Assigned to" />
+                  <button class="btn-add-mini" onclick="addTask('${safecode}')">Add</button>
+                </div>
               </div>
               <span class="mini-form-status" id="taskFormStatus-${safecode}"></span>
               <div class="mini-list" id="taskList-${safecode}"><div class="mini-empty">No tasks yet.</div></div>
