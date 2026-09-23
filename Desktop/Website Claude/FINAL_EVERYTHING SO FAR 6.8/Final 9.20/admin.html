@@ -3110,7 +3110,7 @@
 
   function scopeItemState(safecode, id){
     const proj = scopeState[safecode] || (scopeState[safecode] = {});
-    return proj[id] || (proj[id] = { checked: true, l: '', w: '', linft: '', count: '', material: '', labor: '' });
+    return proj[id] || (proj[id] = { checked: true, sqft: '', linft: '', count: '', material: '', labor: '' });
   }
 
   function loadScopeOfWork(safecode){
@@ -3118,7 +3118,7 @@
       const data = snap.val() || {};
       const proj = {};
       Object.keys(data).forEach(id => {
-        proj[id] = Object.assign({ checked: true, l: '', w: '', linft: '', count: '', material: '', labor: '' }, data[id]);
+        proj[id] = Object.assign({ checked: true, sqft: '', linft: '', count: '', material: '', labor: '' }, data[id]);
       });
       scopeState[safecode] = proj;
       renderScopeCategories(safecode);
@@ -3130,12 +3130,7 @@
       const st = scopeItemState(safecode, item.id);
       let inputsHtml = '';
       if(item.unit === 'sqft'){
-        inputsHtml =
-          '<div class="scope-qty-inputs">' +
-            '<input type="number" min="0" step="0.1" placeholder="L ft" data-scope-id="' + item.id + '" data-scope-field="l" value="' + escHtml(st.l) + '" oninput="handleScopeInput(\'' + safecode + '\',this)">' +
-            '<span class="scope-x">&times;</span>' +
-            '<input type="number" min="0" step="0.1" placeholder="W ft" data-scope-id="' + item.id + '" data-scope-field="w" value="' + escHtml(st.w) + '" oninput="handleScopeInput(\'' + safecode + '\',this)">' +
-          '</div>';
+        inputsHtml = '<div class="scope-qty-inputs"><input type="number" min="0" step="0.1" placeholder="sq ft" data-scope-id="' + item.id + '" data-scope-field="sqft" value="' + escHtml(st.sqft) + '" oninput="handleScopeInput(\'' + safecode + '\',this)"></div>';
       } else if(item.unit === 'linft'){
         inputsHtml = '<div class="scope-qty-inputs"><input type="number" min="0" step="0.1" placeholder="lin ft" data-scope-id="' + item.id + '" data-scope-field="linft" value="' + escHtml(st.linft) + '" oninput="handleScopeInput(\'' + safecode + '\',this)"></div>';
       } else {
@@ -3188,8 +3183,8 @@
   function computeScopeRow(safecode, item){
     const st = scopeItemState(safecode, item.id);
     if(item.unit === 'sqft'){
-      const l = parseFloat(st.l), w = parseFloat(st.w);
-      const val = (isFinite(l) && isFinite(w)) ? l * w : 0;
+      const sf = parseFloat(st.sqft);
+      const val = isFinite(sf) ? sf : 0;
       return { value: val, label: val ? (scopeRound1(val) + ' sq ft') : '—' };
     }
     if(item.unit === 'linft'){
@@ -3345,8 +3340,6 @@
         const cost = computeScopeCost(safecode, item);
         let detail = '';
         if(item.unit === 'sqft'){
-          const l = parseFloat(st.l), w = parseFloat(st.w);
-          detail = (isFinite(l) && isFinite(w)) ? (' (' + scopeRound1(l) + '\' × ' + scopeRound1(w) + '\')') : '';
           grandSqft += r.value;
         } else if(item.unit === 'linft'){
           grandLinft += r.value;
@@ -3698,10 +3691,9 @@
           if(!raw || raw.checked === false) return;
           let value = 0, label = '', detail = '';
           if(item.unit === 'sqft'){
-            const l = parseFloat(raw.l), w = parseFloat(raw.w);
-            value = (isFinite(l) && isFinite(w)) ? l * w : 0;
+            const sf = parseFloat(raw.sqft);
+            value = isFinite(sf) ? sf : 0;
             label = scopeRound1(value) + ' sq ft';
-            detail = value ? (' (' + scopeRound1(l) + '\' × ' + scopeRound1(w) + '\')') : '';
             grandSqft += value;
           } else if(item.unit === 'linft'){
             const lf = parseFloat(raw.linft);
