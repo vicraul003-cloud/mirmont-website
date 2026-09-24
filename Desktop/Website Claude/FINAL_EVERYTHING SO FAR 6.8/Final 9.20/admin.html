@@ -731,10 +731,22 @@
       .scope-item-row{gap:0.5rem;}
       .scope-item-name{flex:1 1 100%;}
       .scope-result{width:auto;margin-left:auto;}
-      .scope-cost-inputs{flex:1 1 100%;flex-wrap:wrap;row-gap:0.3rem;justify-content:flex-end;border-left:none;padding-left:0;padding-top:0.35rem;border-top:1px dashed rgba(201,160,90,0.14);margin-top:0.2rem;}
-      .scope-cost-group{flex:none;}
-      .scope-value-group{width:auto;}
-      .scope-row-cost{width:auto;margin-left:auto;}
+      .scope-cost-inputs{
+        flex:1 1 100%;
+        display:grid;
+        grid-template-columns:1fr 1fr;
+        column-gap:0.7rem;
+        row-gap:0.45rem;
+        border-left:none;
+        padding-left:0;
+        padding-top:0.5rem;
+        margin-top:0.35rem;
+        border-top:1px solid rgba(201,160,90,0.14);
+      }
+      .scope-cost-group{flex:none;justify-content:flex-start;gap:0.4rem;width:100%;box-sizing:border-box;}
+      .scope-value-group{grid-column:1 / -1;width:auto;justify-content:flex-start;}
+      .scope-row-cost{display:block;width:auto;margin-left:auto;margin-top:0.35rem;text-align:right;}
+      .scope-row-cost::before{content:'Item Total';display:block;font-size:0.5rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-light);margin-bottom:0.1rem;}
       .scope-toolbar{gap:0.4rem;}
       .scope-search{flex:1 1 100%;}
     }
