@@ -733,10 +733,9 @@
       .scope-result{width:auto;margin-left:auto;}
       .scope-cost-inputs{
         flex:1 1 100%;
-        display:grid;
-        grid-template-columns:1fr 1fr;
-        column-gap:0.7rem;
-        row-gap:0.45rem;
+        display:flex;
+        flex-direction:column;
+        gap:0.45rem;
         border-left:none;
         padding-left:0;
         padding-top:0.5rem;
@@ -744,7 +743,7 @@
         border-top:1px solid rgba(201,160,90,0.14);
       }
       .scope-cost-group{flex:none;justify-content:flex-start;gap:0.4rem;width:100%;box-sizing:border-box;}
-      .scope-value-group{grid-column:1 / -1;width:auto;justify-content:flex-start;}
+      .scope-value-group{width:auto;justify-content:flex-start;}
       .scope-row-cost{display:block;width:auto;margin-left:auto;margin-top:0.35rem;text-align:right;}
       .scope-row-cost::before{content:'Item Total';display:block;font-size:0.5rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-light);margin-bottom:0.1rem;}
       .scope-toolbar{gap:0.4rem;}
@@ -3223,6 +3222,7 @@
       const unitNoun = item.unit === 'sqft' ? 'sq ft' : (item.unit === 'linft' ? 'lin ft' : 'each');
       const costInputsHtml =
         '<div class="scope-cost-inputs">' +
+          buildScopeValueGroupHtml(safecode, item) +
           '<span class="scope-cost-group">' +
             '<span class="scope-cost-label">Mat.</span>' +
             '<input type="number" min="0" step="0.01" placeholder="0" title="Material cost per ' + unitNoun + ' &mdash; multiplied by the quantity above" data-scope-id="' + item.id + '" data-scope-field="material" value="' + escHtml(st.material) + '" oninput="handleScopeInput(\'' + safecode + '\',this)">' +
@@ -3231,7 +3231,6 @@
             '<span class="scope-cost-label">Labor</span>' +
             '<input type="number" min="0" step="0.01" placeholder="0" title="Labor cost per ' + unitNoun + ' &mdash; multiplied by the quantity above" data-scope-id="' + item.id + '" data-scope-field="labor" value="' + escHtml(st.labor) + '" oninput="handleScopeInput(\'' + safecode + '\',this)">' +
           '</span>' +
-          buildScopeValueGroupHtml(safecode, item) +
         '</div>';
 
       return (
