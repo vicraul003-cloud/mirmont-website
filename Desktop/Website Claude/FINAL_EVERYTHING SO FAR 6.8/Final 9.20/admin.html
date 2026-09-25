@@ -413,7 +413,6 @@
     .scope-cost-label{font-size:0.54rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:var(--text-light);}
     .scope-cost-inputs input{width:4.8rem;font-family:'Montserrat',sans-serif;font-size:0.72rem;font-variant-numeric:tabular-nums;text-align:right;padding:0.3rem 0.8rem 0.3rem 0.3rem;border-radius:5px;border:1px solid rgba(201,160,90,0.18);background:var(--navy-mid);color:var(--white);}
     .scope-cost-inputs input:focus{outline:none;border-color:rgba(201,160,90,0.5);}
-    .scope-line-subtotal{flex:none;width:5.2rem;text-align:right;margin-left:0.3rem;font-family:'Montserrat',sans-serif;font-size:0.7rem;font-weight:700;font-variant-numeric:tabular-nums;color:var(--green);white-space:nowrap;}
     .scope-row-cost{flex:none;width:5.2rem;text-align:right;font-size:0.74rem;font-weight:700;font-variant-numeric:tabular-nums;color:var(--green);}
     .scope-value-group{display:flex;align-items:center;gap:0.25rem;flex:none;width:7.5rem;}
     .scope-value-group input{width:4.8rem;font-family:'Montserrat',sans-serif;font-size:0.72rem;font-variant-numeric:tabular-nums;text-align:right;padding:0.3rem 0.8rem 0.3rem 0.3rem;border-radius:5px;border:1px solid rgba(201,160,90,0.18);background:var(--navy-mid);color:var(--white);box-sizing:border-box;}
@@ -458,7 +457,6 @@
     .project-edit.light-theme .scope-cost-label{color:#6b7480;}
     .project-edit.light-theme .scope-cost-inputs input{background:#f7f4ef;border-color:rgba(122,66,18,0.18);color:#1c232b;}
     .project-edit.light-theme .scope-value-group input{background:#f7f4ef;border-color:rgba(122,66,18,0.18);color:#1c232b;}
-    .project-edit.light-theme .scope-line-subtotal{color:#1e8e3e;}
     .project-edit.light-theme .scope-row-cost{color:#1e8e3e;}
     .project-edit.light-theme .scope-value-locked{color:#1c232b;}
     .project-edit.light-theme .scope-lock-btn{border-color:rgba(122,66,18,0.25);color:#6b7480;}
@@ -772,10 +770,9 @@
       }
       .scope-cost-group{flex:none;justify-content:flex-start;gap:0.4rem;width:100%;box-sizing:border-box;}
       .scope-value-qty-group input{width:4rem;}
-      .scope-line-subtotal{margin-left:auto;}
+
       .scope-cost-label{width:3.2rem;flex:none;}
-      .scope-row-cost{display:block;width:auto;margin-left:auto;margin-top:0.35rem;text-align:right;}
-      .scope-row-cost::before{content:'Item Total';display:block;font-size:0.5rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-light);margin-bottom:0.1rem;}
+
       .scope-toolbar{gap:0.4rem;}
       .scope-search{flex:1 1 100%;}
     }
@@ -3305,7 +3302,10 @@
           '<span class="scope-cost-group">' +
             '<span class="scope-cost-label">Labor</span>' +
             '<input type="number" min="0" step="0.01" placeholder="0" title="Labor cost per ' + unitNoun + ' &mdash; multiplied by the quantity above" data-scope-id="' + item.id + '" data-scope-field="labor" value="' + escHtml(st.labor) + '" oninput="handleScopeInput(\'' + safecode + '\',this)">' +
-            '<span class="scope-line-subtotal" data-scope-linetotal-for="' + item.id + '" title="This line item\'s subtotal">$0.00</span>' +
+          '</span>' +
+          '<span class="scope-cost-group scope-total-group">' +
+            '<span class="scope-cost-label">Total</span>' +
+            '<span class="scope-row-cost" data-scope-cost-for="' + item.id + '">$0.00</span>' +
           '</span>' +
         '</div>';
 
@@ -3318,7 +3318,6 @@
           '<span class="scope-result" data-scope-result-for="' + item.id + '">&mdash;</span>' +
           buildScopeValueRowHtml(safecode, item) +
           costInputsHtml +
-          '<span class="scope-row-cost" data-scope-cost-for="' + item.id + '">$0.00</span>' +
         '</div>'
       );
     }).join('');
@@ -3398,8 +3397,6 @@
         if(resultEl) resultEl.textContent = r.label;
         const costEl = scope.querySelector('[data-scope-cost-for="' + item.id + '"]');
         if(costEl) costEl.textContent = formatMoney(cost);
-        const lineSubtotalEl = scope.querySelector('[data-scope-linetotal-for="' + item.id + '"]');
-        if(lineSubtotalEl) lineSubtotalEl.textContent = formatMoney(cost);
         const rowEl = scope.querySelector('.scope-item-row[data-scope-row-id="' + item.id + '"]');
         if(rowEl) rowEl.classList.toggle('scope-excluded', !st.checked);
         if(st.checked){
