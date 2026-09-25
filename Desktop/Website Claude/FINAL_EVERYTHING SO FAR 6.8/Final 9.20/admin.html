@@ -392,10 +392,10 @@
     .scope-category.scope-collapsed .scope-chev{transform:rotate(-90deg);}
     .scope-cat-name{font-weight:700;font-size:0.72rem;letter-spacing:0.02em;color:var(--gold-light);flex:1;}
     .scope-cat-subtotal{font-size:0.62rem;color:var(--text-light);font-variant-numeric:tabular-nums;text-align:right;}
-    .scope-cat-body{border-top:1px solid rgba(201,160,90,0.08);}
+    .scope-cat-body{border-top:1px solid rgba(201,160,90,0.08);overflow-x:auto;}
     .scope-category.scope-collapsed .scope-cat-body{display:none;}
 
-    .scope-item-row{display:flex;align-items:center;gap:0.4rem;padding:0.5rem 0.85rem;border-bottom:1px solid rgba(201,160,90,0.06);flex-wrap:wrap;}
+    .scope-item-row{display:flex;align-items:center;gap:0.4rem;padding:0.5rem 0.85rem;border-bottom:1px solid rgba(201,160,90,0.06);flex-wrap:nowrap;}
     .scope-item-row:last-child{border-bottom:none;}
     .scope-item-row.scope-excluded{opacity:0.42;}
     .scope-item-row.scope-hidden{display:none;}
@@ -754,14 +754,15 @@
 
     }
 
-    /* Scope of Work: below the width the single-line desktop row needs
-       (see comment on .scope-item-name's flex-basis), switch straight to
-       the same clean stacked layout used on phones, instead of leaving a
-       range where the row half-wraps and misaligns. */
-    @media (max-width: 1120px) {
+    /* Scope of Work: true phone-width view only -- the row stacks instead
+       of scrolling sideways, since a horizontal scroll inside a vertically
+       scrolling page is awkward on touch. Anything wider than this just
+       lets the row overflow/scroll (see .scope-item-row and .scope-cat-body
+       above) so every column always stays on one line, in order. */
+    @media (max-width: 640px) {
       .scope-summary{flex-direction:column;align-items:stretch;}
       .scope-stat{flex:none;}
-      .scope-item-row{gap:0.5rem;}
+      .scope-item-row{gap:0.5rem;flex-wrap:wrap;}
       .scope-item-name{flex:1 1 100%;}
       .scope-result{width:auto;margin-left:auto;}
       .scope-cost-inputs{
