@@ -405,8 +405,7 @@
     .scope-cost-inputs input{width:3.4rem;font-family:'Montserrat',sans-serif;font-size:0.72rem;font-variant-numeric:tabular-nums;text-align:right;padding:0.3rem 0.35rem;border-radius:5px;border:1px solid rgba(201,160,90,0.18);background:var(--navy-mid);color:var(--white);}
     .scope-cost-inputs input:focus{outline:none;border-color:rgba(201,160,90,0.5);}
     .scope-row-cost{flex:none;width:5.2rem;text-align:right;font-size:0.74rem;font-weight:700;font-variant-numeric:tabular-nums;color:var(--green);}
-    .scope-value-block{display:flex;flex-direction:row;align-items:center;gap:0.35rem;flex:none;width:9.6rem;}
-    .scope-value-group{display:flex;align-items:center;gap:0.25rem;flex:none;}
+    .scope-value-group{display:flex;align-items:center;gap:0.25rem;flex:none;width:7.5rem;}
     .scope-value-qty-group{display:flex;align-items:center;gap:0.25rem;flex:none;}
     .scope-value-qty-group input{width:1.9rem;}
     .scope-value-locked{font-family:'Montserrat',sans-serif;font-size:0.72rem;font-variant-numeric:tabular-nums;text-align:right;color:var(--white);width:3.4rem;display:inline-block;}
@@ -746,7 +745,6 @@
         border-top:1px solid rgba(201,160,90,0.14);
       }
       .scope-cost-group{flex:none;justify-content:flex-start;gap:0.4rem;width:100%;box-sizing:border-box;}
-      .scope-value-block{width:100%;flex-direction:column;align-items:stretch;gap:0.3rem;}
       .scope-value-qty-group input{width:2.6rem;}
       .scope-cost-label{width:3.2rem;flex:none;}
       .scope-row-cost{display:block;width:auto;margin-left:auto;margin-top:0.35rem;text-align:right;}
@@ -3173,17 +3171,12 @@
     );
   }
 
-  function buildScopeValueGroupHtml(safecode, item){
+  function buildScopeValueQtyRowHtml(safecode, item){
     const st = scopeItemState(safecode, item.id);
-    const qtyRowHtml =
+    return (
       '<span class="scope-cost-group scope-value-qty-group">' +
         '<span class="scope-cost-label">Qty</span>' +
         '<input type="number" min="0" step="1" placeholder="1" title="How many of the Value/Cost rate to apply &mdash; independent of the item\'s main quantity; defaults to 1 if left blank" data-scope-id="' + item.id + '" data-scope-field="valueQty" value="' + escHtml(st.valueQty) + '" oninput="handleScopeInput(\'' + safecode + '\',this)">' +
-      '</span>';
-    return (
-      '<span class="scope-value-block" data-scope-value-group-for="' + item.id + '">' +
-        buildScopeValueRowHtml(safecode, item) +
-        qtyRowHtml +
       '</span>'
     );
   }
@@ -3248,7 +3241,7 @@
       const unitNoun = item.unit === 'sqft' ? 'sq ft' : (item.unit === 'linft' ? 'lin ft' : 'each');
       const costInputsHtml =
         '<div class="scope-cost-inputs">' +
-          buildScopeValueGroupHtml(safecode, item) +
+          buildScopeValueQtyRowHtml(safecode, item) +
           '<span class="scope-cost-group">' +
             '<span class="scope-cost-label">Mat.</span>' +
             '<input type="number" min="0" step="0.01" placeholder="0" title="Material cost per ' + unitNoun + ' &mdash; multiplied by the quantity above" data-scope-id="' + item.id + '" data-scope-field="material" value="' + escHtml(st.material) + '" oninput="handleScopeInput(\'' + safecode + '\',this)">' +
@@ -3266,6 +3259,7 @@
           '<span class="scope-unit-badge">' + SCOPE_UNIT_LABEL[item.unit] + '</span>' +
           inputsHtml +
           '<span class="scope-result" data-scope-result-for="' + item.id + '">&mdash;</span>' +
+          buildScopeValueRowHtml(safecode, item) +
           costInputsHtml +
           '<span class="scope-row-cost" data-scope-cost-for="' + item.id + '">$0.00</span>' +
         '</div>'
