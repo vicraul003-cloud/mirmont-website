@@ -3216,7 +3216,7 @@
     return (
       '<span class="scope-cost-group scope-value-group" data-scope-value-row-for="' + item.id + '">' +
         '<span class="scope-cost-label">Value</span>' +
-        '<input type="number" min="0" step="0.01" placeholder="0" title="Value/Cost rate &mdash; multiplied by the Qty below; locks once you enter a number and click away" data-scope-id="' + item.id + '" data-scope-field="value" value="' + escHtml(st.value) + '" oninput="handleScopeInput(\'' + safecode + '\',this)" onblur="handleScopeValueBlur(\'' + safecode + '\',this)">' +
+        '<input type="number" min="0" step="0.1" placeholder="0" title="Value/Cost rate &mdash; multiplied by the Qty below; locks once you enter a number and click away" data-scope-id="' + item.id + '" data-scope-field="value" value="' + escHtml(st.value) + '" oninput="handleScopeInput(\'' + safecode + '\',this)" onblur="handleScopeValueBlur(\'' + safecode + '\',this)">' +
       '</span>'
     );
   }
