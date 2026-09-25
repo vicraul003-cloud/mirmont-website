@@ -405,7 +405,10 @@
     .scope-cost-inputs input{width:3.4rem;font-family:'Montserrat',sans-serif;font-size:0.72rem;font-variant-numeric:tabular-nums;text-align:right;padding:0.3rem 0.35rem;border-radius:5px;border:1px solid rgba(201,160,90,0.18);background:var(--navy-mid);color:var(--white);}
     .scope-cost-inputs input:focus{outline:none;border-color:rgba(201,160,90,0.5);}
     .scope-row-cost{flex:none;width:5.2rem;text-align:right;font-size:0.74rem;font-weight:700;font-variant-numeric:tabular-nums;color:var(--green);}
-    .scope-value-group{display:flex;align-items:center;gap:0.25rem;flex:none;width:7.2rem;}
+    .scope-value-block{display:flex;flex-direction:column;gap:0.3rem;flex:none;width:7.2rem;}
+    .scope-value-group{display:flex;align-items:center;gap:0.25rem;flex:none;}
+    .scope-value-qty-group{display:flex;align-items:center;gap:0.25rem;flex:none;}
+    .scope-value-qty-group input{width:2.6rem;}
     .scope-value-locked{font-family:'Montserrat',sans-serif;font-size:0.72rem;font-variant-numeric:tabular-nums;text-align:right;color:var(--white);width:3.4rem;display:inline-block;}
     .scope-lock-btn{font-size:0.68rem;line-height:1;padding:0.18rem 0.32rem;border-radius:5px;border:1px solid rgba(201,160,90,0.22);background:transparent;color:var(--text-light);cursor:pointer;flex:none;}
     .scope-lock-btn:hover{border-color:rgba(201,160,90,0.5);color:var(--gold-light);}
@@ -743,7 +746,7 @@
         border-top:1px solid rgba(201,160,90,0.14);
       }
       .scope-cost-group{flex:none;justify-content:flex-start;gap:0.4rem;width:100%;box-sizing:border-box;}
-      .scope-value-group{width:100%;justify-content:flex-start;}
+      .scope-value-block{width:100%;}
       .scope-cost-label{width:3.2rem;flex:none;}
       .scope-row-cost{display:block;width:auto;margin-left:auto;margin-top:0.35rem;text-align:right;}
       .scope-row-cost::before{content:'Item Total';display:block;font-size:0.5rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-light);margin-bottom:0.1rem;}
@@ -3145,33 +3148,54 @@
   // accident while you keep adjusting quantity or Material/Labor on the job.
   // Locked or not, it always counts toward the row's cost the same way
   // Material/Labor do: rate x quantity.
-  function buildScopeValueGroupHtml(safecode, item){
+  // The Value row and the Qty row are built/refreshed independently. Locking
+  // or unlocking Value only ever swaps the Value row's own markup -- never
+  // the Qty row's -- so a click or tab from the Value box into the Qty box
+  // (which blurs Value, which can trigger an auto-lock) never rebuilds out
+  // from under the Qty input the user is about to type into.
+  function buildScopeValueRowHtml(safecode, item){
     const st = scopeItemState(safecode, item.id);
-    const unitNoun = item.unit === 'sqft' ? 'sq ft' : (item.unit === 'linft' ? 'lin ft' : 'each');
     if(st.valueLocked && st.value !== '' && st.value !== null && st.value !== undefined){
       return (
-        '<span class="scope-cost-group scope-value-group" data-scope-value-group-for="' + item.id + '">' +
+        '<span class="scope-cost-group scope-value-group" data-scope-value-row-for="' + item.id + '">' +
           '<span class="scope-cost-label">Value</span>' +
-          '<span class="scope-value-locked" title="Locked value/cost per ' + unitNoun + ' &mdash; multiplied by the quantity above">' + formatMoney(parseFloat(st.value) || 0) + '</span>' +
+          '<span class="scope-value-locked" title="Locked value/cost rate &mdash; multiplied by the Qty below">' + formatMoney(parseFloat(st.value) || 0) + '</span>' +
           '<button type="button" class="scope-lock-btn" title="Unlock to edit" onclick="toggleScopeValueLock(\'' + safecode + '\',\'' + item.id + '\')">&#128274;</button>' +
         '</span>'
       );
     }
     return (
-      '<span class="scope-cost-group scope-value-group" data-scope-value-group-for="' + item.id + '">' +
+      '<span class="scope-cost-group scope-value-group" data-scope-value-row-for="' + item.id + '">' +
         '<span class="scope-cost-label">Value</span>' +
-        '<input type="number" min="0" step="0.01" placeholder="0" title="Value/Cost per ' + unitNoun + ' &mdash; multiplied by the quantity above; locks once you enter a number and click away" data-scope-id="' + item.id + '" data-scope-field="value" value="' + escHtml(st.value) + '" oninput="handleScopeInput(\'' + safecode + '\',this)" onblur="handleScopeValueBlur(\'' + safecode + '\',this)">' +
+        '<input type="number" min="0" step="0.01" placeholder="0" title="Value/Cost rate &mdash; multiplied by the Qty below; locks once you enter a number and click away" data-scope-id="' + item.id + '" data-scope-field="value" value="' + escHtml(st.value) + '" oninput="handleScopeInput(\'' + safecode + '\',this)" onblur="handleScopeValueBlur(\'' + safecode + '\',this)">' +
       '</span>'
     );
   }
 
-  function refreshScopeValueGroup(safecode, id){
+  function buildScopeValueGroupHtml(safecode, item){
+    const st = scopeItemState(safecode, item.id);
+    const qtyRowHtml =
+      '<span class="scope-cost-group scope-value-qty-group">' +
+        '<span class="scope-cost-label">Qty</span>' +
+        '<input type="number" min="0" step="1" placeholder="1" title="How many of the Value/Cost rate to apply &mdash; independent of the item\'s main quantity; defaults to 1 if left blank" data-scope-id="' + item.id + '" data-scope-field="valueQty" value="' + escHtml(st.valueQty) + '" oninput="handleScopeInput(\'' + safecode + '\',this)">' +
+      '</span>';
+    return (
+      '<span class="scope-value-block" data-scope-value-group-for="' + item.id + '">' +
+        buildScopeValueRowHtml(safecode, item) +
+        qtyRowHtml +
+      '</span>'
+    );
+  }
+
+  function refreshScopeValueGroup(safecode, id, focusValueInput){
     const item = findScopeItemById(id);
-    const groupEl = document.querySelector('[data-scope-value-group-for="' + id + '"]');
-    if(!item || !groupEl) return;
-    groupEl.outerHTML = buildScopeValueGroupHtml(safecode, item);
-    const newInput = document.querySelector('[data-scope-value-group-for="' + id + '"] input');
-    if(newInput) newInput.focus();
+    const rowEl = document.querySelector('[data-scope-value-row-for="' + id + '"]');
+    if(!item || !rowEl) return;
+    rowEl.outerHTML = buildScopeValueRowHtml(safecode, item);
+    if(focusValueInput){
+      const newInput = document.querySelector('[data-scope-value-row-for="' + id + '"] input');
+      if(newInput) newInput.focus();
+    }
   }
 
   function handleScopeValueBlur(safecode, el){
@@ -3189,12 +3213,12 @@
     const st = scopeItemState(safecode, id);
     st.valueLocked = false;
     saveScopeItem(safecode, id);
-    refreshScopeValueGroup(safecode, id);
+    refreshScopeValueGroup(safecode, id, true);
   }
 
   function scopeItemState(safecode, id){
     const proj = scopeState[safecode] || (scopeState[safecode] = {});
-    return proj[id] || (proj[id] = { checked: true, sqft: '', linft: '', count: '', material: '', labor: '', value: '', valueLocked: false });
+    return proj[id] || (proj[id] = { checked: true, sqft: '', linft: '', count: '', material: '', labor: '', value: '', valueLocked: false, valueQty: '' });
   }
 
   function loadScopeOfWork(safecode){
@@ -3202,7 +3226,7 @@
       const data = snap.val() || {};
       const proj = {};
       Object.keys(data).forEach(id => {
-        proj[id] = Object.assign({ checked: true, sqft: '', linft: '', count: '', material: '', labor: '', value: '', valueLocked: false }, data[id]);
+        proj[id] = Object.assign({ checked: true, sqft: '', linft: '', count: '', material: '', labor: '', value: '', valueLocked: false, valueQty: '' }, data[id]);
       });
       scopeState[safecode] = proj;
       renderScopeCategories(safecode);
@@ -3290,10 +3314,21 @@
     const st = scopeItemState(safecode, item.id);
     const mat = parseFloat(st.material);
     const lab = parseFloat(st.labor);
-    const val = parseFloat(st.value);
-    const rate = (isFinite(mat) ? mat : 0) + (isFinite(lab) ? lab : 0) + (isFinite(val) ? val : 0);
+    const rate = (isFinite(mat) ? mat : 0) + (isFinite(lab) ? lab : 0);
     const r = computeScopeRow(safecode, item);
-    return rate * r.value;
+    const matLaborCost = rate * r.value;
+
+    const val = parseFloat(st.value);
+    const valQtyRaw = parseFloat(st.valueQty);
+    const valQty = (st.valueQty !== '' && isFinite(valQtyRaw)) ? valQtyRaw : 1;
+    const valueCost = (isFinite(val) ? val : 0) * valQty;
+
+    return matLaborCost + valueCost;
+  }
+
+  function scopeValueQty(st){
+    const valQtyRaw = parseFloat(st.valueQty);
+    return (st.valueQty !== '' && isFinite(valQtyRaw)) ? valQtyRaw : 1;
   }
 
   function recalcScopeTotals(safecode){
@@ -3426,8 +3461,8 @@
         const st = scopeItemState(safecode, item.id);
         if(!st.checked) return;
         const r = computeScopeRow(safecode, item);
-        if(!r.value) return;
         const cost = computeScopeCost(safecode, item);
+        if(!r.value && !cost) return;
         let detail = '';
         if(item.unit === 'sqft'){
           grandSqft += r.value;
@@ -3439,9 +3474,11 @@
         const mat = parseFloat(st.material); const matRate = isFinite(mat) ? mat : 0;
         const lab = parseFloat(st.labor); const labRate = isFinite(lab) ? lab : 0;
         const val = parseFloat(st.value); const valRate = isFinite(val) ? val : 0;
-        const matSubtotal = matRate * r.value, labSubtotal = labRate * r.value, valSubtotal = valRate * r.value;
+        const valQty = scopeValueQty(st);
+        const matSubtotal = matRate * r.value, labSubtotal = labRate * r.value, valSubtotal = valRate * valQty;
         grandMaterial += matSubtotal; grandLabor += labSubtotal; grandValue += valSubtotal;
-        const costStr = cost ? (' [Material: ' + formatMoney(matSubtotal) + ', Labor: ' + formatMoney(labSubtotal) + ', Value: ' + formatMoney(valSubtotal) + ', Item Total: ' + formatMoney(cost) + ']') : '';
+        const valueDetail = valSubtotal ? (' (x' + scopeFmt(valQty) + ')') : '';
+        const costStr = cost ? (' [Material: ' + formatMoney(matSubtotal) + ', Labor: ' + formatMoney(labSubtotal) + ', Value: ' + formatMoney(valSubtotal) + valueDetail + ', Item Total: ' + formatMoney(cost) + ']') : '';
         rowLines.push(' - ' + item.name + ': ' + r.label + detail + costStr);
       });
       if(rowLines.length){
@@ -3798,15 +3835,18 @@
             label = value + ' each';
             grandCount += value;
           }
-          if(!value) return;
           const mat = parseFloat(raw.material); const matRate = isFinite(mat) ? mat : 0;
           const lab = parseFloat(raw.labor); const labRate = isFinite(lab) ? lab : 0;
           const val = parseFloat(raw.value); const valRate = isFinite(val) ? val : 0;
-          const matSubtotal = matRate * value, labSubtotal = labRate * value, valSubtotal = valRate * value;
+          const valQtyRaw = parseFloat(raw.valueQty);
+          const valQty = (raw.valueQty !== '' && raw.valueQty !== undefined && isFinite(valQtyRaw)) ? valQtyRaw : 1;
+          const matSubtotal = matRate * value, labSubtotal = labRate * value, valSubtotal = valRate * valQty;
           const cost = matSubtotal + labSubtotal + valSubtotal;
+          if(!value && !cost) return;
           grandMaterial += matSubtotal; grandLabor += labSubtotal; grandValue += valSubtotal;
           anyChecked = true;
-          const costStr = cost ? (' [Material: ' + formatMoney(matSubtotal) + ', Labor: ' + formatMoney(labSubtotal) + ', Value: ' + formatMoney(valSubtotal) + ', Item Total: ' + formatMoney(cost) + ']') : '';
+          const valueDetail = valSubtotal ? (' (x' + scopeFmt(valQty) + ')') : '';
+          const costStr = cost ? (' [Material: ' + formatMoney(matSubtotal) + ', Labor: ' + formatMoney(labSubtotal) + ', Value: ' + formatMoney(valSubtotal) + valueDetail + ', Item Total: ' + formatMoney(cost) + ']') : '';
           rowLines.push(' - ' + item.name + ': ' + label + detail + costStr);
         });
         if(rowLines.length){
