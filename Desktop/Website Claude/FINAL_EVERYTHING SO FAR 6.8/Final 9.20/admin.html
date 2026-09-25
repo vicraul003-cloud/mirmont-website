@@ -415,6 +415,9 @@
     .scope-lock-btn:hover{border-color:rgba(201,160,90,0.5);color:var(--gold-light);}
     .scope-stat-cost{border-left-color:var(--green);}
     .scope-stat-cost .scope-stat-v{color:var(--green);}
+    .scope-grand-total{display:flex;align-items:center;justify-content:space-between;background:var(--navy-dark);border:1px solid rgba(201,160,90,0.18);border-radius:8px;padding:0.75rem 1rem;margin-bottom:0.6rem;}
+    .scope-grand-total-label{font-size:0.68rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--gold-light);}
+    .scope-grand-total-value{font-size:1.05rem;font-weight:700;font-variant-numeric:tabular-nums;color:var(--green);}
 
     .scope-export{margin-top:1rem;}
     .scope-export-preview{width:100%;min-height:8rem;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.7rem;line-height:1.5;background:var(--navy-dark);border:1px solid rgba(201,160,90,0.18);border-radius:6px;padding:0.7rem;color:var(--off-white);white-space:pre-wrap;resize:vertical;margin-top:0.5rem;}
@@ -447,6 +450,9 @@
     .project-edit.light-theme .scope-lock-btn:hover{border-color:#b5651d;color:#7a4212;}
     .project-edit.light-theme .scope-stat-cost{border-left-color:#1e8e3e;}
     .project-edit.light-theme .scope-stat-cost .scope-stat-v{color:#1e8e3e;}
+    .project-edit.light-theme .scope-grand-total{background:#ffffff;border-color:rgba(122,66,18,0.16);}
+    .project-edit.light-theme .scope-grand-total-label{color:#7a4212;}
+    .project-edit.light-theme .scope-grand-total-value{color:#1e8e3e;}
     .project-edit.light-theme .scope-export-preview{background:#1c232b;color:#f4efe4;border-color:rgba(122,66,18,0.18);}
 
     .task-item{background:var(--navy-dark);border:1px solid rgba(201,160,90,0.1);padding:0.55rem 0.9rem;display:flex;align-items:center;gap:0.7rem;flex-wrap:wrap;}
@@ -1551,6 +1557,11 @@
               </div>
 
               <div class="scope-categories" id="scopeCategories-${safecode}"></div>
+
+              <div class="scope-grand-total">
+                <span class="scope-grand-total-label">Total &mdash; All Sections</span>
+                <span class="scope-grand-total-value" id="scopeCostBottom-${safecode}">$0.00</span>
+              </div>
 
               <div class="scope-export">
                 <div class="mini-form-row">
@@ -3372,6 +3383,8 @@
     if(linftEl) linftEl.textContent = scopeFmt(grandLinft) + ' lin ft';
     if(countEl) countEl.textContent = scopeFmt(grandCount);
     if(costEl) costEl.textContent = formatMoney(grandCost);
+    const costBottomEl = document.getElementById('scopeCostBottom-' + safecode);
+    if(costBottomEl) costBottomEl.textContent = formatMoney(grandCost);
   }
 
   function handleScopeInput(safecode, el){
