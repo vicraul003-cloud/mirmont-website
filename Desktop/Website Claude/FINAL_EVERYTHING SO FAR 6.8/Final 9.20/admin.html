@@ -369,6 +369,9 @@
     .scope-stat{background:var(--navy-dark);border:1px solid rgba(201,160,90,0.14);border-left:3px solid var(--gold);border-radius:6px;padding:0.55rem 0.8rem;flex:1 1 140px;}
     .scope-stat-k{display:block;font-size:0.56rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-light);margin-bottom:0.25rem;}
     .scope-stat-v{font-family:'Montserrat',sans-serif;font-variant-numeric:tabular-nums;font-size:1.05rem;font-weight:700;color:var(--gold-light);}
+    .scope-stat-house-input{width:100%;background:transparent;border:none;border-bottom:1px solid transparent;padding:0;font-family:'Montserrat',sans-serif;font-variant-numeric:tabular-nums;font-size:1.05rem;font-weight:700;color:var(--gold-light);outline:none;}
+    .scope-stat-house-input::placeholder{color:var(--gold-light);opacity:0.35;}
+    .scope-stat-house-input:focus{border-bottom-color:var(--gold);}
     .scope-saved-note{position:absolute;top:-1.05rem;right:0.1rem;font-size:0.6rem;font-weight:700;color:var(--green);opacity:0;transition:opacity 0.3s:pointer-events:none;}
     .scope-saved-note.show{opacity:1;}
 
@@ -429,6 +432,8 @@
     .project-edit.light-theme .scope-stat{background:#ffffff;border-color:rgba(122,66,18,0.14);border-left-color:#b5651d;}
     .project-edit.light-theme .scope-stat-k{color:#6b7480;}
     .project-edit.light-theme .scope-stat-v{color:#7a4212;}
+    .project-edit.light-theme .scope-stat-house-input{color:#7a4212;}
+    .project-edit.light-theme .scope-stat-house-input:focus{border-bottom-color:#b5651d;}
     .project-edit.light-theme .scope-search{background:#ffffff;border-color:rgba(122,66,18,0.2);color:#1c232b;}
     .project-edit.light-theme .scope-btn{border-color:rgba(122,66,18,0.25);color:#7a4212;}
     .project-edit.light-theme .scope-btn:hover{border-color:#b5651d;}
@@ -1547,6 +1552,7 @@
 
               <span class="mini-section-label">Scope Checklist</span>
               <div class="scope-summary">
+                <div class="scope-stat"><span class="scope-stat-k">Total Sq Ft (House)</span><input type="number" class="scope-stat-house-input" id="scopeHouseSqft-${safecode}" placeholder="0" min="0" step="1" title="The home's total square footage, entered once \u2014 not a sum of the individual scope items below" oninput="handleScopeHouseSqftInput('${safecode}', this)"></div>
                 <div class="scope-stat"><span class="scope-stat-k">Linear Footage</span><span class="scope-stat-v" id="scopeLinft-${safecode}">0 lin ft</span></div>
                 <div class="scope-stat"><span class="scope-stat-k">Fixtures / Items</span><span class="scope-stat-v" id="scopeCount-${safecode}">0</span></div>
                 <div class="scope-stat scope-stat-cost"><span class="scope-stat-k">Estimated Cost</span><span class="scope-stat-v" id="scopeCost-${safecode}">$0.00</span></div>
@@ -3154,6 +3160,7 @@
   const scopeState = {};
   const scopeNoteListeners = {};
   const scopeSaveTimers = {};
+  const scopeHouseSqft = {};
 
   function findScopeItemById(id){
     for(let i = 0; i < SCOPE_OF_WORK.length; i++){
@@ -3246,6 +3253,12 @@
       });
       scopeState[safecode] = proj;
       renderScopeCategories(safecode);
+    });
+    db.ref('projects/' + safecode + '/scopeOfWork/houseSqft').once('value', snap => {
+      const val = snap.val();
+      scopeHouseSqft[safecode] = (val === null || val === undefined) ? '' : val;
+      const input = document.getElementById('scopeHouseSqft-' + safecode);
+      if(input) input.value = scopeHouseSqft[safecode];
     });
   }
 
@@ -3414,6 +3427,19 @@
       .catch(e => console.error('Scope of Work save failed:', e.message));
   }
 
+  function handleScopeHouseSqftInput(safecode, el){
+    scopeHouseSqft[safecode] = el.value;
+    clearTimeout(scopeSaveTimers[safecode + '__houseSqft']);
+    scopeSaveTimers[safecode + '__houseSqft'] = setTimeout(() => saveScopeHouseSqft(safecode), 500);
+  }
+
+  function saveScopeHouseSqft(safecode){
+    const val = scopeHouseSqft[safecode] || '';
+    db.ref('projects/' + safecode + '/scopeOfWork/houseSqft').set(val)
+      .then(() => flashScopeSaved(safecode))
+      .catch(e => console.error('House sq ft save failed:', e.message));
+  }
+
   function flashScopeSaved(safecode){
     const note = document.getElementById('scopeSavedNote-' + safecode);
     if(!note) return;
@@ -3507,8 +3533,11 @@
       }
     });
 
+    const houseSqftNum = parseFloat(scopeHouseSqft[safecode]);
+    const houseSqftOut = (isFinite(houseSqftNum) && houseSqftNum > 0) ? scopeFmt(houseSqftNum) : '0';
+
     lines.push('PROJECT TOTALS');
-    lines.push(' Square footage: ' + scopeFmt(grandSqft) + ' sq ft');
+    lines.push(' Total sq ft (house): ' + houseSqftOut + ' sq ft');
     lines.push(' Linear footage: ' + scopeFmt(grandLinft) + ' lin ft');
     lines.push(' Fixtures / items: ' + scopeFmt(grandCount) + ' each');
     lines.push('');
@@ -3824,8 +3853,9 @@
   function buildScopeOfWorkSummary(safecode){
     return Promise.all([
       fetchOnce('projects/' + safecode + '/scopeOfWork/items'),
-      fetchOnce('projects/' + safecode + '/scopeNotes')
-    ]).then(([items, notes]) => {
+      fetchOnce('projects/' + safecode + '/scopeNotes'),
+      fetchOnce('projects/' + safecode + '/scopeOfWork/houseSqft')
+    ]).then(([items, notes, houseSqft]) => {
       items = items || {};
       const lines = ['SCOPE OF WORK', '-------------'];
       let grandSqft = 0, grandLinft = 0, grandCount = 0;
@@ -3878,8 +3908,11 @@
       if(!anyChecked){
         lines.push('No scope of work items recorded yet.', '');
       } else {
+        const houseSqftNum2 = parseFloat(houseSqft);
+        const houseSqftOut2 = (isFinite(houseSqftNum2) && houseSqftNum2 > 0) ? scopeFmt(houseSqftNum2) : '0';
+
         lines.push('TOTALS');
-        lines.push(' Square footage: ' + scopeFmt(grandSqft) + ' sq ft');
+        lines.push(' Total sq ft (house): ' + houseSqftOut2 + ' sq ft');
         lines.push(' Linear footage: ' + scopeFmt(grandLinft) + ' lin ft');
         lines.push(' Fixtures / items: ' + scopeFmt(grandCount) + ' each');
         lines.push('');
