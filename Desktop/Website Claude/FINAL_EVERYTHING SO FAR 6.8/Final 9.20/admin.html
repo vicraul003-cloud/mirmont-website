@@ -250,6 +250,9 @@
     .btn-email-summary:disabled{opacity:0.5;cursor:wait;}
     .email-summary-select{background:var(--navy-dark);border:1px solid rgba(201,160,90,0.3);color:var(--gold-light);font-family:'Montserrat',sans-serif;font-size:0.62rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:0.55rem 0.7rem;cursor:pointer;outline:none;}
     .email-summary-status{font-size:0.66rem;font-style:italic;color:var(--text-light);}
+    .back-to-top-row{display:flex;justify-content:center;margin-top:1.4rem;}
+    .btn-back-to-top{font-family:'Montserrat',sans-serif;font-size:0.6rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:0.5rem 1rem;border-radius:16px;border:1px solid rgba(201,160,90,0.22);background:transparent;color:var(--gold-light);cursor:pointer;white-space:nowrap;transition:border-color 0.2s,color 0.2s,background 0.2s;}
+    .btn-back-to-top:hover{border-color:var(--gold);}
     .email-summary-status.ok{color:#7fd66a;font-style:normal;}
     .email-summary-status.err{color:var(--red);font-style:normal;}
     .mini-form-status.ok{color:var(--green);}
@@ -514,6 +517,8 @@
     .project-edit.light-theme .btn-email-summary:hover{background:rgba(122,66,18,0.08);border-color:#7a4212;}
     .project-edit.light-theme .email-summary-select{background:#ffffff;border-color:rgba(122,66,18,0.25);color:#7a4212;font-family:'IBM Plex Sans',sans-serif;}
     .project-edit.light-theme .email-summary-status{color:#6b7480;}
+    .project-edit.light-theme .btn-back-to-top{border-color:rgba(122,66,18,0.25);color:#7a4212;}
+    .project-edit.light-theme .btn-back-to-top:hover{border-color:#b5651d;}
     .project-edit.light-theme .email-summary-status.ok{color:#1e8e3e;}
     .project-edit.light-theme .email-summary-status.err{color:#c0392b;}
     .project-edit.light-theme .mini-form-status.ok{color:#1e8e3e;}
@@ -1689,6 +1694,10 @@
               </select>
               <button class="btn-email-summary" onclick="emailProjectSummary('${safecode}','${code}',document.getElementById('emailReportType-${safecode}').value)">Send</button>
               <span class="email-summary-status" id="emailSummaryStatus-${safecode}"></span>
+            </div>
+
+            <div class="back-to-top-row">
+              <button type="button" class="btn-back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">&#8593; Back to Top</button>
             </div>
           </div>
         </div>`;
