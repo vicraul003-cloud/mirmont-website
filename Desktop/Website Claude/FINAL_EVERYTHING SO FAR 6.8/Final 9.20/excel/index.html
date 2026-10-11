@@ -124,6 +124,11 @@
     tr.section-head .add-line:hover { border-color: var(--gold); color: var(--gold); }
     tr.section-head .tag { font-size: 0.62rem; color: var(--gold); letter-spacing: 0.06em; }
 
+    tr.section-head td.cell, tr.section-head td.cell.past, tr.section-head td.cell.now { background: var(--navy); }
+    tr.section-head td.cell.now { background: #1c2f63; }
+    tr.section-head .cell input { color: #fff; font-weight: 600; }
+    tr.section-head .cell input::placeholder { color: rgba(255,255,255,0.6); }
+    tr.section-head .cell input:focus { background: #fff; color: var(--ink); }
     tr.total-row td, tr.total-row td.col-name, tr.total-row td.col-due, tr.total-row td.col-budget { background: var(--row-total); font-weight: 600; }
     tr.total-row td.col-name { padding-left: 0.8rem; font-size: 0.8rem; }
     tr.total-row td.col-due, tr.total-row td.col-budget { padding-right: 0.6rem; font-size: 0.82rem; }
@@ -476,9 +481,12 @@
       const calcCell = (c, v) => `<td class="${cls(c)}"><div class="calc ${v < 0 ? 'neg' : ''}">${money(v)}</div></td>`;
       const span = cols.length;
 
+      // the first "paid from paycheck" section shows the paycheck boxes in its header
+      const payHead = data.sections.find(x => x.fromPaycheck);
+      const payHeadId = payHead ? payHead.id : null;
       // summary block (paycheck math)
       h += `<tr class="section-head"><td class="col-name"><div class="sec-title"><span class="sec-name" style="font-weight:600;letter-spacing:.04em;font-size:.85rem">Paycheck Summary</span></div></td><td class="col-due"></td><td class="col-budget"></td><td colspan="${span}"></td></tr>`;
-      h += `<tr class="sum-row sum-pay"><td class="col-name"><button class="name-btn" data-special="paycheck"><span class="txt"><span class="nm">${esc(data.special.paycheck.name)}</span><span class="nt">Repeats every paycheck</span></span></button></td><td class="col-due"></td><td class="col-budget"></td>${cols.map(c => inputCell('paycheck', c)).join('')}</tr>`;
+      h += `<tr class="sum-row sum-pay"><td class="col-name"><button class="name-btn" data-special="paycheck"><span class="txt"><span class="nm">${esc(data.special.paycheck.name)}</span><span class="nt">${payHead ? 'Same as the ' + esc(payHead.name) + ' header' : 'Repeats every paycheck'}</span></span></button></td><td class="col-due"></td><td class="col-budget"></td>${cols.map(c => inputCell('paycheck', c)).join('')}</tr>`;
       h += `<tr class="sum-row"><td class="col-name"><span class="lbl">Paid from paycheck<small>Total of the paycheck sections</small></span></td><td class="col-due"></td><td class="col-budget"></td>${cols.map(c => calcCell(c, calc[c.iso].fromPay)).join('')}</tr>`;
       h += `<tr class="sum-row sum-save"><td class="col-name"><span class="lbl">Send to our Savings<small>Paycheck − paid from paycheck</small></span></td><td class="col-due"></td><td class="col-budget"></td>${cols.map(c => calcCell(c, calc[c.iso].savings)).join('')}</tr>`;
       h += `<tr class="sum-row sum-shared"><td class="col-name"><span class="lbl">Send to Shared<small>Shared lines + savings</small></span></td><td class="col-due"></td><td class="col-budget"></td>${cols.map(c => calcCell(c, calc[c.iso].sharedTotal)).join('')}</tr>`;
@@ -487,7 +495,7 @@
 
       data.sections.forEach(s => {
         h += `<tr class="spacer-row"><td class="col-name"></td><td class="col-due"></td><td class="col-budget"></td><td colspan="${span}"></td></tr>`;
-        h += `<tr class="section-head"><td class="col-name"><div class="sec-title"><button class="sec-name" data-sec="${s.id}" title="Edit section">${esc(s.name)}</button><button class="add-line" data-add="${s.id}">+ Line</button></div></td><td class="col-due"></td><td class="col-budget">${s.fromPaycheck ? '<span class="tag">FROM PAYCHECK&nbsp;</span>' : ''}</td><td colspan="${span}"></td></tr>`;
+        h += `<tr class="section-head"><td class="col-name"><div class="sec-title"><button class="sec-name" data-sec="${s.id}" title="Edit section">${esc(s.name)}</button><button class="add-line" data-add="${s.id}">+ Line</button></div></td><td class="col-due"></td><td class="col-budget">${s.id === payHeadId ? '<span class="tag">PAYCHECK&nbsp;→&nbsp;</span>' : s.fromPaycheck ? '<span class="tag">FROM PAYCHECK&nbsp;</span>' : ''}</td>${s.id === payHeadId ? cols.map(c => inputCell('paycheck', c)).join('') : `<td colspan="${span}"></td>`}</tr>`;
         let budgetTotal = 0;
         s.items.forEach(it => {
           budgetTotal += it.budget || 0;
