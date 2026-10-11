@@ -151,7 +151,7 @@
     .welcome .row { display: flex; gap: 0.7rem; justify-content: center; flex-wrap: wrap; }
 
     /* ── dialog ── */
-    dialog { border: 0; border-radius: 12px; padding: 0; width: min(440px, calc(100vw - 32px)); box-shadow: 0 20px 60px rgba(0,0,0,0.3); color: var(--ink); }
+    dialog { margin: auto; max-height: calc(100vh - 32px); overflow: auto; border: 0; border-radius: 12px; padding: 0; width: min(440px, calc(100vw - 32px)); box-shadow: 0 20px 60px rgba(0,0,0,0.3); color: var(--ink); }
     dialog::backdrop { background: rgba(9,21,53,0.45); }
     dialog form { padding: 1.4rem; display: grid; gap: 0.9rem; }
     dialog h3 { font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; }
@@ -162,6 +162,10 @@
     dialog .help { font-size: 0.72rem; color: var(--muted); text-transform: none; letter-spacing: 0; font-weight: 400; line-height: 1.5; }
     dialog .actions { display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap; margin-top: 0.3rem; }
     dialog .actions .left { margin-right: auto; display: flex; gap: 0.4rem; }
+
+    .apply-choices { display: grid; gap: 0.5rem; }
+    .apply-choices .btn { padding: 0.75rem 0.9rem; text-align: left; font-size: 0.88rem; }
+    .apply-choices .btn small { display: block; font-size: 0.72rem; opacity: 0.75; margin-top: 0.15rem; }
 
     @media (max-width: 700px) {
       :root { --stick-w: 150px; --due-w: 48px; --budget-w: 74px; }
@@ -231,6 +235,19 @@
         <button type="button" class="btn" id="fCancel">Cancel</button>
         <button type="submit" class="btn primary">Save</button>
       </div>
+    </form>
+  </dialog>
+
+  <!-- Apply-to prompt -->
+  <dialog id="applyDlg">
+    <form method="dialog" id="applyForm">
+      <h3>Apply this change to…</h3>
+      <p id="applyText" style="font-size:0.9rem;line-height:1.5;color:var(--ink)"></p>
+      <div class="apply-choices">
+        <button type="button" class="btn" id="applyOne"></button>
+        <button type="button" class="btn primary" id="applyFuture"></button>
+      </div>
+      <div class="actions"><button type="button" class="btn" id="applyCancel">Cancel</button></div>
     </form>
   </dialog>
 
@@ -650,25 +667,89 @@
         while (row && !(row.children[idx] && row.children[idx].querySelector('input')));
         const target = row && row.children[idx].querySelector('input');
         const key = target && [target.dataset.id, target.dataset.d];
-        commitCell(t);
-        if (key) { const n = document.querySelector(`.cell input[data-id="${key[0]}"][data-d="${key[1]}"]`); if (n) { n.focus(); n.select(); } }
-        else t.blur();
+        commitCell(t, () => {
+          if (key) { const n = document.querySelector(`.cell input[data-id="${key[0]}"][data-d="${key[1]}"]`); if (n) { n.focus(); n.select(); } }
+          else if (document.activeElement) document.activeElement.blur();
+        });
       } else if (e.key === 'Escape') { t.value = t.defaultValue; t.blur(); }
     });
 
-    function commitCell(input) {
+    let applyPending = null; // {resolve} while the apply-to prompt is open
+
+    // later pay dates (up to ~3 years) for scanning the future
+    function futurePeriods(iso) {
+      const t = fromISO(iso) + DAY;
+      return periodsBetween(t, t + 3 * 366 * DAY);
+    }
+    const fmtDate = (iso) => { const d = new Date(fromISO(iso)); return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`; };
+
+    function redraw() {
+      const sl = $('sheetWrap') ? $('sheetWrap').scrollLeft : 0;
+      render();
+      if ($('sheetWrap')) $('sheetWrap').scrollLeft = sl;
+      scheduleSave();
+    }
+
+    function commitCell(input, after) {
+      const done = () => { if (after) after(); };
+      if (applyPending) return; // prompt already open for this edit
       const id = input.dataset.id, iso = input.dataset.d;
       if (!data.values) data.values = {};
       const cur = (data.values[id] || {})[iso];
       const n = parseAmt(input.value);
-      if (Number.isNaN(n)) { input.value = input.defaultValue; input.animate([{ background: '#fde2e2' }, { background: 'transparent' }], 700); return; }
-      if ((n === null && cur === undefined) || n === cur) return;
-      setValue(id, iso, n);
-      const sc = $('sheetWrap'), sl = sc.scrollLeft;
-      render();
-      $('sheetWrap').scrollLeft = sl;
-      scheduleSave();
+      if (Number.isNaN(n)) { input.value = input.defaultValue; input.animate([{ background: '#fde2e2' }, { background: 'transparent' }], 700); done(); return; }
+      if ((n === null && cur === undefined) || n === cur) { done(); return; }
+
+      const before = cellValue(id, iso).v;
+      const it = itemInfo(id) || {};
+      const repeats = it.repeat && it.repeat !== 'off';
+      const future = futurePeriods(iso);
+      const vals = data.values[id] || {};
+      const sameLater = before != null ? future.filter(d => d in vals && vals[d] === before) : [];
+
+      // Clearing a box, or a one-off line with nothing later to update: just save it.
+      if (n === null || (!repeats && sameLater.length === 0) || before === n) {
+        setValue(id, iso, n); redraw(); done(); return;
+      }
+
+      const name = it.name || 'this line';
+      $('applyText').innerHTML = before != null
+        ? `<b>${esc(name)}</b>: ${money(before)} → <b>${money(n)}</b> on ${fmtDate(iso)}.`
+        : `<b>${esc(name)}</b>: <b>${money(n)}</b> on ${fmtDate(iso)}.`;
+      $('applyOne').innerHTML = `Just ${fmtDate(iso)}<small>Later pay periods keep ${before != null ? 'their current amount' : 'what they have now'}</small>`;
+      $('applyFuture').innerHTML = `${fmtDate(iso)} and all future<small>${repeats ? 'The new amount carries forward' : 'Later boxes with ' + money(before) + ' change too'}${repeats && sameLater.length ? '; later boxes with ' + money(before) + ' change too' : ''}</small>`;
+
+      applyPending = { id, iso, n, before, future, sameLater, input, done };
+      $('applyDlg').showModal();
+      $('applyFuture').focus();
     }
+
+    function finishApply(choice) {
+      const p = applyPending; if (!p) return;
+      applyPending = null;
+      $('applyDlg').close();
+      if (choice === 'cancel') { p.input.value = p.input.defaultValue; p.input.focus(); return; }
+      const { id, iso, n, before, future, sameLater } = p;
+      if (choice === 'one') {
+        const snap = future.map(d => [d, cellValue(id, d)]);
+        setValue(id, iso, n);
+        // keep later periods as they were: pin the first one that would now change
+        for (const [d, old] of snap) {
+          const now = cellValue(id, d);
+          if (!now.carried) { if ((data.values[id] || {})[d] !== undefined) break; else continue; }
+          if (now.v !== old.v) { setValue(id, d, old.v == null ? 0 : old.v); break; }
+        }
+      } else {
+        setValue(id, iso, n);
+        sameLater.forEach(d => setValue(id, d, n));
+      }
+      redraw();
+      p.done();
+    }
+    $('applyOne').addEventListener('click', () => finishApply('one'));
+    $('applyFuture').addEventListener('click', () => finishApply('future'));
+    $('applyCancel').addEventListener('click', () => finishApply('cancel'));
+    $('applyDlg').addEventListener('cancel', (e) => { e.preventDefault(); finishApply('cancel'); });
 
     $('menuBtn').addEventListener('click', (e) => { e.stopPropagation(); $('menu').classList.toggle('open'); });
     $('mExport').addEventListener('click', () => {
