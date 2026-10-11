@@ -41,7 +41,7 @@
     .menu-list a { display: block; padding: 0.55rem 0.7rem; color: var(--ink); text-decoration: none; font-size: 0.85rem; border-radius: 5px; }
     .menu-list a:hover { background: var(--page); }
 
-    main { padding: 1.25rem; max-width: 1600px; margin: 0 auto; }
+    main { padding: 1rem 1.25rem; width: 100%; }
 
     .banner { display: none; background: #fff4e5; border: 1px solid #f0c98a; color: #6b4a12; padding: 0.7rem 1rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.85rem; }
     .banner.show { display: block; }
@@ -146,7 +146,7 @@
 
     /* ── grid ── */
     .sheet-wrap { background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: auto; max-height: calc(100vh - 230px); }
-    table.sheet { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; }
+    table.sheet { border-collapse: separate; border-spacing: 0; width: 100%; table-layout: fixed; }
     .sheet th, .sheet td { border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); padding: 0; height: 34px; white-space: nowrap; }
     .sheet thead th { position: sticky; background: #fbfaf7; z-index: 5; font-weight: 600; font-size: 0.75rem; }
     .sheet thead tr.months th { top: 0; height: 30px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gold-ink); border-bottom-color: var(--line); }
@@ -160,7 +160,7 @@
     .sheet thead th.col-name, .sheet thead th.col-due, .sheet thead th.col-budget { z-index: 7; background: #fbfaf7; }
     .sheet thead th.col-name { padding-left: 0.8rem; }
     .sheet thead th.col-budget { padding-right: 0.6rem; }
-    .sheet td.cell { width: 96px; min-width: 96px; }
+    .sheet td.cell { min-width: 96px; }
     .sheet td.cell.month-end, .sheet th.month-end { border-right: 2px solid var(--line-strong); }
     .sheet td.cell.past { background: var(--past); }
     .sheet td.cell.now, .sheet thead th.now { background: var(--now); }
@@ -565,7 +565,7 @@
         </tbody></table></div></div>`;
 
       // table
-      h += `<div class="sheet-wrap" id="sheetWrap"><table class="sheet"><thead><tr class="months">
+      h += `<div class="sheet-wrap" id="sheetWrap"><table class="sheet" style="min-width: calc(var(--stick-w) + var(--due-w) + var(--budget-w) + ${cols.length * 96}px)"><colgroup><col style="width: var(--stick-w)"><col style="width: var(--due-w)"><col style="width: var(--budget-w)">${cols.map(() => '<col>').join('')}</colgroup><thead><tr class="months">
         <th class="col-name" rowspan="2">Item</th><th class="col-due" rowspan="2">Due</th><th class="col-budget" rowspan="2">Budget/mo</th>`;
       months.forEach(mo => { if (mo.periods.length) h += `<th class="month" colspan="${mo.periods.length}">${MONTHS[mo.m]} ${mo.y}</th>`; });
       h += `</tr><tr class="dates">`;
@@ -660,7 +660,8 @@
     }
 
     // Open on the most recent paycheck that has already arrived
-    let jumpToNow = false;
+    let jumpToNow = false, userScrolled = false;
+    document.addEventListener('wheel', () => { userScrolled = true; }, { passive: true, once: true });
     function goToday() {
       const cp = data ? currentPeriod() : toISO(todayUTC());
       view.start = { y: +cp.slice(0, 4), m: +cp.slice(5, 7) - 1 };
@@ -783,6 +784,8 @@
       }
       if (data) goToday();
       render();
+      // re-align once web fonts have loaded (column widths change slightly)
+      if (data && document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (!userScrolled) scrollToNow(); });
     }
 
     // ── events ──
