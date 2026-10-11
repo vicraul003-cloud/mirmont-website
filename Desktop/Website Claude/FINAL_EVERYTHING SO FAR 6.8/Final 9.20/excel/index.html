@@ -393,8 +393,9 @@
     let saveTimer = null, saving = false, pendingSave = false;
 
     const view = { start: null, months: 3, extra: 0 };
-    try { const v = JSON.parse(localStorage.getItem(LS_VIEW) || '{}'); if ([3,6,12].includes(v.months)) view.months = v.months; view.ovHidden = !!v.ovHidden; } catch {}
-    const saveView = () => { try { localStorage.setItem(LS_VIEW, JSON.stringify({ months: view.months, ovHidden: !!view.ovHidden })); } catch {} };
+    try { const v = JSON.parse(localStorage.getItem(LS_VIEW) || '{}'); if ([3,6,12].includes(v.months)) view.months = v.months; } catch {}
+    view.ovHidden = false; // overview always shows when the page opens
+    const saveView = () => { try { localStorage.setItem(LS_VIEW, JSON.stringify({ months: view.months })); } catch {} };
 
     const $ = (id) => document.getElementById(id);
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
