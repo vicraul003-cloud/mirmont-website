@@ -125,6 +125,9 @@
     table.ov tr.ov-save td { background: rgba(255, 243, 191, 0.55); }
     table.ov tr.ov-rem td { background: rgba(246, 220, 231, 0.55); }
     table.ov tr.ov-save td.tot, table.ov tr.ov-rem td.tot { font-weight: 700; }
+    table.ov th.cur, table.ov td.cur { box-shadow: inset 2px 0 0 var(--gold), inset -2px 0 0 var(--gold); }
+    table.ov thead th.cur { box-shadow: inset 2px 0 0 var(--gold), inset -2px 0 0 var(--gold), inset 0 2px 0 var(--gold); background: var(--now); }
+    table.ov tbody tr:last-child td.cur { box-shadow: inset 2px 0 0 var(--gold), inset -2px 0 0 var(--gold), inset 0 -2px 0 var(--gold); }
     table.ov tr.ov-per td { vertical-align: top; padding-top: 0.35rem; padding-bottom: 0.35rem; }
     table.ov tr.ov-per th small { display: block; font-size: 0.64rem; color: var(--muted); font-weight: 400; }
     table.ov .per-grid { display: inline-grid; grid-template-columns: max-content max-content; column-gap: 0.6rem; row-gap: 0.1rem; line-height: 1.55; }
@@ -537,7 +540,7 @@
 
       // next 6 months overview
       const ahead = [];
-      for (let i = 1; i <= 6; i++) {
+      for (let i = 0; i <= 6; i++) {
         const t = monthStart(nd.getUTCFullYear(), nd.getUTCMonth() + i), md = new Date(t);
         const ps = periodsBetween(t, monthStart(md.getUTCFullYear(), md.getUTCMonth() + 1));
         const a = ps.reduce((o, p) => { const c = computePeriod(p); o.pay += c.pay; o.from += c.fromPay; o.save += c.savings; o.rem += c.remainder; return o; }, { pay: 0, from: 0, save: 0, rem: 0 });
@@ -545,15 +548,15 @@
           per: ps.map(p => { const c = computePeriod(p); return { d: p, v: Math.round((c.pay - c.fromPay) * 100) / 100 }; }) });
       }
       const tot = ahead.reduce((o, a) => { ['pay', 'from', 'save', 'rem'].forEach(k => o[k] += a[k]); return o; }, { pay: 0, from: 0, save: 0, rem: 0 });
-      const cell = (v, extra = '') => `<td class="${v < 0 ? 'neg' : ''} ${extra}">${money(Math.round(v * 100) / 100) || '$0'}</td>`;
-      const orow = (label, k, cls = '') => `<tr class="${cls}"><th>${label}</th>${ahead.map(a => cell(a[k])).join('')}${cell(tot[k], 'tot')}</tr>`;
-      h += `<div class="overview"><div class="ov-title">Next 6 months</div><div class="ov-scroll"><table class="ov">
-        <thead><tr><th></th>${ahead.map(a => `<th><button class="ov-month" data-goto="${a.y}-${a.m}" title="Show ${MONTHS[a.m]} ${a.y} in the sheet">${MONTHS[a.m]} ${a.y !== nd.getUTCFullYear() ? "'" + String(a.y).slice(2) : ''}<small>${a.n} paychecks</small></button></th>`).join('')}<th class="tot">6-mo total</th></tr></thead>
+      const cell = (v, extra = '', i = -1) => `<td class="${v < 0 ? 'neg' : ''} ${extra} ${i === 0 ? 'cur' : ''}">${money(Math.round(v * 100) / 100) || '$0'}</td>`;
+      const orow = (label, k, cls = '') => `<tr class="${cls}"><th>${label}</th>${ahead.map((a, i) => cell(a[k], '', i)).join('')}${cell(tot[k], 'tot')}</tr>`;
+      h += `<div class="overview"><div class="ov-title">This month + next 6 months</div><div class="ov-scroll"><table class="ov">
+        <thead><tr><th></th>${ahead.map((a, i) => `<th class="${i === 0 ? 'cur' : ''}"><button class="ov-month" data-goto="${a.y}-${a.m}" title="Show ${MONTHS[a.m]} ${a.y} in the sheet">${MONTHS[a.m]} ${a.y !== nd.getUTCFullYear() ? "'" + String(a.y).slice(2) : ''}<small>${a.n} paychecks</small></button></th>`).join('')}<th class="tot">7-mo total</th></tr></thead>
         <tbody>
           ${orow('Paychecks', 'pay')}
           ${orow('Paid from paycheck', 'from')}
           ${orow('Send to savings', 'save', 'ov-save')}
-          <tr class="ov-per"><th>Difference by paycheck<small>send to savings from each check</small></th>${ahead.map(a => `<td><div class="per-grid">${a.per.map(x => `<span class="dt">${fmtDate(x.d)}</span><span class="amt ${x.v < 0 ? 'neg' : 'pos'}">${x.v < 0 ? '−' : '+'}${money(Math.abs(x.v)) || '$0'}</span>`).join('')}</div></td>`).join('')}<td class="tot"><div class="${tot.from > tot.pay ? 'neg' : 'pos'}">${ahead.reduce((n, a) => n + a.n, 0)} checks</div></td></tr>
+          <tr class="ov-per"><th>Difference by paycheck<small>send to savings from each check</small></th>${ahead.map((a, i) => `<td class="${i === 0 ? 'cur' : ''}"><div class="per-grid">${a.per.map(x => `<span class="dt">${fmtDate(x.d)}</span><span class="amt ${x.v < 0 ? 'neg' : 'pos'}">${x.v < 0 ? '−' : '+'}${money(Math.abs(x.v)) || '$0'}</span>`).join('')}</div></td>`).join('')}<td class="tot"><div class="${tot.from > tot.pay ? 'neg' : 'pos'}">${ahead.reduce((n, a) => n + a.n, 0)} checks</div></td></tr>
           ${orow('Remainder', 'rem', 'ov-rem')}
         </tbody></table></div></div>`;
 
