@@ -17,7 +17,7 @@
       --ink: #1c232b; --muted: #6b7480; --neg: #b3261e;
       --past: #f7f6f2; --now: #fdf6e7;
       --row-pay: #eef3fb; --row-save: #fff3bf; --row-shared: #fbe9c6; --row-rem: #f6dce7; --row-total: #f4f1ea;
-      --stick-w: 260px; --budget-w: 92px;
+      --stick-w: 260px; --due-w: 64px; --budget-w: 92px;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Montserrat', sans-serif; background: var(--page); color: var(--ink); min-height: 100vh; font-size: 14px; }
@@ -74,8 +74,11 @@
     .sheet thead tr.dates th { top: 30px; color: var(--muted); font-weight: 500; }
     .sheet thead th.month { border-right: 2px solid var(--line-strong); }
     .sheet th.col-name, .sheet td.col-name { position: sticky; left: 0; z-index: 4; background: var(--card); width: var(--stick-w); min-width: var(--stick-w); max-width: var(--stick-w); text-align: left; }
-    .sheet th.col-budget, .sheet td.col-budget { position: sticky; left: var(--stick-w); z-index: 4; background: var(--card); width: var(--budget-w); min-width: var(--budget-w); text-align: right; border-right: 2px solid var(--line-strong); }
-    .sheet thead th.col-name, .sheet thead th.col-budget { z-index: 7; background: #fbfaf7; }
+    .sheet th.col-due, .sheet td.col-due { position: sticky; left: var(--stick-w); z-index: 4; background: var(--card); width: var(--due-w); min-width: var(--due-w); max-width: var(--due-w); text-align: center; }
+    .due-val { font-size: 0.78rem; font-weight: 600; color: var(--gold-ink); overflow: hidden; text-overflow: ellipsis; padding: 0 0.2rem; }
+    .due-val.soon { background: var(--gold); color: #fff; border-radius: 999px; padding: 0.15rem 0.45rem; display: inline-block; }
+    .sheet th.col-budget, .sheet td.col-budget { position: sticky; left: calc(var(--stick-w) + var(--due-w)); z-index: 4; background: var(--card); width: var(--budget-w); min-width: var(--budget-w); text-align: right; border-right: 2px solid var(--line-strong); }
+    .sheet thead th.col-name, .sheet thead th.col-due, .sheet thead th.col-budget { z-index: 7; background: #fbfaf7; }
     .sheet thead th.col-name { padding-left: 0.8rem; }
     .sheet thead th.col-budget { padding-right: 0.6rem; }
     .sheet td.cell { width: 96px; min-width: 96px; }
@@ -106,12 +109,12 @@
     .calc.neg { color: var(--neg); }
 
     tr.section-head td { background: var(--navy); color: #fff; height: 38px; }
-    tr.section-head td.col-name, tr.section-head td.col-budget { background: var(--navy); }
+    tr.section-head td.col-name, tr.section-head td.col-due, tr.section-head td.col-budget { background: var(--navy); }
     tr.section-head .sec-title { display: flex; align-items: center; gap: 0.6rem; padding-left: 0.8rem; }
     tr.section-head .sec-title button.sec-name { background: none; border: 0; color: #fff; font-weight: 600; letter-spacing: 0.04em; cursor: pointer; font-size: 0.85rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
     tr.section-head .sec-title { padding-right: 0.5rem; }
     tr.section-head .add-line { flex: none; }
-    tr.add-row td, tr.add-row td.col-name, tr.add-row td.col-budget { background: var(--card); height: 34px; }
+    tr.add-row td, tr.add-row td.col-name, tr.add-row td.col-due, tr.add-row td.col-budget { background: var(--card); height: 34px; }
     tr.add-row .add-exp { display: flex; align-items: center; gap: 0.45rem; width: 100%; height: 100%; padding: 0 0.8rem; background: none; border: 0; cursor: pointer; color: var(--gold-ink); font-weight: 600; font-size: 0.8rem; text-align: left; }
     tr.add-row .add-exp .plus { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--gold); color: var(--gold-ink); font-size: 0.95rem; line-height: 1; }
     tr.add-row .add-exp:hover { background: var(--now); }
@@ -121,13 +124,13 @@
     tr.section-head .add-line:hover { border-color: var(--gold); color: var(--gold); }
     tr.section-head .tag { font-size: 0.62rem; color: var(--gold); letter-spacing: 0.06em; }
 
-    tr.total-row td, tr.total-row td.col-name, tr.total-row td.col-budget { background: var(--row-total); font-weight: 600; }
+    tr.total-row td, tr.total-row td.col-name, tr.total-row td.col-due, tr.total-row td.col-budget { background: var(--row-total); font-weight: 600; }
     tr.total-row td.col-name { padding-left: 0.8rem; font-size: 0.8rem; }
-    tr.total-row td.col-budget { padding-right: 0.6rem; font-size: 0.82rem; }
-    tr.sum-pay td, tr.sum-pay td.col-name, tr.sum-pay td.col-budget { background: var(--row-pay); }
-    tr.sum-save td, tr.sum-save td.col-name, tr.sum-save td.col-budget { background: var(--row-save); }
-    tr.sum-shared td, tr.sum-shared td.col-name, tr.sum-shared td.col-budget { background: var(--row-shared); }
-    tr.sum-rem td, tr.sum-rem td.col-name, tr.sum-rem td.col-budget { background: var(--row-rem); }
+    tr.total-row td.col-due, tr.total-row td.col-budget { padding-right: 0.6rem; font-size: 0.82rem; }
+    tr.sum-pay td, tr.sum-pay td.col-name, tr.sum-pay td.col-due, tr.sum-pay td.col-budget { background: var(--row-pay); }
+    tr.sum-save td, tr.sum-save td.col-name, tr.sum-save td.col-due, tr.sum-save td.col-budget { background: var(--row-save); }
+    tr.sum-shared td, tr.sum-shared td.col-name, tr.sum-shared td.col-due, tr.sum-shared td.col-budget { background: var(--row-shared); }
+    tr.sum-rem td, tr.sum-rem td.col-name, tr.sum-rem td.col-due, tr.sum-rem td.col-budget { background: var(--row-rem); }
     tr.sum-row td.col-name .lbl { padding-left: 0.8rem; font-weight: 600; font-size: 0.85rem; display: block; }
     tr.sum-row td.col-name .lbl small { display: block; font-weight: 400; font-size: 0.66rem; color: var(--muted); }
     tr.sum-pay td.cell.past, tr.sum-pay td.cell.now { background: var(--row-pay); }
@@ -136,7 +139,7 @@
     tr.sum-rem td.cell.past, tr.sum-rem td.cell.now { background: var(--row-rem); }
     tr.sum-row td.col-name .lbl small { overflow: hidden; text-overflow: ellipsis; }
     tr.spacer-row td { height: 14px; background: var(--page); border-right: 0; }
-    tr.spacer-row td.col-name, tr.spacer-row td.col-budget { background: var(--page); }
+    tr.spacer-row td.col-name, tr.spacer-row td.col-due, tr.spacer-row td.col-budget { background: var(--page); }
 
     .add-section { margin-top: 1rem; }
     .hint { color: var(--muted); font-size: 0.78rem; margin-top: 0.8rem; line-height: 1.6; }
@@ -161,7 +164,7 @@
     dialog .actions .left { margin-right: auto; display: flex; gap: 0.4rem; }
 
     @media (max-width: 700px) {
-      :root { --stick-w: 150px; --budget-w: 74px; }
+      :root { --stick-w: 150px; --due-w: 48px; --budget-w: 74px; }
       main { padding: 0.75rem 16px; }
       .topbar { padding: 0.6rem 16px; gap: 0.6rem; }
       .topbar img { height: 30px; }
@@ -203,6 +206,7 @@
       <h3 id="itemDlgTitle">Edit line</h3>
       <label>Name<input type="text" id="fName" required maxlength="80" /></label>
       <label>Note<input type="text" id="fNote" maxlength="120" placeholder="e.g. due on the 28th, $650/yr" /></label>
+      <label>Due<input type="text" id="fDue" maxlength="20" placeholder="Day of the month, e.g. 28 — or a date like Jan 15" /></label>
       <label>Monthly budget<input type="text" id="fBudget" inputmode="decimal" placeholder="0" /></label>
       <label id="fSecWrap">Section<select id="fSection"></select></label>
       <label>Repeats
@@ -384,6 +388,18 @@
       return out;
     }
 
+    const ordinal = (n) => n + ((n % 100 >= 11 && n % 100 <= 13) ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th'));
+    function dueHtml(due) {
+      if (due == null || String(due).trim() === '') return '';
+      const t = String(due).trim();
+      if (/^\d{1,2}$/.test(t)) {
+        const d = +t, today = new Date().getDate();
+        const ahead = (d - today + 31) % 31; // due within the next 5 days
+        return `<span class="due-val${ahead <= 5 ? ' soon' : ''}" title="Due on the ${ordinal(d)} of each month">${ordinal(d)}</span>`;
+      }
+      return `<span class="due-val" title="${esc(t)}">${esc(t)}</span>`;
+    }
+
     function render() {
       sortedCache.clear();
       const app = $('app');
@@ -427,7 +443,7 @@
 
       // table
       h += `<div class="sheet-wrap" id="sheetWrap"><table class="sheet"><thead><tr class="months">
-        <th class="col-name" rowspan="2">Item</th><th class="col-budget" rowspan="2">Budget/mo</th>`;
+        <th class="col-name" rowspan="2">Item</th><th class="col-due" rowspan="2">Due</th><th class="col-budget" rowspan="2">Budget/mo</th>`;
       months.forEach(mo => { if (mo.periods.length) h += `<th class="month" colspan="${mo.periods.length}">${MONTHS[mo.m]} ${mo.y}</th>`; });
       h += `</tr><tr class="dates">`;
       cols.forEach(c => { const d = new Date(fromISO(c.iso)); h += `<th class="${c.monthEnd ? 'month-end' : ''} ${c.iso === nowP ? 'now' : ''}">${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}${c.iso === nowP ? ' · now' : ''}</th>`; });
@@ -444,27 +460,27 @@
       const span = cols.length;
 
       // summary block (paycheck math)
-      h += `<tr class="section-head"><td class="col-name"><div class="sec-title"><span class="sec-name" style="font-weight:600;letter-spacing:.04em;font-size:.85rem">Paycheck Summary</span></div></td><td class="col-budget"></td><td colspan="${span}"></td></tr>`;
-      h += `<tr class="sum-row sum-pay"><td class="col-name"><button class="name-btn" data-special="paycheck"><span class="txt"><span class="nm">${esc(data.special.paycheck.name)}</span><span class="nt">Repeats every paycheck</span></span></button></td><td class="col-budget"></td>${cols.map(c => inputCell('paycheck', c)).join('')}</tr>`;
-      h += `<tr class="sum-row"><td class="col-name"><span class="lbl">Paid from paycheck<small>Total of the paycheck sections</small></span></td><td class="col-budget"></td>${cols.map(c => calcCell(c, calc[c.iso].fromPay)).join('')}</tr>`;
-      h += `<tr class="sum-row sum-save"><td class="col-name"><span class="lbl">Send to our Savings<small>Paycheck − paid from paycheck</small></span></td><td class="col-budget"></td>${cols.map(c => calcCell(c, calc[c.iso].savings)).join('')}</tr>`;
-      h += `<tr class="sum-row sum-shared"><td class="col-name"><span class="lbl">Send to Shared<small>Shared lines + savings</small></span></td><td class="col-budget"></td>${cols.map(c => calcCell(c, calc[c.iso].sharedTotal)).join('')}</tr>`;
-      h += `<tr class="sum-row"><td class="col-name"><button class="name-btn" data-special="withdraw"><span class="txt"><span class="nm">${esc(data.special.withdraw.name)}</span><span class="nt">Taken out of savings</span></span></button></td><td class="col-budget"></td>${cols.map(c => inputCell('withdraw', c)).join('')}</tr>`;
-      h += `<tr class="sum-row sum-rem"><td class="col-name"><span class="lbl">Remainder<small>Savings − withdrawals</small></span></td><td class="col-budget"></td>${cols.map(c => calcCell(c, calc[c.iso].remainder)).join('')}</tr>`;
+      h += `<tr class="section-head"><td class="col-name"><div class="sec-title"><span class="sec-name" style="font-weight:600;letter-spacing:.04em;font-size:.85rem">Paycheck Summary</span></div></td><td class="col-due"></td><td class="col-budget"></td><td colspan="${span}"></td></tr>`;
+      h += `<tr class="sum-row sum-pay"><td class="col-name"><button class="name-btn" data-special="paycheck"><span class="txt"><span class="nm">${esc(data.special.paycheck.name)}</span><span class="nt">Repeats every paycheck</span></span></button></td><td class="col-due"></td><td class="col-budget"></td>${cols.map(c => inputCell('paycheck', c)).join('')}</tr>`;
+      h += `<tr class="sum-row"><td class="col-name"><span class="lbl">Paid from paycheck<small>Total of the paycheck sections</small></span></td><td class="col-due"></td><td class="col-budget"></td>${cols.map(c => calcCell(c, calc[c.iso].fromPay)).join('')}</tr>`;
+      h += `<tr class="sum-row sum-save"><td class="col-name"><span class="lbl">Send to our Savings<small>Paycheck − paid from paycheck</small></span></td><td class="col-due"></td><td class="col-budget"></td>${cols.map(c => calcCell(c, calc[c.iso].savings)).join('')}</tr>`;
+      h += `<tr class="sum-row sum-shared"><td class="col-name"><span class="lbl">Send to Shared<small>Shared lines + savings</small></span></td><td class="col-due"></td><td class="col-budget"></td>${cols.map(c => calcCell(c, calc[c.iso].sharedTotal)).join('')}</tr>`;
+      h += `<tr class="sum-row"><td class="col-name"><button class="name-btn" data-special="withdraw"><span class="txt"><span class="nm">${esc(data.special.withdraw.name)}</span><span class="nt">Taken out of savings</span></span></button></td><td class="col-due"></td><td class="col-budget"></td>${cols.map(c => inputCell('withdraw', c)).join('')}</tr>`;
+      h += `<tr class="sum-row sum-rem"><td class="col-name"><span class="lbl">Remainder<small>Savings − withdrawals</small></span></td><td class="col-due"></td><td class="col-budget"></td>${cols.map(c => calcCell(c, calc[c.iso].remainder)).join('')}</tr>`;
 
       data.sections.forEach(s => {
-        h += `<tr class="spacer-row"><td class="col-name"></td><td class="col-budget"></td><td colspan="${span}"></td></tr>`;
-        h += `<tr class="section-head"><td class="col-name"><div class="sec-title"><button class="sec-name" data-sec="${s.id}" title="Edit section">${esc(s.name)}</button><button class="add-line" data-add="${s.id}">+ Line</button></div></td><td class="col-budget">${s.fromPaycheck ? '<span class="tag">FROM PAYCHECK&nbsp;</span>' : ''}</td><td colspan="${span}"></td></tr>`;
+        h += `<tr class="spacer-row"><td class="col-name"></td><td class="col-due"></td><td class="col-budget"></td><td colspan="${span}"></td></tr>`;
+        h += `<tr class="section-head"><td class="col-name"><div class="sec-title"><button class="sec-name" data-sec="${s.id}" title="Edit section">${esc(s.name)}</button><button class="add-line" data-add="${s.id}">+ Line</button></div></td><td class="col-due"></td><td class="col-budget">${s.fromPaycheck ? '<span class="tag">FROM PAYCHECK&nbsp;</span>' : ''}</td><td colspan="${span}"></td></tr>`;
         let budgetTotal = 0;
         s.items.forEach(it => {
           budgetTotal += it.budget || 0;
           const chips = (it.repeat === 'every' ? '<span class="chip rep" title="Repeats every paycheck">↻ check</span>' : it.repeat === 'monthly' ? '<span class="chip rep" title="Repeats once a month">↻ month</span>' : it.repeat === 'quarterly' ? '<span class="chip rep" title="Repeats every 3 months">↻ 3 mo</span>' : it.repeat === 'semiannual' ? '<span class="chip rep" title="Repeats every 6 months">↻ 6 mo</span>' : it.repeat === 'yearly' ? '<span class="chip rep" title="Repeats once a year">↻ yearly</span>' : '')
             + (it.shared ? '<span class="chip shr" title="Included in Send to Shared">shared</span>' : '');
           h += `<tr><td class="col-name"><button class="name-btn${it.sub ? ' sub' : ''}" data-item="${it.id}" title="${esc(it.name)}${it.note ? ' — ' + esc(it.note) : ''}"><span class="txt"><span class="nm">${esc(it.name)}</span>${it.note ? `<span class="nt">${esc(it.note)}</span>` : ''}</span>${chips}</button></td>
-            <td class="col-budget"><div class="budget-val">${money(it.budget)}</div></td>${cols.map(c => inputCell(it.id, c)).join('')}</tr>`;
+            <td class="col-due">${dueHtml(it.due)}</td><td class="col-budget"><div class="budget-val">${money(it.budget)}</div></td>${cols.map(c => inputCell(it.id, c)).join('')}</tr>`;
         });
-        h += `<tr class="add-row"><td class="col-name"><button class="add-exp" data-add="${s.id}"><span class="plus">+</span>Add expense</button></td><td class="col-budget"></td><td colspan="${span}"></td></tr>`;
-        h += `<tr class="total-row"><td class="col-name">Total</td><td class="col-budget">${money(budgetTotal) || '$0'}</td>${cols.map(c => `<td class="${cls(c)}"><div class="calc">${money(calc[c.iso].sections[s.id], true)}</div></td>`).join('')}</tr>`;
+        h += `<tr class="add-row"><td class="col-name"><button class="add-exp" data-add="${s.id}"><span class="plus">+</span>Add expense</button></td><td class="col-due"></td><td class="col-budget"></td><td colspan="${span}"></td></tr>`;
+        h += `<tr class="total-row"><td class="col-name">Total</td><td class="col-due"></td><td class="col-budget">${money(budgetTotal) || '$0'}</td>${cols.map(c => `<td class="${cls(c)}"><div class="calc">${money(calc[c.iso].sections[s.id], true)}</div></td>`).join('')}</tr>`;
       });
       h += `</tbody></table></div>`;
       h += `<p class="hint">Click a line's name to rename it, set its budget, or make it repeat. Grey italic amounts are carried forward from an earlier period; type over one to change it. Clear a cell to go back to the carried amount.</p>`;
@@ -547,6 +563,17 @@
         // Diapers, wipes, dance class, stem cell sit under the girl/baby expenses line
         d.sections.forEach(s => s.items.forEach(it => { if (['r63', 'r64', 'r65', 'r66'].includes(it.id)) it.sub = true; }));
         d.migrations.indentGirl = true; changed = true;
+      }
+      if (!d.migrations.dueFromNames) {
+        d.sections.forEach(s => s.items.forEach(it => {
+          if (it.due) return;
+          const m = String(it.name).match(/\b(\d{1,2})(st|nd|rd|th)\b/i);
+          if (!m || +m[1] < 1 || +m[1] > 31) return;
+          it.due = String(+m[1]);
+          const parts = it.name.split(/\s*-[\s-]*/).map(x => x.trim()).filter(x => x && x.toLowerCase() !== m[0].toLowerCase());
+          if (parts.length) it.name = parts.join(' · ');
+        }));
+        d.migrations.dueFromNames = true; changed = true;
       }
       if (d.migrations.splitUnplanned) return changed;
       const i = d.sections.findIndex(s => s.name === 'Projected & Unplanned');
@@ -676,9 +703,9 @@
       editing = { kind: 'item', id, sectionId: f ? f.s.id : sectionId };
       const it = f ? f.it : { name: '', note: '', budget: null, repeat: 'off', shared: false };
       $('itemDlgTitle').textContent = id ? 'Edit line' : 'New line';
-      $('fName').value = it.name; $('fNote').value = it.note || ''; $('fBudget').value = it.budget == null ? '' : plain(it.budget);
+      $('fName').value = it.name; $('fNote').value = it.note || ''; $('fBudget').value = it.budget == null ? '' : plain(it.budget); $('fDue').value = it.due == null ? '' : it.due;
       $('fRepeat').value = it.repeat || 'off'; $('fShared').checked = !!it.shared; $('fSub').checked = !!it.sub;
-      ['fNote', 'fBudget', 'fShared', 'fSub', 'fUp', 'fDown'].forEach(k => $(k).closest('label, button').style.display = '');
+      ['fNote', 'fDue', 'fBudget', 'fShared', 'fSub', 'fUp', 'fDown'].forEach(k => $(k).closest('label, button').style.display = '');
       $('fSection').innerHTML = data.sections.map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');
       $('fSection').value = editing.sectionId; $('fSecWrap').style.display = '';
       $('fDelete').style.display = id ? '' : 'none';
@@ -690,7 +717,7 @@
       const sp = data.special[key];
       $('itemDlgTitle').textContent = 'Edit line';
       $('fName').value = sp.name; $('fRepeat').value = sp.repeat || 'off';
-      ['fNote', 'fBudget', 'fShared', 'fSub', 'fSection'].forEach(k => $(k).closest('label').style.display = 'none');
+      ['fNote', 'fDue', 'fBudget', 'fShared', 'fSub', 'fSection'].forEach(k => $(k).closest('label').style.display = 'none');
       ['fUp', 'fDown', 'fDelete'].forEach(k => $(k).style.display = 'none');
       $('itemDlg').showModal(); $('fName').focus();
     }
@@ -701,7 +728,8 @@
         Object.assign(data.special[editing.id], { name, repeat: $('fRepeat').value });
       } else {
         const b = parseAmt($('fBudget').value);
-        const vals = { name, note: $('fNote').value.trim(), budget: Number.isNaN(b) ? null : b, repeat: $('fRepeat').value, shared: $('fShared').checked, sub: $('fSub').checked };
+        const dueRaw = $('fDue').value.trim().replace(/^(\d{1,2})(st|nd|rd|th)$/i, '$1');
+        const vals = { name, due: dueRaw, note: $('fNote').value.trim(), budget: Number.isNaN(b) ? null : b, repeat: $('fRepeat').value, shared: $('fShared').checked, sub: $('fSub').checked };
         const target = data.sections.find(s => s.id === $('fSection').value) || data.sections.find(s => s.id === editing.sectionId);
         if (editing.id) {
           const f = findItem(editing.id); Object.assign(f.it, vals);
