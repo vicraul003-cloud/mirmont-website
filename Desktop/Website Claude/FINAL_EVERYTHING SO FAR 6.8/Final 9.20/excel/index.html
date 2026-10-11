@@ -830,7 +830,7 @@
       if (!t) return;
       if (t.dataset.act === 'prev') { view.extra = 0; shift(-1); render(); }
       else if (t.dataset.act === 'next') { view.extra = 0; shift(1); render(); }
-      else if (t.dataset.act === 'today') { goToday(); render(); }
+      else if (t.dataset.act === 'today') { goToday(); view.focus = { ...view.start }; jumpToNow = false; render(); $('sheetWrap').scrollLeft = 0; }
       else if (t.dataset.focus) { if (!view.focus) { const [y, m] = t.dataset.focus.split('-').map(Number); view.focus = { y, m }; render(); $('sheetWrap').scrollLeft = 0; } }
       else if (t.dataset.act === 'unfocus') { const f = view.focus; view.focus = null; render(); const th = f && document.querySelector(`#sheetWrap .mon-btn[data-focus="${f.y}-${f.m}"]`); if (th) { const wrap = $('sheetWrap'), bud = wrap.querySelector('thead th.col-budget').getBoundingClientRect(); wrap.scrollLeft += th.closest('th').getBoundingClientRect().left - bud.right; } }
       else if (t.dataset.act === 'ovtoggle') { const sl = $('sheetWrap') ? $('sheetWrap').scrollLeft : 0; view.ovHidden = !view.ovHidden; saveView(); render(); $('sheetWrap').scrollLeft = sl; }
