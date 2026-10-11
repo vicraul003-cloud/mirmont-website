@@ -131,6 +131,10 @@
     .overview { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 0.75rem 0.9rem 0.5rem; margin-bottom: 1rem; }
     .ov-title { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.4rem; }
     .ov-scroll { overflow-x: auto; }
+    .mon-btn { background: none; border: 0; cursor: pointer; font: inherit; color: inherit; letter-spacing: inherit; text-transform: inherit; padding: 0.15rem 0.4rem; border-radius: 4px; }
+    .mon-btn:hover { background: var(--now); text-decoration: underline; text-decoration-color: var(--gold); }
+    .mon-expand { margin-left: 0.6rem; background: var(--navy); color: #fff; border: 0; border-radius: 4px; padding: 0.2rem 0.6rem; font-size: 0.68rem; letter-spacing: 0.06em; line-height: 1.3; cursor: pointer; vertical-align: middle; }
+    .mon-expand:hover { background: var(--gold); }
     .ov-toggle { display: flex; align-items: center; gap: 0.5rem; background: none; border: 0; cursor: pointer; padding: 0; width: 100%; text-align: left; }
     .ov-toggle:hover { color: var(--gold-ink); }
     .ov-arrow { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--line-strong); font-size: 0.6rem; color: var(--gold-ink); transition: transform 0.2s; }
@@ -508,9 +512,10 @@
     // ── rendering ──
     function visibleMonths() {
       const out = [];
-      for (let i = 0; i < view.months + view.extra; i++) {
-        const t = monthStart(view.start.y, view.start.m + i), d = new Date(t);
-        out.push({ y: d.getUTCFullYear(), m: d.getUTCMonth(), periods: periodsBetween(t, monthStart(view.start.y, view.start.m + i + 1)) });
+      const st = view.focus || view.start, count = view.focus ? 1 : view.months + view.extra;
+      for (let i = 0; i < count; i++) {
+        const t = monthStart(st.y, st.m + i), d = new Date(t);
+        out.push({ y: d.getUTCFullYear(), m: d.getUTCMonth(), periods: periodsBetween(t, monthStart(st.y, st.m + i + 1)) });
       }
       return out;
     }
@@ -539,7 +544,8 @@
       const cls = (c) => ['cell', 'c' + c.iso, c.monthEnd ? 'month-end' : '', c.iso < nowP ? 'past' : '', c.iso === nowP ? 'now' : ''].join(' ');
 
       const first = months[0], last = months[months.length - 1];
-      const rangeLbl = first.y === last.y
+      const FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      const rangeLbl = months.length === 1 ? `${FULL[first.m]} ${first.y}` : first.y === last.y
         ? `${MONTHS[first.m]} – ${MONTHS[last.m]} ${last.y}`
         : `${MONTHS[first.m]} ${first.y} – ${MONTHS[last.m]} ${last.y}`;
 
@@ -550,6 +556,7 @@
         <div class="range-label">${rangeLbl}</div>
         <button class="btn icon" data-act="next" title="Later month">▶</button>
         <button class="btn" data-act="today">This month</button>
+        ${view.focus ? '<button class="btn primary" data-act="unfocus">View all months ›</button>' : ''}
         <span class="spacer"></span>
         <select data-act="months" aria-label="Months shown">
           ${[3,6,12].map(n => `<option value="${n}" ${n === view.months ? 'selected' : ''}>Show ${n} months</option>`).join('')}
@@ -593,7 +600,7 @@
       // table
       h += `<div class="sheet-wrap" id="sheetWrap"><table class="sheet" style="min-width: calc(var(--stick-w) + var(--due-w) + var(--budget-w) + ${cols.length * 96}px)"><colgroup><col style="width: var(--stick-w)"><col style="width: var(--due-w)"><col style="width: var(--budget-w)">${cols.map(() => '<col>').join('')}</colgroup><thead><tr class="months">
         <th class="col-name" rowspan="2">Item</th><th class="col-due" rowspan="2">Due</th><th class="col-budget" rowspan="2">Budget/mo</th>`;
-      months.forEach(mo => { if (mo.periods.length) h += `<th class="month" colspan="${mo.periods.length}">${MONTHS[mo.m]} ${mo.y}</th>`; });
+      months.forEach(mo => { if (mo.periods.length) h += `<th class="month" colspan="${mo.periods.length}"><button type="button" class="mon-btn" data-focus="${mo.y}-${mo.m}" title="${view.focus ? 'Showing only this month' : 'Show only ' + MONTHS[mo.m] + ' ' + mo.y}">${MONTHS[mo.m]} ${mo.y}</button>${view.focus ? '<button type="button" class="mon-expand" data-act="unfocus" title="Show the other months again">View all months ›</button>' : ''}</th>`; });
       h += `</tr><tr class="dates">`;
       cols.forEach(c => { const d = new Date(fromISO(c.iso)); h += `<th class="c${c.iso} ${calc[c.iso].remainder < 0 ? 'hd-neg' : 'hd-pos'} ${c.monthEnd ? 'month-end' : ''} ${c.iso === nowP ? 'now' : ''}">${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}${c.iso === nowP ? ' · now' : ''}</th>`; });
       h += `</tr></thead><tbody>`;
@@ -692,7 +699,7 @@
     function goToday() {
       const cp = data ? currentPeriod() : toISO(todayUTC());
       view.start = { y: +cp.slice(0, 4), m: +cp.slice(5, 7) - 1 };
-      view.extra = 0;
+      view.extra = 0; view.focus = null;
       jumpToNow = true;
     }
     function scrollToNow() {
@@ -706,6 +713,7 @@
       wrap.scrollLeft = target;
     }
     function shift(n) {
+      if (view.focus) { const f = new Date(monthStart(view.focus.y, view.focus.m + n)); view.focus = { y: f.getUTCFullYear(), m: f.getUTCMonth() }; }
       const d = new Date(monthStart(view.start.y, view.start.m + n));
       view.start = { y: d.getUTCFullYear(), m: d.getUTCMonth() };
     }
@@ -817,12 +825,14 @@
 
     // ── events ──
     document.addEventListener('click', (e) => {
-      const t = e.target.closest('[data-act],[data-item],[data-special],[data-sec],[data-add],[data-goto]');
+      const t = e.target.closest('[data-act],[data-item],[data-special],[data-sec],[data-add],[data-goto],[data-focus]');
       if (!$('menu').contains(e.target)) $('menu').classList.remove('open');
       if (!t) return;
       if (t.dataset.act === 'prev') { view.extra = 0; shift(-1); render(); }
       else if (t.dataset.act === 'next') { view.extra = 0; shift(1); render(); }
       else if (t.dataset.act === 'today') { goToday(); render(); }
+      else if (t.dataset.focus) { if (!view.focus) { const [y, m] = t.dataset.focus.split('-').map(Number); view.focus = { y, m }; render(); $('sheetWrap').scrollLeft = 0; } }
+      else if (t.dataset.act === 'unfocus') { const f = view.focus; view.focus = null; render(); const th = f && document.querySelector(`#sheetWrap .mon-btn[data-focus="${f.y}-${f.m}"]`); if (th) { const wrap = $('sheetWrap'), bud = wrap.querySelector('thead th.col-budget').getBoundingClientRect(); wrap.scrollLeft += th.closest('th').getBoundingClientRect().left - bud.right; } }
       else if (t.dataset.act === 'ovtoggle') { const sl = $('sheetWrap') ? $('sheetWrap').scrollLeft : 0; view.ovHidden = !view.ovHidden; saveView(); render(); $('sheetWrap').scrollLeft = sl; }
       else if (t.dataset.goto) { const [y, m] = t.dataset.goto.split('-').map(Number); view.start = { y, m }; render(); $('sheetWrap').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
       else if (t.dataset.act === 'import') $('fileInput').click();
