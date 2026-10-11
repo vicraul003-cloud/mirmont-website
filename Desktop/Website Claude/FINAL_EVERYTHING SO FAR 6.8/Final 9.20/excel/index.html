@@ -108,7 +108,14 @@
     tr.section-head td { background: var(--navy); color: #fff; height: 38px; }
     tr.section-head td.col-name, tr.section-head td.col-budget { background: var(--navy); }
     tr.section-head .sec-title { display: flex; align-items: center; gap: 0.6rem; padding-left: 0.8rem; }
-    tr.section-head .sec-title button.sec-name { background: none; border: 0; color: #fff; font-weight: 600; letter-spacing: 0.04em; cursor: pointer; font-size: 0.85rem; }
+    tr.section-head .sec-title button.sec-name { background: none; border: 0; color: #fff; font-weight: 600; letter-spacing: 0.04em; cursor: pointer; font-size: 0.85rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
+    tr.section-head .sec-title { padding-right: 0.5rem; }
+    tr.section-head .add-line { flex: none; }
+    tr.add-row td, tr.add-row td.col-name, tr.add-row td.col-budget { background: var(--card); height: 34px; }
+    tr.add-row .add-exp { display: flex; align-items: center; gap: 0.45rem; width: 100%; height: 100%; padding: 0 0.8rem; background: none; border: 0; cursor: pointer; color: var(--gold-ink); font-weight: 600; font-size: 0.8rem; text-align: left; }
+    tr.add-row .add-exp .plus { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--gold); color: var(--gold-ink); font-size: 0.95rem; line-height: 1; }
+    tr.add-row .add-exp:hover { background: var(--now); }
+    tr.add-row .add-exp:hover .plus { background: var(--gold); color: #fff; }
     tr.section-head .sec-title button.sec-name:hover { color: var(--gold); }
     tr.section-head .add-line { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); color: #fff; border-radius: 4px; font-size: 0.68rem; padding: 0.15rem 0.45rem; cursor: pointer; }
     tr.section-head .add-line:hover { border-color: var(--gold); color: var(--gold); }
@@ -456,6 +463,7 @@
           h += `<tr><td class="col-name"><button class="name-btn${it.sub ? ' sub' : ''}" data-item="${it.id}" title="${esc(it.name)}${it.note ? ' — ' + esc(it.note) : ''}"><span class="txt"><span class="nm">${esc(it.name)}</span>${it.note ? `<span class="nt">${esc(it.note)}</span>` : ''}</span>${chips}</button></td>
             <td class="col-budget"><div class="budget-val">${money(it.budget)}</div></td>${cols.map(c => inputCell(it.id, c)).join('')}</tr>`;
         });
+        h += `<tr class="add-row"><td class="col-name"><button class="add-exp" data-add="${s.id}"><span class="plus">+</span>Add expense</button></td><td class="col-budget"></td><td colspan="${span}"></td></tr>`;
         h += `<tr class="total-row"><td class="col-name">Total</td><td class="col-budget">${money(budgetTotal) || '$0'}</td>${cols.map(c => `<td class="${cls(c)}"><div class="calc">${money(calc[c.iso].sections[s.id], true)}</div></td>`).join('')}</tr>`;
       });
       h += `</tbody></table></div>`;
