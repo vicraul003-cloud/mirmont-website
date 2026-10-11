@@ -84,6 +84,14 @@
     .sheet thead tr.dates th.hd-pos { box-shadow: inset 0 -3px 0 #7cc47f; }
     .sheet thead tr.dates th.hd-neg { box-shadow: inset 0 -3px 0 #e06b63; color: var(--neg); }
 
+    /* ── suggested amount "?" ── */
+    .sugg { position: absolute; top: 2px; right: 2px; width: 13px; height: 13px; border-radius: 50%; border: 0; background: #ece7db; color: var(--gold-ink); font-size: 0.55rem; font-weight: 700; line-height: 13px; padding: 0; cursor: pointer; z-index: 3; opacity: 0.55; }
+    .sheet td.cell:hover .sugg { opacity: 1; }
+    .sugg:hover { background: var(--gold); color: #fff; }
+    .sugg-pop { position: absolute; top: 16px; right: 2px; z-index: 20; background: var(--navy-dark); color: #fff; border-radius: 6px; padding: 0.45rem 0.6rem; font-size: 0.72rem; line-height: 1.4; white-space: nowrap; box-shadow: 0 6px 18px rgba(0,0,0,0.25); text-align: left; pointer-events: none; }
+    .sugg-pop b { color: var(--gold-light, #dbb97a); font-size: 0.85rem; }
+    .sugg-pop small { display: block; color: #c8c0b0; font-size: 0.66rem; }
+
     /* ── drag to move amounts ── */
     .sheet td.cell { position: relative; }
     .grip { position: absolute; left: 3px; top: 50%; transform: translateY(-50%); font-size: 0.8rem; line-height: 1; color: #a8a090; cursor: grab; opacity: 0; padding: 4px 2px; border-radius: 3px; z-index: 2; user-select: none; }
@@ -551,7 +559,9 @@
           tip = ` title="Remainder this paycheck: ${money(rem) || '$0'}"`;
         }
         const grip = v != null && v !== 0 && id !== 'paycheck' ? `<span class="grip" draggable="true" data-gid="${id}" data-gd="${c.iso}" title="Drag to move this amount to another pay period (hold Option to copy)">⠿</span>` : '';
-        return `<td class="${cls(c)}${bal}" data-cid="${id}" data-cd="${c.iso}"${tip}>${grip}<input class="${k}" data-id="${id}" data-d="${c.iso}" value="${esc(val)}" placeholder="${esc(ph)}" inputmode="decimal" autocomplete="off" aria-label="${esc((itemInfo(id) || {}).name)} ${c.iso}" /></td>`;
+        const sg = suggestion(id, c.iso);
+        const hint = sg && sg.amt !== v ? `<button type="button" class="sugg" tabindex="-1" data-sid="${id}" data-sd="${c.iso}" title="Suggested ${money(sg.amt)} (${money(sg.budget)} ÷ ${sg.n} checks this month). Double-click to use it.">?</button>` : '';
+        return `<td class="${cls(c)}${bal}" data-cid="${id}" data-cd="${c.iso}"${tip}>${grip}${hint}<input class="${k}" data-id="${id}" data-d="${c.iso}" value="${esc(val)}" placeholder="${esc(ph)}" inputmode="decimal" autocomplete="off" aria-label="${esc((itemInfo(id) || {}).name)} ${c.iso}" /></td>`;
       };
       const calcCell = (c, v) => `<td class="${cls(c)}"><div class="calc ${v < 0 ? 'neg' : ''}">${money(v)}</div></td>`;
       const span = cols.length;
@@ -842,6 +852,29 @@
       setValue(id, anchor, amt);
     }
 
+    // Set one pay period without changing what later periods show
+    function setOnlyThis(id, iso, n) {
+      const snap = futurePeriods(iso).map(d => [d, cellValue(id, d)]);
+      setValue(id, iso, n);
+      for (const [d, old] of snap) {
+        const now = cellValue(id, d);
+        if (!now.carried) { if ((data.values[id] || {})[d] !== undefined) break; else continue; }
+        if (now.v !== old.v) { setValue(id, d, old.v == null ? 0 : old.v); break; }
+      }
+    }
+
+    // Suggested amount: monthly budget split across the paychecks in that month
+    function suggestion(id, iso) {
+      const it = itemInfo(id);
+      if (!it || !it.budget || data.special[id]) return null;
+      const checks = periodsInMonth(iso);
+      const n = checks.length; if (!n) return null;
+      const per = Math.floor(it.budget / n * 100) / 100;
+      const idx = checks.indexOf(iso);
+      const amt = idx === n - 1 ? Math.round((it.budget - per * (n - 1)) * 100) / 100 : per;
+      return { amt, n, budget: it.budget };
+    }
+
     function finishApply(choice) {
       const p = applyPending; if (!p) return;
       applyPending = null;
@@ -850,14 +883,7 @@
       if (choice === 'cancel') { p.input.value = p.input.defaultValue; p.input.focus(); return; }
       const { id, iso, n, before, future, sameLater } = p;
       if (choice === 'one') {
-        const snap = future.map(d => [d, cellValue(id, d)]);
-        setValue(id, iso, n);
-        // keep later periods as they were: pin the first one that would now change
-        for (const [d, old] of snap) {
-          const now = cellValue(id, d);
-          if (!now.carried) { if ((data.values[id] || {})[d] !== undefined) break; else continue; }
-          if (now.v !== old.v) { setValue(id, d, old.v == null ? 0 : old.v); break; }
-        }
+        setOnlyThis(id, iso, n);
       } else {
         setValue(id, iso, n);
         sameLater.forEach(d => setValue(id, d, n));
@@ -869,6 +895,29 @@
     $('applyFuture').addEventListener('click', () => finishApply('future'));
     $('applyCancel').addEventListener('click', () => finishApply('cancel'));
     $('applyDlg').addEventListener('cancel', (e) => { e.preventDefault(); finishApply('cancel'); });
+
+    // ── suggested amount: click shows it, double-click enters it ──
+    function closeSugg() { document.querySelectorAll('.sugg-pop').forEach(el => el.remove()); }
+    document.addEventListener('click', (e) => {
+      const b = e.target.closest && e.target.closest('.sugg');
+      if (!b) { closeSugg(); return; }
+      e.preventDefault(); e.stopPropagation();
+      const open = b.parentElement.querySelector('.sugg-pop');
+      closeSugg(); if (open) return;
+      const sg = suggestion(b.dataset.sid, b.dataset.sd); if (!sg) return;
+      const pop = document.createElement('div'); pop.className = 'sugg-pop';
+      pop.innerHTML = `Suggested <b>${money(sg.amt)}</b><small>${money(sg.budget)}/mo ÷ ${sg.n} checks this month</small><small>Double-click ? to use it</small>`;
+      b.parentElement.appendChild(pop);
+    }, true);
+    document.addEventListener('dblclick', (e) => {
+      const b = e.target.closest && e.target.closest('.sugg'); if (!b) return;
+      e.preventDefault();
+      const sg = suggestion(b.dataset.sid, b.dataset.sd); if (!sg) return;
+      closeSugg();
+      setOnlyThis(b.dataset.sid, b.dataset.sd, sg.amt);
+      redraw();
+    });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSugg(); });
 
     // ── drag an amount to another pay period (same line) ──
     let drag = null;
