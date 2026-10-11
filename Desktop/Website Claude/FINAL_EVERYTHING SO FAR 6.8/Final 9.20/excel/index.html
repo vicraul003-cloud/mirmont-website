@@ -65,6 +65,16 @@
     .stat .v { font-size: 1.25rem; font-weight: 700; margin-top: 0.25rem; font-variant-numeric: tabular-nums; }
     .stat .v.neg { color: var(--neg); }
 
+    /* ── difference row under the paycheck section total ── */
+    tr.diff-row td, tr.diff-row td.col-name, tr.diff-row td.col-due, tr.diff-row td.col-budget { background: #fbfaf7; }
+    tr.diff-row td.col-name .lbl { padding-left: 0.8rem; font-weight: 600; font-size: 0.82rem; display: block; }
+    tr.diff-row td.col-name .lbl small { display: block; font-weight: 400; font-size: 0.66rem; color: var(--muted); }
+    tr.diff-row .g { color: #2e7d32; font-weight: 600; } tr.diff-row .r { color: var(--neg); font-weight: 600; }
+    .sheet tr.diff-row td.cell.over, .sheet tr.diff-row td.cell.over.past, .sheet tr.diff-row td.cell.over.now { background: #dcf1dc; }
+    .sheet tr.diff-row td.cell.short, .sheet tr.diff-row td.cell.short.past, .sheet tr.diff-row td.cell.short.now { background: #f8d7d5; }
+    tr.diff-row td.cell.over .calc { color: #2e7d32; font-weight: 700; }
+    tr.diff-row td.cell.short .calc { color: var(--neg); font-weight: 700; }
+
     /* ── balance colors on paycheck cells ── */
     .sheet td.cell.bal-pos, tr.section-head td.cell.bal-pos, tr.sum-pay td.cell.bal-pos { background: #dcf1dc !important; }
     .sheet td.cell.bal-neg, tr.section-head td.cell.bal-neg, tr.sum-pay td.cell.bal-neg { background: #f8d7d5 !important; }
@@ -571,6 +581,12 @@
         });
         h += `<tr class="add-row"><td class="col-name"><button class="add-exp" data-add="${s.id}"><span class="plus">+</span>Add expense</button></td><td class="col-due"></td><td class="col-budget"></td><td colspan="${span}"></td></tr>`;
         h += `<tr class="total-row"><td class="col-name">Total</td><td class="col-due"></td><td class="col-budget">${money(budgetTotal) || '$0'}</td>${cols.map(c => `<td class="${cls(c)}"><div class="calc">${money(calc[c.iso].sections[s.id], true)}</div></td>`).join('')}</tr>`;
+        if (s.id === payHeadId) {
+          h += `<tr class="diff-row"><td class="col-name"><span class="lbl">Difference<small>Paycheck − total · <span class="g">over</span> / <span class="r">short</span></small></span></td><td class="col-due"></td><td class="col-budget"></td>${cols.map(c => {
+            const d = Math.round((calc[c.iso].pay - calc[c.iso].sections[s.id]) * 100) / 100;
+            return `<td class="${cls(c)} ${d < 0 ? 'short' : 'over'}"><div class="calc">${d < 0 ? '−' : '+'}${money(Math.abs(d)) || '$0'}</div></td>`;
+          }).join('')}</tr>`;
+        }
       });
       h += `</tbody></table></div>`;
       h += `<p class="hint">Click a line's name to rename it, set its budget, or make it repeat. Grey italic amounts are carried forward from an earlier period; type over one to change it. Clear a cell to go back to the carried amount.</p>`;
