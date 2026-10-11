@@ -73,6 +73,10 @@
     .sheet tr.diff-row td.cell.over, .sheet tr.diff-row td.cell.over.past, .sheet tr.diff-row td.cell.over.now { background: #dcf1dc; }
     .sheet tr.diff-row td.cell.short, .sheet tr.diff-row td.cell.short.past, .sheet tr.diff-row td.cell.short.now { background: #f8d7d5; }
     tr.diff-row td.cell.over .calc { color: #2e7d32; font-weight: 700; }
+    .sheet tr.sum-rem td.cell.over, .sheet tr.sum-rem td.cell.over.past, .sheet tr.sum-rem td.cell.over.now { background: #dcf1dc; }
+    .sheet tr.sum-rem td.cell.short, .sheet tr.sum-rem td.cell.short.past, .sheet tr.sum-rem td.cell.short.now { background: #f8d7d5; }
+    tr.sum-rem td.cell.over .calc { color: #2e7d32; font-weight: 700; }
+    tr.sum-rem td.cell.short .calc { color: var(--neg); font-weight: 700; }
     tr.diff-row td.cell.short .calc { color: var(--neg); font-weight: 700; }
 
     /* ── balance colors on paycheck cells ── */
@@ -604,7 +608,7 @@
       const payHeadId = payHead ? payHead.id : null;
       // summary block (paycheck math)
       h += `<tr class="section-head"><td class="col-name"><div class="sec-title"><span class="sec-name" style="font-weight:600;letter-spacing:.04em;font-size:.85rem">Paycheck Summary</span></div></td><td class="col-due"></td><td class="col-budget"></td><td colspan="${span}"></td></tr>`;
-      h += `<tr class="sum-row sum-rem"><td class="col-name"><span class="lbl">Remainder<small>Paycheck − paid from paycheck − withdrawals</small></span></td><td class="col-due"></td><td class="col-budget"></td>${cols.map(c => calcCell(c, calc[c.iso].remainder)).join('')}</tr>`;
+      h += `<tr class="sum-row sum-rem"><td class="col-name"><span class="lbl">Remainder<small>Paycheck − paid from paycheck − withdrawals</small></span></td><td class="col-due"></td><td class="col-budget"></td>${cols.map(c => { const r = Math.round(calc[c.iso].remainder * 100) / 100; return `<td class="${cls(c)} ${r < 0 ? 'short' : 'over'}"><div class="calc">${r < 0 ? '−' : '+'}${money(Math.abs(r)) || '$0'}</div></td>`; }).join('')}</tr>`;
 
       data.sections.forEach(s => {
         h += `<tr class="spacer-row"><td class="col-name"></td><td class="col-due"></td><td class="col-budget"></td><td colspan="${span}"></td></tr>`;
