@@ -65,6 +65,25 @@
     .stat .v { font-size: 1.25rem; font-weight: 700; margin-top: 0.25rem; font-variant-numeric: tabular-nums; }
     .stat .v.neg { color: var(--neg); }
 
+    /* ── 6-month overview ── */
+    .overview { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 0.75rem 0.9rem 0.5rem; margin-bottom: 1rem; }
+    .ov-title { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.4rem; }
+    .ov-scroll { overflow-x: auto; }
+    table.ov { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; min-width: 640px; }
+    table.ov th, table.ov td { padding: 0.4rem 0.6rem; text-align: right; font-size: 0.85rem; border-bottom: 1px solid var(--line); white-space: nowrap; }
+    table.ov tbody th { text-align: left; font-weight: 500; color: var(--muted); font-size: 0.78rem; }
+    table.ov tr:last-child th, table.ov tr:last-child td { border-bottom: 0; }
+    table.ov td { font-weight: 600; }
+    table.ov td.neg { color: var(--neg); }
+    table.ov .tot { background: #faf8f3; border-left: 2px solid var(--line-strong); }
+    table.ov thead th.tot { font-size: 0.72rem; color: var(--gold-ink); text-transform: uppercase; letter-spacing: 0.06em; }
+    table.ov tr.ov-save td { background: rgba(255, 243, 191, 0.55); }
+    table.ov tr.ov-rem td { background: rgba(246, 220, 231, 0.55); }
+    table.ov tr.ov-save td.tot, table.ov tr.ov-rem td.tot { font-weight: 700; }
+    .ov-month { background: none; border: 0; cursor: pointer; font-weight: 600; font-size: 0.85rem; color: var(--ink); text-align: right; }
+    .ov-month small { display: block; font-weight: 400; font-size: 0.66rem; color: var(--muted); }
+    .ov-month:hover { color: var(--gold-ink); text-decoration: underline; text-decoration-color: var(--gold); }
+
     /* ── grid ── */
     .sheet-wrap { background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: auto; max-height: calc(100vh - 230px); }
     table.sheet { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; }
@@ -463,6 +482,26 @@
         ${stat('Remainder', agg.rem)}
       </div>`;
 
+      // next 6 months overview
+      const ahead = [];
+      for (let i = 1; i <= 6; i++) {
+        const t = monthStart(nd.getUTCFullYear(), nd.getUTCMonth() + i), md = new Date(t);
+        const ps = periodsBetween(t, monthStart(md.getUTCFullYear(), md.getUTCMonth() + 1));
+        const a = ps.reduce((o, p) => { const c = computePeriod(p); o.pay += c.pay; o.from += c.fromPay; o.save += c.savings; o.rem += c.remainder; return o; }, { pay: 0, from: 0, save: 0, rem: 0 });
+        ahead.push({ y: md.getUTCFullYear(), m: md.getUTCMonth(), n: ps.length, ...a });
+      }
+      const tot = ahead.reduce((o, a) => { ['pay', 'from', 'save', 'rem'].forEach(k => o[k] += a[k]); return o; }, { pay: 0, from: 0, save: 0, rem: 0 });
+      const cell = (v, extra = '') => `<td class="${v < 0 ? 'neg' : ''} ${extra}">${money(Math.round(v * 100) / 100) || '$0'}</td>`;
+      const orow = (label, k, cls = '') => `<tr class="${cls}"><th>${label}</th>${ahead.map(a => cell(a[k])).join('')}${cell(tot[k], 'tot')}</tr>`;
+      h += `<div class="overview"><div class="ov-title">Next 6 months</div><div class="ov-scroll"><table class="ov">
+        <thead><tr><th></th>${ahead.map(a => `<th><button class="ov-month" data-goto="${a.y}-${a.m}" title="Show ${MONTHS[a.m]} ${a.y} in the sheet">${MONTHS[a.m]} ${a.y !== nd.getUTCFullYear() ? "'" + String(a.y).slice(2) : ''}<small>${a.n} paychecks</small></button></th>`).join('')}<th class="tot">6-mo total</th></tr></thead>
+        <tbody>
+          ${orow('Paychecks', 'pay')}
+          ${orow('Paid from paycheck', 'from')}
+          ${orow('Send to savings', 'save', 'ov-save')}
+          ${orow('Remainder', 'rem', 'ov-rem')}
+        </tbody></table></div></div>`;
+
       // table
       h += `<div class="sheet-wrap" id="sheetWrap"><table class="sheet"><thead><tr class="months">
         <th class="col-name" rowspan="2">Item</th><th class="col-due" rowspan="2">Due</th><th class="col-budget" rowspan="2">Budget/mo</th>`;
@@ -643,12 +682,13 @@
 
     // ── events ──
     document.addEventListener('click', (e) => {
-      const t = e.target.closest('[data-act],[data-item],[data-special],[data-sec],[data-add]');
+      const t = e.target.closest('[data-act],[data-item],[data-special],[data-sec],[data-add],[data-goto]');
       if (!$('menu').contains(e.target)) $('menu').classList.remove('open');
       if (!t) return;
       if (t.dataset.act === 'prev') { shift(-1); render(); }
       else if (t.dataset.act === 'next') { shift(1); render(); }
       else if (t.dataset.act === 'today') { goToday(); render(); }
+      else if (t.dataset.goto) { const [y, m] = t.dataset.goto.split('-').map(Number); view.start = { y, m }; render(); $('sheetWrap').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
       else if (t.dataset.act === 'import') $('fileInput').click();
       else if (t.dataset.act === 'blank') { data = blankData(); scheduleSave(); render(); }
       else if (t.dataset.item) openItem(t.dataset.item);
