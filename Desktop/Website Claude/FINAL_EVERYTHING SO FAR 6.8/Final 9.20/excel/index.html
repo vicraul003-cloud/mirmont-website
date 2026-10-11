@@ -194,6 +194,7 @@
       <label>Name<input type="text" id="fName" required maxlength="80" /></label>
       <label>Note<input type="text" id="fNote" maxlength="120" placeholder="e.g. due on the 28th, $650/yr" /></label>
       <label>Monthly budget<input type="text" id="fBudget" inputmode="decimal" placeholder="0" /></label>
+      <label id="fSecWrap">Section<select id="fSection"></select></label>
       <label>Repeats
         <select id="fRepeat">
           <option value="off">Doesn't repeat</option>
@@ -525,6 +526,27 @@
     }
     const notConfiguredMsg = 'Online storage isn\'t set up yet (BUDGET_KV), so this budget is only saved in this browser on this device.';
 
+    // One-time layout updates applied to saved budgets (runs once per budget).
+    function migrate(d) {
+      if (!d || !Array.isArray(d.sections)) return false;
+      d.migrations = d.migrations || {};
+      if (d.migrations.splitUnplanned) return false;
+      const i = d.sections.findIndex(s => s.name === 'Projected & Unplanned');
+      if (i >= 0) {
+        const src = d.sections[i];
+        src.name = 'Projected';
+        const ids = ['r94', 'r95', 'r98', 'r99', 'r100', 'r101']; // Refrigerator, A/C, medical bills
+        const moved = src.items.filter(it => ids.includes(it.id));
+        src.items = src.items.filter(it => !ids.includes(it.id));
+        d.sections.splice(i + 1, 0, { id: 'unplanned', name: 'Unplanned', fromPaycheck: false, items: moved });
+      }
+      if (!d.sections.some(s => s.name === 'Emergency Fund')) {
+        d.sections.push({ id: 'emergency', name: 'Emergency Fund', fromPaycheck: false, items: [] });
+      }
+      d.migrations.splitUnplanned = true;
+      return true;
+    }
+
     async function load() {
       goToday();
       let local = null;
@@ -537,12 +559,13 @@
         rev = body.rev || 0; data = body.data;
         if (!data && local && local.data) {
           // first time online: offer to move browser-only data to the server
-          data = local.data; rev = 0; scheduleSave();
-        } else { saveLocal(); setState('ok', 'Saved'); }
+          data = local.data; rev = 0; migrate(data); scheduleSave();
+        } else { saveLocal(); setState('ok', 'Saved'); if (migrate(data)) scheduleSave(); }
       } catch (e) {
         mode = 'local';
         data = local && local.data || null; rev = local && local.rev || 0;
         setState('local', 'Saved on this device');
+        if (migrate(data)) saveLocal();
         banner(e.nc ? notConfiguredMsg : 'Can\'t reach the server right now — showing the copy saved on this device.');
       }
       render();
@@ -620,7 +643,7 @@
         if (d.version !== 1 || !Array.isArray(d.sections) || !d.anchor || !d.special) throw new Error('format');
         d.values = d.values || {};
         if (data && !confirm('Replace the current budget with the imported file? (Download a backup first if unsure.)')) return;
-        data = d; scheduleSave(); render();
+        data = d; migrate(data); scheduleSave(); render();
       } catch { alert('That file is not a budget data file.'); }
     });
 
@@ -638,6 +661,8 @@
       $('fName').value = it.name; $('fNote').value = it.note || ''; $('fBudget').value = it.budget == null ? '' : plain(it.budget);
       $('fRepeat').value = it.repeat || 'off'; $('fShared').checked = !!it.shared;
       ['fNote', 'fBudget', 'fShared', 'fUp', 'fDown'].forEach(k => $(k).closest('label, button').style.display = '');
+      $('fSection').innerHTML = data.sections.map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');
+      $('fSection').value = editing.sectionId; $('fSecWrap').style.display = '';
       $('fDelete').style.display = id ? '' : 'none';
       $('fUp').style.display = $('fDown').style.display = id ? '' : 'none';
       $('itemDlg').showModal(); $('fName').focus();
@@ -647,7 +672,7 @@
       const sp = data.special[key];
       $('itemDlgTitle').textContent = 'Edit line';
       $('fName').value = sp.name; $('fRepeat').value = sp.repeat || 'off';
-      ['fNote', 'fBudget', 'fShared'].forEach(k => $(k).closest('label').style.display = 'none');
+      ['fNote', 'fBudget', 'fShared', 'fSection'].forEach(k => $(k).closest('label').style.display = 'none');
       ['fUp', 'fDown', 'fDelete'].forEach(k => $(k).style.display = 'none');
       $('itemDlg').showModal(); $('fName').focus();
     }
@@ -659,8 +684,11 @@
       } else {
         const b = parseAmt($('fBudget').value);
         const vals = { name, note: $('fNote').value.trim(), budget: Number.isNaN(b) ? null : b, repeat: $('fRepeat').value, shared: $('fShared').checked };
-        if (editing.id) Object.assign(findItem(editing.id).it, vals);
-        else data.sections.find(s => s.id === editing.sectionId).items.push({ id: uid(), ...vals });
+        const target = data.sections.find(s => s.id === $('fSection').value) || data.sections.find(s => s.id === editing.sectionId);
+        if (editing.id) {
+          const f = findItem(editing.id); Object.assign(f.it, vals);
+          if (target && target !== f.s) { f.s.items.splice(f.i, 1); target.items.push(f.it); }
+        } else target.items.push({ id: uid(), ...vals });
       }
       $('itemDlg').close(); render(); scheduleSave();
     });
