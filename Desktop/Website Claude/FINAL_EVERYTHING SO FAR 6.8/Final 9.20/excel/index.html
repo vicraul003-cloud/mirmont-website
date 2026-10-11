@@ -572,7 +572,10 @@
         const needs = sg && sg.eligible && sg.short > 0.005 && sg.due >= nowP0;
         // the check that pays next month's bill (due before next month's first paycheck)
         const prevMonthCk = sg && sg.due >= nowP0 && sg.checks.includes(c.iso) && c.iso.slice(0, 7) !== sg.due.slice(0, 7);
-        if (prevMonthCk && ((v || 0) > 0 || (sg.have === 0 && c.iso === sg.payer))) {
+        if (prevMonthCk && sg.short <= 0.005 && (v || 0) > 0) {
+          // covered: no warning, just a quiet note on hover
+          tip = ` title="Pays ${esc((itemInfo(id) || {}).name)} ${sg.label} (next month) ✓ covered"`;
+        } else if (prevMonthCk && sg.short > 0.005 && ((v || 0) > 0 || c.iso === sg.payer)) {
           bal += ' due-late';
           tip = ` title="Pays ${esc((itemInfo(id) || {}).name)} ${sg.label} (next month), so make this payment from the ${fmtDate(c.iso)} check. Planned ${money(sg.have) || '$0'} of ${money(sg.A)}."`;
         }
