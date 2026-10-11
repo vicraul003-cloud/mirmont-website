@@ -125,6 +125,13 @@
     table.ov tr.ov-save td { background: rgba(255, 243, 191, 0.55); }
     table.ov tr.ov-rem td { background: rgba(246, 220, 231, 0.55); }
     table.ov tr.ov-save td.tot, table.ov tr.ov-rem td.tot { font-weight: 700; }
+    table.ov tr.ov-per td { vertical-align: top; padding-top: 0.35rem; padding-bottom: 0.35rem; }
+    table.ov tr.ov-per th small { display: block; font-size: 0.64rem; color: var(--muted); font-weight: 400; }
+    table.ov tr.ov-per td div { display: flex; justify-content: flex-end; gap: 0.5rem; font-size: 0.8rem; line-height: 1.55; }
+    table.ov tr.ov-per td div span { color: var(--muted); font-weight: 500; font-size: 0.72rem; }
+    table.ov tr.ov-per td div.pos { color: #2e7d32; }
+    table.ov tr.ov-per td div.neg { color: var(--neg); }
+    table.ov tr.ov-per td.tot div { color: var(--muted); font-weight: 500; font-size: 0.75rem; }
     .ov-month { background: none; border: 0; cursor: pointer; font-weight: 600; font-size: 0.85rem; color: var(--ink); text-align: right; }
     .ov-month small { display: block; font-weight: 400; font-size: 0.66rem; color: var(--muted); }
     .ov-month:hover { color: var(--gold-ink); text-decoration: underline; text-decoration-color: var(--gold); }
@@ -533,7 +540,8 @@
         const t = monthStart(nd.getUTCFullYear(), nd.getUTCMonth() + i), md = new Date(t);
         const ps = periodsBetween(t, monthStart(md.getUTCFullYear(), md.getUTCMonth() + 1));
         const a = ps.reduce((o, p) => { const c = computePeriod(p); o.pay += c.pay; o.from += c.fromPay; o.save += c.savings; o.rem += c.remainder; return o; }, { pay: 0, from: 0, save: 0, rem: 0 });
-        ahead.push({ y: md.getUTCFullYear(), m: md.getUTCMonth(), n: ps.length, ...a });
+        ahead.push({ y: md.getUTCFullYear(), m: md.getUTCMonth(), n: ps.length, ...a,
+          per: ps.map(p => { const c = computePeriod(p); return { d: p, v: Math.round((c.pay - c.fromPay) * 100) / 100 }; }) });
       }
       const tot = ahead.reduce((o, a) => { ['pay', 'from', 'save', 'rem'].forEach(k => o[k] += a[k]); return o; }, { pay: 0, from: 0, save: 0, rem: 0 });
       const cell = (v, extra = '') => `<td class="${v < 0 ? 'neg' : ''} ${extra}">${money(Math.round(v * 100) / 100) || '$0'}</td>`;
@@ -544,6 +552,7 @@
           ${orow('Paychecks', 'pay')}
           ${orow('Paid from paycheck', 'from')}
           ${orow('Send to savings', 'save', 'ov-save')}
+          <tr class="ov-per"><th>Difference by paycheck<small>send to savings from each check</small></th>${ahead.map(a => `<td>${a.per.map(x => `<div class="${x.v < 0 ? 'neg' : 'pos'}"><span>${fmtDate(x.d)}</span>${x.v < 0 ? '−' : '+'}${money(Math.abs(x.v)) || '$0'}</div>`).join('')}</td>`).join('')}<td class="tot"><div class="${tot.from > tot.pay ? 'neg' : 'pos'}">${ahead.reduce((n, a) => n + a.n, 0)} checks</div></td></tr>
           ${orow('Remainder', 'rem', 'ov-rem')}
         </tbody></table></div></div>`;
 
