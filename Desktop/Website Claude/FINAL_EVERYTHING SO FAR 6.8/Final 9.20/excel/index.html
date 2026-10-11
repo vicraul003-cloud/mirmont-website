@@ -104,6 +104,10 @@
     .sheet td.cell.due-late { box-shadow: inset 0 0 0 2px #d93025 !important; }
     .sheet td.cell.due-late::after { content: '!'; position: absolute; left: 3px; bottom: 1px; font-size: 0.6rem; font-weight: 800; color: #d93025; }
 
+    /* ── crosshair while editing: light blue bands laid over the row and column ── */
+    #sheetWrap .sheet tr.xh-row > td::before, #sheetWrap .sheet .xh-col::before { content: ''; position: absolute; inset: 0; background: rgba(61, 155, 233, 0.18); pointer-events: none; z-index: 1; }
+    #sheetWrap .sheet tr.xh-row > td.xh-col::before { background: transparent; box-shadow: inset 0 0 0 2px #3d9be9; }
+
     /* ── drag to move amounts ── */
     .sheet td.cell { position: relative; }
     .grip { position: absolute; left: 3px; top: 50%; transform: translateY(-50%); font-size: 0.8rem; line-height: 1; color: #a8a090; cursor: grab; opacity: 0; padding: 4px 2px; border-radius: 3px; z-index: 2; user-select: none; }
@@ -510,7 +514,7 @@
       months.forEach(mo => mo.periods.forEach((p, i) => cols.push({ iso: p, monthEnd: i === mo.periods.length - 1 })));
       const nowP = currentPeriod();
       const calc = Object.fromEntries(cols.map(c => [c.iso, computePeriod(c.iso)]));
-      const cls = (c) => ['cell', c.monthEnd ? 'month-end' : '', c.iso < nowP ? 'past' : '', c.iso === nowP ? 'now' : ''].join(' ');
+      const cls = (c) => ['cell', 'c' + c.iso, c.monthEnd ? 'month-end' : '', c.iso < nowP ? 'past' : '', c.iso === nowP ? 'now' : ''].join(' ');
 
       const first = months[0], last = months[months.length - 1];
       const rangeLbl = first.y === last.y
@@ -569,7 +573,7 @@
         <th class="col-name" rowspan="2">Item</th><th class="col-due" rowspan="2">Due</th><th class="col-budget" rowspan="2">Budget/mo</th>`;
       months.forEach(mo => { if (mo.periods.length) h += `<th class="month" colspan="${mo.periods.length}">${MONTHS[mo.m]} ${mo.y}</th>`; });
       h += `</tr><tr class="dates">`;
-      cols.forEach(c => { const d = new Date(fromISO(c.iso)); h += `<th class="${calc[c.iso].remainder < 0 ? 'hd-neg' : 'hd-pos'} ${c.monthEnd ? 'month-end' : ''} ${c.iso === nowP ? 'now' : ''}">${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}${c.iso === nowP ? ' · now' : ''}</th>`; });
+      cols.forEach(c => { const d = new Date(fromISO(c.iso)); h += `<th class="c${c.iso} ${calc[c.iso].remainder < 0 ? 'hd-neg' : 'hd-pos'} ${c.monthEnd ? 'month-end' : ''} ${c.iso === nowP ? 'now' : ''}">${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}${c.iso === nowP ? ' · now' : ''}</th>`; });
       h += `</tr></thead><tbody>`;
 
       const inputCell = (id, c) => {
@@ -1003,6 +1007,20 @@
     $('applyFuture').addEventListener('click', () => finishApply('future'));
     $('applyCancel').addEventListener('click', () => finishApply('cancel'));
     $('applyDlg').addEventListener('cancel', (e) => { e.preventDefault(); finishApply('cancel'); });
+
+    // ── crosshair: highlight the row and column of the box being edited ──
+    function clearCross() { document.querySelectorAll('.xh-row,.xh-col').forEach(el => el.classList.remove('xh-row', 'xh-col')); }
+    document.addEventListener('focusin', (e) => {
+      const inp = e.target; if (!inp.matches || !inp.matches('.cell input')) return;
+      clearCross();
+      const td = inp.closest('td'); td.parentElement.classList.add('xh-row');
+      const col = [...td.classList].find(c => /^c\d{4}-/.test(c));
+      if (col) document.querySelectorAll('#sheetWrap .' + col).forEach(el => el.classList.add('xh-col'));
+    });
+    document.addEventListener('focusout', (e) => {
+      if (!e.target.matches || !e.target.matches('.cell input')) return;
+      setTimeout(() => { const a = document.activeElement; if (!a || !a.matches || !a.matches('.cell input')) clearCross(); }, 0);
+    });
 
     // ── suggested amount: click shows it, double-click enters it ──
     function closeSugg() { document.querySelectorAll('.sugg-pop').forEach(el => el.remove()); }
