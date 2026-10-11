@@ -79,7 +79,7 @@
     .sheet td.cell.bal-pos, tr.section-head td.cell.bal-pos, tr.sum-pay td.cell.bal-pos { background: #dcf1dc !important; }
     .sheet td.cell.bal-neg, tr.section-head td.cell.bal-neg, tr.sum-pay td.cell.bal-neg { background: #f8d7d5 !important; }
     tr.section-head td.cell.bal-pos input, tr.section-head td.cell.bal-neg input { color: var(--ink); }
-    tr.section-head td.cell.bal-pos input::placeholder, tr.section-head td.cell.bal-neg input::placeholder { color: #55606b; }
+    tr.section-head td.cell.bal-pos input::placeholder, tr.section-head td.cell.bal-neg input::placeholder { color: var(--ink); }
     .sheet td.cell.bal-neg input, .sheet td.cell.bal-neg input::placeholder { color: var(--neg); }
     .sheet thead tr.dates th.hd-pos { box-shadow: inset 0 -3px 0 #7cc47f; }
     .sheet thead tr.dates th.hd-neg { box-shadow: inset 0 -3px 0 #e06b63; color: var(--neg); }
@@ -149,7 +149,7 @@
     .budget-val { padding-right: 0.6rem; font-size: 0.82rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 
     .cell input { width: 100%; height: 33px; border: 0; background: transparent; text-align: right; padding: 0 0.55rem; font-size: 0.85rem; font-variant-numeric: tabular-nums; outline: none; }
-    .cell input::placeholder { color: #9aa1aa; font-style: italic; opacity: 1; }
+    .cell input::placeholder { color: var(--ink); font-style: normal; opacity: 1; }
     .cell input:focus { background: #fff; box-shadow: inset 0 0 0 2px var(--gold); }
     .cell input.zero { color: #b5bac1; }
     .cell input.neg { color: var(--neg); }
@@ -175,7 +175,7 @@
     tr.section-head td.cell, tr.section-head td.cell.past, tr.section-head td.cell.now { background: var(--navy); }
     tr.section-head td.cell.now { background: #1c2f63; }
     tr.section-head .cell input { color: #fff; font-weight: 600; }
-    tr.section-head .cell input::placeholder { color: rgba(255,255,255,0.6); }
+    tr.section-head .cell input::placeholder { color: #fff; font-weight: 600; }
     tr.section-head .cell input:focus { background: #fff; color: var(--ink); }
     tr.total-row td, tr.total-row td.col-name, tr.total-row td.col-due, tr.total-row td.col-budget { background: var(--row-total); font-weight: 600; }
     tr.total-row td.col-name { padding-left: 0.8rem; font-size: 0.8rem; }
@@ -275,7 +275,7 @@
           <option value="semiannual">Every 6 months</option>
           <option value="yearly">Once a year</option>
         </select>
-        <span class="help">A repeating line copies its last amount into later pay periods (shown in grey). Type over any period to change it from there on. Type 0 to stop it.</span>
+        <span class="help">A repeating line copies its last amount into later pay periods. Type over any period to change it from there on. Type 0 to stop it.</span>
       </label>
       <label class="check"><input type="checkbox" id="fSub" /> Indent under the line above (part of that expense)</label>
       <label class="check"><input type="checkbox" id="fShared" /> Include in "Send to Shared"</label>
@@ -589,7 +589,7 @@
         }
       });
       h += `</tbody></table></div>`;
-      h += `<p class="hint">Click a line's name to rename it, set its budget, or make it repeat. Grey italic amounts are carried forward from an earlier period; type over one to change it. Clear a cell to go back to the carried amount.</p>`;
+      h += `<p class="hint">Click a line's name to rename it, set its budget, or make it repeat. Repeating lines fill later periods automatically; type over any amount to change it, or clear a box to go back to the repeated amount.</p>`;
 
       const prevScroll = $('sheetWrap') ? $('sheetWrap').scrollTop : 0;
       app.innerHTML = h;
