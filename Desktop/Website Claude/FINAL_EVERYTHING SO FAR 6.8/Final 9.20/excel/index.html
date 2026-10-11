@@ -724,10 +724,39 @@
       $('applyFuture').focus();
     }
 
+    // Amount per occurrence implied by a monthly budget
+    function perOccurrence(budget, repeat) {
+      const mult = { every: 0.5, monthly: 1, quarterly: 3, semiannual: 6, yearly: 12 }[repeat] || 1;
+      return Math.round(budget * mult * 100) / 100;
+    }
+    const occLabel = { every: 'each paycheck', monthly: 'each month', quarterly: 'every 3 months', semiannual: 'every 6 months', yearly: 'once a year' };
+
+    function askBudgetApply(it, oldBudget) {
+      const amt = perOccurrence(it.budget, it.repeat);
+      const nowP = currentPeriod();
+      $('applyText').innerHTML = `<b>${esc(it.name)}</b> budget: ${oldBudget != null ? money(oldBudget) + ' → ' : ''}<b>${money(it.budget)}</b>/mo.<br>Update the amounts in the pay-period boxes too?`;
+      $('applyOne').innerHTML = `Only change the budget number<small>The boxes keep their amounts</small>`;
+      $('applyFuture').innerHTML = `Update boxes from ${fmtDate(nowP)} onward<small>${money(amt)} ${occLabel[it.repeat] || ''}${it.repeat === 'every' ? ' (half the monthly budget)' : ''}; earlier boxes stay as they are</small>`;
+      applyPending = { kind: 'budget', id: it.id, amt };
+      $('applyDlg').showModal();
+      $('applyFuture').focus();
+    }
+
+    // Set this line's amount from the current pay period onward
+    function applyBudget(id, amt) {
+      const nowP = currentPeriod();
+      const periods = [nowP, ...futurePeriods(nowP)];
+      const anchor = periods.find(d => { const v = cellValue(id, d).v; return v != null && v !== 0; }) || nowP;
+      const vals = data.values[id] || {};
+      Object.keys(vals).forEach(d => { if (d > anchor && vals[d] !== 0) setValue(id, d, amt); });
+      setValue(id, anchor, amt);
+    }
+
     function finishApply(choice) {
       const p = applyPending; if (!p) return;
       applyPending = null;
       $('applyDlg').close();
+      if (p.kind === 'budget') { if (choice === 'future') applyBudget(p.id, p.amt); render(); scheduleSave(); return; }
       if (choice === 'cancel') { p.input.value = p.input.defaultValue; p.input.focus(); return; }
       const { id, iso, n, before, future, sameLater } = p;
       if (choice === 'one') {
@@ -812,10 +841,15 @@
         const dueRaw = $('fDue').value.trim().replace(/^(\d{1,2})(st|nd|rd|th)$/i, '$1');
         const vals = { name, due: dueRaw, note: $('fNote').value.trim(), budget: Number.isNaN(b) ? null : b, repeat: $('fRepeat').value, shared: $('fShared').checked, sub: $('fSub').checked };
         const target = data.sections.find(s => s.id === $('fSection').value) || data.sections.find(s => s.id === editing.sectionId);
+        let askBudget = null;
         if (editing.id) {
-          const f = findItem(editing.id); Object.assign(f.it, vals);
+          const f = findItem(editing.id);
+          const oldBudget = f.it.budget;
+          Object.assign(f.it, vals);
           if (target && target !== f.s) { f.s.items.splice(f.i, 1); target.items.push(f.it); }
+          if (vals.budget != null && vals.budget !== oldBudget && vals.repeat !== 'off') askBudget = { it: f.it, oldBudget };
         } else target.items.push({ id: uid(), ...vals });
+        if (askBudget) { $('itemDlg').close(); render(); scheduleSave(); askBudgetApply(askBudget.it, askBudget.oldBudget); return; }
       }
       $('itemDlg').close(); render(); scheduleSave();
     });
