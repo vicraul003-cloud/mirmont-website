@@ -65,6 +65,25 @@
     .stat .v { font-size: 1.25rem; font-weight: 700; margin-top: 0.25rem; font-variant-numeric: tabular-nums; }
     .stat .v.neg { color: var(--neg); }
 
+    /* ── balance colors on paycheck cells ── */
+    .sheet td.cell.bal-pos, tr.section-head td.cell.bal-pos, tr.sum-pay td.cell.bal-pos { background: #dcf1dc !important; }
+    .sheet td.cell.bal-neg, tr.section-head td.cell.bal-neg, tr.sum-pay td.cell.bal-neg { background: #f8d7d5 !important; }
+    tr.section-head td.cell.bal-pos input, tr.section-head td.cell.bal-neg input { color: var(--ink); }
+    tr.section-head td.cell.bal-pos input::placeholder, tr.section-head td.cell.bal-neg input::placeholder { color: #55606b; }
+    .sheet td.cell.bal-neg input, .sheet td.cell.bal-neg input::placeholder { color: var(--neg); }
+    .sheet thead tr.dates th.hd-pos { box-shadow: inset 0 -3px 0 #7cc47f; }
+    .sheet thead tr.dates th.hd-neg { box-shadow: inset 0 -3px 0 #e06b63; color: var(--neg); }
+
+    /* ── drag to move amounts ── */
+    .sheet td.cell { position: relative; }
+    .grip { position: absolute; left: 3px; top: 50%; transform: translateY(-50%); font-size: 0.8rem; line-height: 1; color: #a8a090; cursor: grab; opacity: 0; padding: 4px 2px; border-radius: 3px; z-index: 2; user-select: none; }
+    .sheet td.cell:hover .grip { opacity: 1; }
+    .grip:hover { background: var(--page); color: var(--gold-ink); }
+    tr.drag-row td.cell { outline: 1px dashed rgba(201,160,90,0.45); outline-offset: -3px; }
+    td.cell.drop-target { background: #fdf0d2 !important; outline: 2px solid var(--gold) !important; outline-offset: -2px; }
+    td.cell.drag-src { opacity: 0.45; }
+    @media (hover: none) { .grip { display: none; } }
+
     /* ── 6-month overview ── */
     .overview { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 0.75rem 0.9rem 0.5rem; margin-bottom: 1rem; }
     .ov-title { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.4rem; }
@@ -507,7 +526,7 @@
         <th class="col-name" rowspan="2">Item</th><th class="col-due" rowspan="2">Due</th><th class="col-budget" rowspan="2">Budget/mo</th>`;
       months.forEach(mo => { if (mo.periods.length) h += `<th class="month" colspan="${mo.periods.length}">${MONTHS[mo.m]} ${mo.y}</th>`; });
       h += `</tr><tr class="dates">`;
-      cols.forEach(c => { const d = new Date(fromISO(c.iso)); h += `<th class="${c.monthEnd ? 'month-end' : ''} ${c.iso === nowP ? 'now' : ''}">${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}${c.iso === nowP ? ' · now' : ''}</th>`; });
+      cols.forEach(c => { const d = new Date(fromISO(c.iso)); h += `<th class="${calc[c.iso].remainder < 0 ? 'hd-neg' : 'hd-pos'} ${c.monthEnd ? 'month-end' : ''} ${c.iso === nowP ? 'now' : ''}">${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}${c.iso === nowP ? ' · now' : ''}</th>`; });
       h += `</tr></thead><tbody>`;
 
       const inputCell = (id, c) => {
@@ -515,7 +534,14 @@
         const val = carried || v == null ? '' : plain(v);
         const ph = carried && v != null ? plain(v) : '';
         const k = v === 0 && !carried ? 'zero' : (v < 0 ? 'neg' : '');
-        return `<td class="${cls(c)}"><input class="${k}" data-id="${id}" data-d="${c.iso}" value="${esc(val)}" placeholder="${esc(ph)}" inputmode="decimal" autocomplete="off" aria-label="${esc((itemInfo(id) || {}).name)} ${c.iso}" /></td>`;
+        let bal = '', tip = '';
+        if (id === 'paycheck') {
+          const rem = calc[c.iso].remainder;
+          bal = rem < 0 ? ' bal-neg' : ' bal-pos';
+          tip = ` title="Remainder this paycheck: ${money(rem) || '$0'}"`;
+        }
+        const grip = v != null && v !== 0 && id !== 'paycheck' ? `<span class="grip" draggable="true" data-gid="${id}" data-gd="${c.iso}" title="Drag to move this amount to another pay period (hold Option to copy)">⠿</span>` : '';
+        return `<td class="${cls(c)}${bal}" data-cid="${id}" data-cd="${c.iso}"${tip}>${grip}<input class="${k}" data-id="${id}" data-d="${c.iso}" value="${esc(val)}" placeholder="${esc(ph)}" inputmode="decimal" autocomplete="off" aria-label="${esc((itemInfo(id) || {}).name)} ${c.iso}" /></td>`;
       };
       const calcCell = (c, v) => `<td class="${cls(c)}"><div class="calc ${v < 0 ? 'neg' : ''}">${money(v)}</div></td>`;
       const span = cols.length;
@@ -827,6 +853,49 @@
     $('applyFuture').addEventListener('click', () => finishApply('future'));
     $('applyCancel').addEventListener('click', () => finishApply('cancel'));
     $('applyDlg').addEventListener('cancel', (e) => { e.preventDefault(); finishApply('cancel'); });
+
+    // ── drag an amount to another pay period (same line) ──
+    let drag = null;
+    document.addEventListener('dragstart', (e) => {
+      const g = e.target.closest && e.target.closest('.grip'); if (!g) return;
+      drag = { id: g.dataset.gid, d: g.dataset.gd };
+      e.dataTransfer.effectAllowed = 'copyMove';
+      e.dataTransfer.setData('text/plain', drag.id + '|' + drag.d);
+      const td = g.closest('td'); td.classList.add('drag-src'); td.parentElement.classList.add('drag-row');
+    });
+    document.addEventListener('dragend', () => {
+      drag = null;
+      document.querySelectorAll('.drag-src,.drag-row,.drop-target').forEach(el => el.classList.remove('drag-src', 'drag-row', 'drop-target'));
+    });
+    const dropCell = (e) => { const td = e.target.closest && e.target.closest('td.cell[data-cid]'); return td && drag && td.dataset.cid === drag.id && td.dataset.cd !== drag.d ? td : null; };
+    document.addEventListener('dragover', (e) => {
+      const td = dropCell(e); if (!td) return;
+      e.preventDefault(); e.dataTransfer.dropEffect = e.altKey ? 'copy' : 'move';
+      document.querySelectorAll('.drop-target').forEach(el => el !== td && el.classList.remove('drop-target'));
+      td.classList.add('drop-target');
+    });
+    document.addEventListener('dragleave', (e) => { const td = e.target.closest && e.target.closest('td.drop-target'); if (td && !td.contains(e.relatedTarget)) td.classList.remove('drop-target'); });
+    document.addEventListener('drop', (e) => {
+      const td = dropCell(e); if (!td) return;
+      e.preventDefault();
+      moveAmount(drag.id, drag.d, td.dataset.cd, e.altKey);
+    });
+
+    function moveAmount(id, from, to, copy) {
+      const amt = cellValue(id, from).v; if (amt == null || amt === 0) return;
+      const it = itemInfo(id) || {}, repeats = it.repeat && it.repeat !== 'off';
+      // remember every other pay period so only the dragged amount moves
+      const start = from < to ? from : to;
+      const others = futurePeriods(start).filter(d => d !== from && d !== to).map(d => [d, cellValue(id, d)]);
+      const target = cellValue(id, to).v || 0;
+      setValue(id, to, Math.round((target + amt) * 100) / 100);
+      if (!copy) setValue(id, from, repeats ? 0 : null);
+      for (const [d, old] of others) {
+        const now = cellValue(id, d);
+        if (now.v !== old.v) setValue(id, d, old.v == null ? (repeats ? 0 : null) : old.v);
+      }
+      redraw();
+    }
 
     $('menuBtn').addEventListener('click', (e) => { e.stopPropagation(); $('menu').classList.toggle('open'); });
     $('mExport').addEventListener('click', () => {
