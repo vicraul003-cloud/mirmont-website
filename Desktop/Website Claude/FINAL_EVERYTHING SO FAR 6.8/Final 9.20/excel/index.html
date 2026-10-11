@@ -569,19 +569,14 @@
         const grip = v != null && v !== 0 && id !== 'paycheck' ? `<span class="grip" draggable="true" data-gid="${id}" data-gd="${c.iso}" title="Drag to move this amount to another pay period (hold Option to copy)">⠿</span>` : '';
         const sg = suggestion(id, c.iso);
         const nowP0 = currentPeriod();
-        const needs = sg && sg.eligible && sg.short > 0.005 && sg.monthEnd >= nowP0;
-        // bill due before the first paycheck of the month: flag the box that pays it
-        if (sg && sg.late && sg.monthEnd >= nowP0) {
-          const cur = v || 0;
-          const firstCk = periodsInMonth(c.iso)[0];
-          const monthHasAmt = sg.have > 0;
-          if (cur > 0 || (!monthHasAmt && c.iso === firstCk)) {
-            const prev = futurePeriods(toISO(fromISO(firstCk) - 30 * DAY)).filter(d => d < firstCk).pop();
-            bal += ' due-late';
-            tip = ` title="${esc((itemInfo(id) || {}).name)} is ${sg.label.replace('due', 'due on')}, before the ${fmtDate(firstCk)} check. Pay it from the ${prev ? fmtDate(prev) + ' check' : 'previous check'} or savings so the account doesn't go negative."`;
-          }
+        const needs = sg && sg.eligible && sg.short > 0.005 && sg.due >= nowP0;
+        // the check that pays next month's bill (due before next month's first paycheck)
+        const prevMonthCk = sg && sg.due >= nowP0 && sg.checks.includes(c.iso) && c.iso.slice(0, 7) !== sg.due.slice(0, 7);
+        if (prevMonthCk && ((v || 0) > 0 || (sg.have === 0 && c.iso === sg.payer))) {
+          bal += ' due-late';
+          tip = ` title="Pays ${esc((itemInfo(id) || {}).name)} ${sg.label} (next month), so make this payment from the ${fmtDate(c.iso)} check. Planned ${money(sg.have) || '$0'} of ${money(sg.A)}."`;
         }
-        if (needs) { bal += ' due-short'; tip = ` title="${esc((itemInfo(id) || {}).name)} ${sg.label}: needs ${money(sg.A)}, planned ${money(sg.have) || '$0'} — short ${money(sg.short)}${bal.includes('due-late') ? '. Due before this check — pay it early from the previous check or savings.' : ''}"`; }
+        if (needs) { bal += ' due-short'; tip = ` title="${esc((itemInfo(id) || {}).name)} ${sg.label}: needs ${money(sg.A)}, planned ${money(sg.have) || '$0'} — short ${money(sg.short)}${bal.includes('due-late') ? '. This bill is due next month, before its first paycheck, so pay it from this check.' : ''}"`; }
         const hint = needs ? `<button type="button" class="sugg" tabindex="-1" data-sid="${id}" data-sd="${c.iso}" title="Suggested ${money(sg.amt)} so ${money(sg.A)} ${sg.label} is covered. Double-click to use it.">?</button>` : '';
         return `<td class="${cls(c)}${bal}" data-cid="${id}" data-cd="${c.iso}"${tip}>${grip}${hint}<input class="${k}" data-id="${id}" data-d="${c.iso}" value="${esc(val)}" placeholder="${esc(ph)}" inputmode="decimal" autocomplete="off" aria-label="${esc((itemInfo(id) || {}).name)} ${c.iso}" /></td>`;
       };
@@ -910,25 +905,30 @@
       }
       return null; // no usable due date: plan by calendar month
     }
-    // The bill for the calendar month this pay period is in (one bill per month / per cycle)
+    // Which bill this pay period helps pay: the next due date on/after it.
+    // A bill is paid by the checks that arrive after the previous due date and on/before its own due date.
     function billWindow(id, iso) {
       const it = itemInfo(id);
       if (!it || !it.budget || data.special[id]) return null;
+      const r = dueRule(it);
+      if (r) {
+        const ok = (mi) => (((mi - r.anchor) % r.F) + r.F) % r.F === 0;
+        let mi = mIdx(iso);
+        for (let k = 0; k < 30; k++, mi++) { if (ok(mi) && dueOn(mi, r.day) >= iso) break; }
+        const due = dueOn(mi, r.day), prev = dueOn(mi - r.F, r.day);
+        const checks = periodsBetween(fromISO(prev) + DAY, fromISO(due) + DAY);
+        if (!checks.length) return null;
+        const payer = checks[checks.length - 1];                // last check before the bill is due
+        const cross = payer.slice(0, 7) !== due.slice(0, 7);   // paid in the month before it's due
+        const A = Math.round(it.budget * r.F * 100) / 100;
+        return { it, A, checks, eligible: [payer], payer, cross, due, label: `due ${fmtDate(due)}` };
+      }
+      // no day in the Due column: one bill per calendar month, spread over that month's checks
       const checks = periodsInMonth(iso);
       if (!checks.length) return null;
-      const r = dueRule(it);
-      const mi = mIdx(iso), d = new Date(fromISO(iso)), mon = MONTHS[d.getUTCMonth()];
-      const monthEnd = toISO(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0));
-      if (r) {
-        if ((((mi - r.anchor) % r.F) + r.F) % r.F !== 0) return null; // not a month this bill is due
-        const due = dueOn(mi, r.day);
-        let eligible = checks.filter(c => c <= due);
-        const late = !eligible.length;
-        if (late) eligible = [checks[0]];
-        const A = Math.round(it.budget * r.F * 100) / 100;
-        return { it, A, checks, eligible, monthEnd, due, late, label: `due ${fmtDate(due)}` };
-      }
-      return { it, A: it.budget, checks, eligible: checks, monthEnd, due: monthEnd, late: false, label: `for ${mon}` };
+      const d = new Date(fromISO(iso));
+      const due = toISO(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0));
+      return { it, A: it.budget, checks, eligible: checks, payer: null, cross: false, due, label: `for ${MONTHS[d.getUTCMonth()]}` };
     }
     function suggestion(id, iso) {
       const w = billWindow(id, iso); if (!w) return null;
@@ -937,12 +937,11 @@
       const idx = w.eligible.indexOf(iso), n = w.eligible.length;
       let amt = null;
       if (idx >= 0) {
-        // what this box should hold so the month adds up to the bill
         const share = short > 0 ? Math.floor(short / n * 100) / 100 : 0;
         const add = idx === n - 1 ? Math.round((short - share * (n - 1)) * 100) / 100 : share;
         amt = Math.round(((cellValue(id, iso).v || 0) + Math.max(add, 0)) * 100) / 100;
       }
-      return { amt, eligible: idx >= 0, n, A: w.A, label: w.label, due: w.due, late: w.late, monthEnd: w.monthEnd, checks: w.eligible, have, short, budget: w.it.budget };
+      return { amt, eligible: idx >= 0, n, A: w.A, label: w.label, due: w.due, cross: w.cross, payer: w.payer, checks: w.checks, have, short, budget: w.it.budget };
     }
 
     function finishApply(choice) {
@@ -977,7 +976,7 @@
       const sg = suggestion(b.dataset.sid, b.dataset.sd); if (!sg) return;
       const pop = document.createElement('div'); pop.className = 'sugg-pop';
       const nm = esc(itemInfo(b.dataset.sid).name);
-      pop.innerHTML = `Suggested <b>${money(sg.amt)}</b><small>${nm} ${sg.label}: ${money(sg.A)} · planned this month ${money(sg.have) || '$0'} · short ${money(sg.short)}</small>${sg.late ? '<small style="color:#ff8a80">Due before the first check this month — pay it from the previous check or savings</small>' : (sg.n > 1 ? '<small>Split across the ' + sg.n + ' checks before the due date</small>' : '')}<small>Double-click ? to use it</small>`;
+      pop.innerHTML = `Suggested <b>${money(sg.amt)}</b><small>${nm} ${sg.label}: ${money(sg.A)} · planned ${money(sg.have) || '$0'} · short ${money(sg.short)}</small>${sg.cross ? '<small style="color:#ff8a80">Due next month, before its first paycheck — pay it from this check</small>' : ''}<small>Double-click ? to use it</small>`;
       b.parentElement.appendChild(pop);
     }, true);
     document.addEventListener('dblclick', (e) => {
