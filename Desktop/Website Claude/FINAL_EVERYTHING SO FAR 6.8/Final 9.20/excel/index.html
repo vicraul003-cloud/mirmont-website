@@ -92,6 +92,9 @@
     .chip { font-size: 0.6rem; font-weight: 600; letter-spacing: 0.04em; padding: 0.1rem 0.35rem; border-radius: 999px; background: #eef0f2; color: var(--muted); flex: none; }
     .chip.rep { background: #e7f0e4; color: #3d6b35; }
     .chip.shr { background: var(--row-shared); color: var(--gold-ink); }
+    .name-btn.sub { padding-left: 2.1rem; }
+    .name-btn.sub::before { content: '↳'; color: var(--line-strong); margin-left: -1.1rem; width: 0.8rem; flex: none; }
+    .name-btn.sub .nm { font-weight: 400; color: #3b434c; }
     .budget-val { padding-right: 0.6rem; font-size: 0.82rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 
     .cell input { width: 100%; height: 33px; border: 0; background: transparent; text-align: right; padding: 0 0.55rem; font-size: 0.85rem; font-variant-numeric: tabular-nums; outline: none; }
@@ -206,6 +209,7 @@
         </select>
         <span class="help">A repeating line copies its last amount into later pay periods (shown in grey). Type over any period to change it from there on. Type 0 to stop it.</span>
       </label>
+      <label class="check"><input type="checkbox" id="fSub" /> Indent under the line above (part of that expense)</label>
       <label class="check"><input type="checkbox" id="fShared" /> Include in "Send to Shared"</label>
       <div class="actions">
         <div class="left">
@@ -449,7 +453,7 @@
           budgetTotal += it.budget || 0;
           const chips = (it.repeat === 'every' ? '<span class="chip rep" title="Repeats every paycheck">↻ check</span>' : it.repeat === 'monthly' ? '<span class="chip rep" title="Repeats once a month">↻ month</span>' : it.repeat === 'quarterly' ? '<span class="chip rep" title="Repeats every 3 months">↻ 3 mo</span>' : it.repeat === 'semiannual' ? '<span class="chip rep" title="Repeats every 6 months">↻ 6 mo</span>' : it.repeat === 'yearly' ? '<span class="chip rep" title="Repeats once a year">↻ yearly</span>' : '')
             + (it.shared ? '<span class="chip shr" title="Included in Send to Shared">shared</span>' : '');
-          h += `<tr><td class="col-name"><button class="name-btn" data-item="${it.id}" title="${esc(it.name)}${it.note ? ' — ' + esc(it.note) : ''}"><span class="txt"><span class="nm">${esc(it.name)}</span>${it.note ? `<span class="nt">${esc(it.note)}</span>` : ''}</span>${chips}</button></td>
+          h += `<tr><td class="col-name"><button class="name-btn${it.sub ? ' sub' : ''}" data-item="${it.id}" title="${esc(it.name)}${it.note ? ' — ' + esc(it.note) : ''}"><span class="txt"><span class="nm">${esc(it.name)}</span>${it.note ? `<span class="nt">${esc(it.note)}</span>` : ''}</span>${chips}</button></td>
             <td class="col-budget"><div class="budget-val">${money(it.budget)}</div></td>${cols.map(c => inputCell(it.id, c)).join('')}</tr>`;
         });
         h += `<tr class="total-row"><td class="col-name">Total</td><td class="col-budget">${money(budgetTotal) || '$0'}</td>${cols.map(c => `<td class="${cls(c)}"><div class="calc">${money(calc[c.iso].sections[s.id], true)}</div></td>`).join('')}</tr>`;
@@ -530,7 +534,13 @@
     function migrate(d) {
       if (!d || !Array.isArray(d.sections)) return false;
       d.migrations = d.migrations || {};
-      if (d.migrations.splitUnplanned) return false;
+      let changed = false;
+      if (!d.migrations.indentGirl) {
+        // Diapers, wipes, dance class, stem cell sit under the girl/baby expenses line
+        d.sections.forEach(s => s.items.forEach(it => { if (['r63', 'r64', 'r65', 'r66'].includes(it.id)) it.sub = true; }));
+        d.migrations.indentGirl = true; changed = true;
+      }
+      if (d.migrations.splitUnplanned) return changed;
       const i = d.sections.findIndex(s => s.name === 'Projected & Unplanned');
       if (i >= 0) {
         const src = d.sections[i];
@@ -659,8 +669,8 @@
       const it = f ? f.it : { name: '', note: '', budget: null, repeat: 'off', shared: false };
       $('itemDlgTitle').textContent = id ? 'Edit line' : 'New line';
       $('fName').value = it.name; $('fNote').value = it.note || ''; $('fBudget').value = it.budget == null ? '' : plain(it.budget);
-      $('fRepeat').value = it.repeat || 'off'; $('fShared').checked = !!it.shared;
-      ['fNote', 'fBudget', 'fShared', 'fUp', 'fDown'].forEach(k => $(k).closest('label, button').style.display = '');
+      $('fRepeat').value = it.repeat || 'off'; $('fShared').checked = !!it.shared; $('fSub').checked = !!it.sub;
+      ['fNote', 'fBudget', 'fShared', 'fSub', 'fUp', 'fDown'].forEach(k => $(k).closest('label, button').style.display = '');
       $('fSection').innerHTML = data.sections.map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');
       $('fSection').value = editing.sectionId; $('fSecWrap').style.display = '';
       $('fDelete').style.display = id ? '' : 'none';
@@ -672,7 +682,7 @@
       const sp = data.special[key];
       $('itemDlgTitle').textContent = 'Edit line';
       $('fName').value = sp.name; $('fRepeat').value = sp.repeat || 'off';
-      ['fNote', 'fBudget', 'fShared', 'fSection'].forEach(k => $(k).closest('label').style.display = 'none');
+      ['fNote', 'fBudget', 'fShared', 'fSub', 'fSection'].forEach(k => $(k).closest('label').style.display = 'none');
       ['fUp', 'fDown', 'fDelete'].forEach(k => $(k).style.display = 'none');
       $('itemDlg').showModal(); $('fName').focus();
     }
@@ -683,7 +693,7 @@
         Object.assign(data.special[editing.id], { name, repeat: $('fRepeat').value });
       } else {
         const b = parseAmt($('fBudget').value);
-        const vals = { name, note: $('fNote').value.trim(), budget: Number.isNaN(b) ? null : b, repeat: $('fRepeat').value, shared: $('fShared').checked };
+        const vals = { name, note: $('fNote').value.trim(), budget: Number.isNaN(b) ? null : b, repeat: $('fRepeat').value, shared: $('fShared').checked, sub: $('fSub').checked };
         const target = data.sections.find(s => s.id === $('fSection').value) || data.sections.find(s => s.id === editing.sectionId);
         if (editing.id) {
           const f = findItem(editing.id); Object.assign(f.it, vals);
