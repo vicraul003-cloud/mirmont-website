@@ -108,6 +108,15 @@
     #sheetWrap .sheet tr.xh-row > td::before, #sheetWrap .sheet .xh-col::before { content: ''; position: absolute; inset: 0; background: rgba(61, 155, 233, 0.18); pointer-events: none; z-index: 1; }
     #sheetWrap .sheet tr.xh-row > td.xh-col::before { background: transparent; box-shadow: inset 0 0 0 2px #3d9be9; }
 
+    /* ── multi-select + sum badge ── */
+    #sheetWrap .sheet td.cell.sel::after { content: ''; position: absolute; inset: 0; background: rgba(26, 115, 201, 0.22); box-shadow: inset 0 0 0 2px #1a73c9; pointer-events: none; z-index: 2; }
+    .sel-sum { position: fixed; top: 74px; right: 20px; z-index: 40; display: none; align-items: baseline; gap: 0.55rem; background: var(--navy-dark); color: #fff; border-radius: 10px; padding: 0.6rem 0.95rem; box-shadow: 0 10px 28px rgba(0,0,0,0.28); font-variant-numeric: tabular-nums; }
+    .sel-sum.show { display: flex; }
+    .sel-sum .lbl { font-size: 0.68rem; letter-spacing: 0.12em; text-transform: uppercase; color: #c8c0b0; }
+    .sel-sum b { font-size: 1.25rem; color: #dbb97a; }
+    .sel-sum b.neg { color: #ff8a80; }
+    .sel-sum .meta { font-size: 0.72rem; color: #c8c0b0; }
+
     /* ── drag to move amounts ── */
     .sheet td.cell { position: relative; }
     .grip { position: absolute; left: 3px; top: 50%; transform: translateY(-50%); font-size: 0.8rem; line-height: 1; color: #a8a090; cursor: grab; opacity: 0; padding: 4px 2px; border-radius: 3px; z-index: 2; user-select: none; }
@@ -280,6 +289,7 @@
       <div class="menu-list" role="menu">
         <button type="button" id="mAddSection">Add a section</button>
         <button type="button" id="mExport">Download backup (.json)</button>
+        <button type="button" id="mExportXlsx">Download as Excel (.xlsx)</button>
         <button type="button" id="mImport">Import data file…</button>
         <a href="/">← Back to website</a>
       </div>
@@ -289,6 +299,7 @@
 
   <main>
     <div class="banner" id="banner"></div>
+    <div class="sel-sum" id="selSum" aria-live="polite"></div>
     <div id="app"></div>
   </main>
 
@@ -641,6 +652,7 @@
       app.innerHTML = h;
       $('sheetWrap').scrollTop = prevScroll;
       if (jumpToNow) { jumpToNow = false; scrollToNow(); }
+      paintSelection();
     }
 
     function renderWelcome() {
@@ -1008,6 +1020,50 @@
     $('applyCancel').addEventListener('click', () => finishApply('cancel'));
     $('applyDlg').addEventListener('cancel', (e) => { e.preventDefault(); finishApply('cancel'); });
 
+    // ── multi-select like Excel: ⌘/Ctrl+click adds boxes, Shift+click selects a block; sum shows top-right ──
+    const sel = new Set(); let selAnchor = null;
+    const keyOf = (td) => td.dataset.cid + '|' + td.dataset.cd;
+    function paintSelection() {
+      document.querySelectorAll('#sheetWrap td.cell.sel').forEach(td => td.classList.remove('sel'));
+      sel.forEach(k => { const [id, d] = k.split('|'); const td = document.querySelector(`#sheetWrap td.cell[data-cid="${id}"][data-cd="${d}"]`); if (td) td.classList.add('sel'); });
+      const box = $('selSum');
+      if (sel.size < 2) { box.classList.remove('show'); return; }
+      let sum = 0, n = 0;
+      sel.forEach(k => { const [id, d] = k.split('|'); const v = cellValue(id, d).v; if (v != null) { sum += v; n++; } });
+      sum = Math.round(sum * 100) / 100;
+      box.innerHTML = `<span class="lbl">Sum</span><b class="${sum < 0 ? 'neg' : ''}">${sum < 0 ? '−' : ''}${money(Math.abs(sum)) || '$0'}</b><span class="meta">${sel.size} cells${n ? ' · Avg ' + money(Math.round(sum / n * 100) / 100) : ''}</span>`;
+      box.classList.add('show');
+    }
+    function clearSelection() { if (sel.size) { sel.clear(); paintSelection(); } }
+    document.addEventListener('mousedown', (e) => {
+      const td = e.target.closest && e.target.closest('#sheetWrap td.cell[data-cid]');
+      const multi = e.metaKey || e.ctrlKey;
+      if (!td) { if (!(e.target.closest && e.target.closest('#selSum'))) clearSelection(); return; }
+      if (e.target.closest('.grip, .sugg')) return;
+      if (multi) {
+        e.preventDefault();
+        if (!sel.size && selAnchor && selAnchor !== keyOf(td)) sel.add(selAnchor); // include the box you were in
+        const k = keyOf(td); sel.has(k) ? sel.delete(k) : sel.add(k);
+        selAnchor = k; paintSelection();
+      } else if (e.shiftKey && selAnchor) {
+        e.preventDefault();
+        const [aid, ad] = selAnchor.split('|');
+        const a = document.querySelector(`#sheetWrap td.cell[data-cid="${aid}"][data-cd="${ad}"]`); if (!a) return;
+        const rows = [...document.querySelectorAll('#sheetWrap tbody tr')];
+        const r1 = rows.indexOf(a.parentElement), r2 = rows.indexOf(td.parentElement);
+        const c1 = a.cellIndex, c2 = td.cellIndex;
+        sel.clear();
+        for (let r = Math.min(r1, r2); r <= Math.max(r1, r2); r++) {
+          [...rows[r].children].forEach(cell => { if (cell.matches('td.cell[data-cid]') && cell.cellIndex >= Math.min(c1, c2) && cell.cellIndex <= Math.max(c1, c2)) sel.add(keyOf(cell)); });
+        }
+        paintSelection();
+      } else {
+        clearSelection(); selAnchor = keyOf(td);
+      }
+    });
+    document.addEventListener('focusin', (e) => { const td = e.target.closest && e.target.closest('#sheetWrap td.cell[data-cid]'); if (td && !sel.size) selAnchor = keyOf(td); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') clearSelection(); });
+
     // ── crosshair: highlight the row and column of the box being edited ──
     function clearCross() { document.querySelectorAll('.xh-row,.xh-col').forEach(el => el.classList.remove('xh-row', 'xh-col')); }
     document.addEventListener('focusin', (e) => {
@@ -1090,6 +1146,63 @@
     }
 
     $('menuBtn').addEventListener('click', (e) => { e.stopPropagation(); $('menu').classList.toggle('open'); });
+    // ── Excel export (SheetJS loaded only when needed) ──
+    function loadXLSX() {
+      if (window.XLSX) return Promise.resolve(window.XLSX);
+      return new Promise((res, rej) => {
+        const sc = document.createElement('script');
+        sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+        sc.onload = () => res(window.XLSX); sc.onerror = () => rej(new Error('load'));
+        document.head.appendChild(sc);
+      });
+    }
+    $('mExportXlsx').addEventListener('click', async () => {
+      $('menu').classList.remove('open');
+      if (!data) return;
+      let X;
+      try { X = await loadXLSX(); } catch { alert('Could not load the Excel tool. Check your internet connection and try again.'); return; }
+      // every pay period from the first one with data through 12 months ahead
+      const allDates = Object.values(data.values).flatMap(v => Object.keys(v)).sort();
+      const startT = allDates.length ? fromISO(allDates[0]) : fromISO(currentPeriod());
+      const endD = new Date(fromISO(currentPeriod())); const endT = Date.UTC(endD.getUTCFullYear(), endD.getUTCMonth() + 13, 1);
+      const ps = periodsBetween(startT, endT);
+      const calcs = ps.map(p => computePeriod(p));
+      const num = (v) => v == null ? null : Math.round(v * 100) / 100;
+      const rows = [];
+      rows.push(['', '', '', 'Pay date →', ...ps.map(p => { const d = new Date(fromISO(p)); return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()); })]);
+      rows.push(['Section', 'Item', 'Due', 'Budget/mo', ...ps.map(() => '')]);
+      rows.push(['Paycheck Summary', 'Paycheck (net)', '', '', ...ps.map(p => num(cellValue('paycheck', p).v))]);
+      rows.push(['Paycheck Summary', 'Paid from paycheck', '', '', ...calcs.map(c => num(c.fromPay))]);
+      rows.push(['Paycheck Summary', 'Send to savings', '', '', ...calcs.map(c => num(c.savings))]);
+      rows.push(['Paycheck Summary', 'Other withdrawals', '', '', ...ps.map(p => num(cellValue('withdraw', p).v))]);
+      rows.push(['Paycheck Summary', 'Remainder', '', '', ...calcs.map(c => num(c.remainder))]);
+      rows.push([]);
+      data.sections.forEach(s => {
+        let bt = 0;
+        s.items.forEach(it => {
+          bt += it.budget || 0;
+          const due = /^\d{1,2}$/.test(String(it.due || '')) ? ordinal(+it.due) : (it.due || '');
+          rows.push([s.name, (it.sub ? '   ↳ ' : '') + it.name + (it.note ? ' (' + it.note + ')' : ''), due, num(it.budget), ...ps.map(p => num(cellValue(it.id, p).v))]);
+        });
+        rows.push([s.name, 'TOTAL', '', num(bt), ...calcs.map(c => num(c.sections[s.id]))]);
+        rows.push([]);
+      });
+      const ws = X.utils.aoa_to_sheet(rows, { cellDates: true });
+      ws['!cols'] = [{ wch: 30 }, { wch: 38 }, { wch: 10 }, { wch: 12 }, ...ps.map(() => ({ wch: 11 }))];
+      ws['!freeze'] = { xSplit: 4, ySplit: 2 };
+      ws['!views'] = [{ state: 'frozen', xSplit: 4, ySplit: 2 }];
+      const range = X.utils.decode_range(ws['!ref']);
+      for (let R = 0; R <= range.e.r; R++) for (let C = 3; C <= range.e.c; C++) {
+        const ref = X.utils.encode_cell({ r: R, c: C }), cell = ws[ref];
+        if (!cell) continue;
+        if (R === 0 && cell.t === 'd') cell.z = 'mmm d, yyyy';
+        else if (cell.t === 'n') cell.z = '"$"#,##0.00;[Red]-"$"#,##0.00';
+      }
+      const wb = X.utils.book_new();
+      X.utils.book_append_sheet(wb, ws, 'Budget');
+      X.writeFile(wb, `budget-${toISO(todayUTC())}.xlsx`);
+    });
+
     $('mExport').addEventListener('click', () => {
       if (!data) return;
       const blob = new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' });
