@@ -96,6 +96,10 @@
     .sheet td.cell.due-short { background: #ffe1bd !important; box-shadow: inset 0 0 0 1px #f0a24a; }
     .sheet td.cell.due-short .sugg { opacity: 1; background: #f0a24a; color: #fff; }
 
+    /* ── bill due before the month's first paycheck ── */
+    .sheet td.cell.due-late { box-shadow: inset 0 0 0 2px #d93025 !important; }
+    .sheet td.cell.due-late::after { content: '!'; position: absolute; left: 3px; bottom: 1px; font-size: 0.6rem; font-weight: 800; color: #d93025; }
+
     /* ── drag to move amounts ── */
     .sheet td.cell { position: relative; }
     .grip { position: absolute; left: 3px; top: 50%; transform: translateY(-50%); font-size: 0.8rem; line-height: 1; color: #a8a090; cursor: grab; opacity: 0; padding: 4px 2px; border-radius: 3px; z-index: 2; user-select: none; }
@@ -566,7 +570,18 @@
         const sg = suggestion(id, c.iso);
         const nowP0 = currentPeriod();
         const needs = sg && sg.eligible && sg.short > 0.005 && sg.monthEnd >= nowP0;
-        if (needs) { bal += ' due-short'; tip = ` title="${esc((itemInfo(id) || {}).name)} ${sg.label}: needs ${money(sg.A)}, planned ${money(sg.have) || '$0'} — short ${money(sg.short)}"`; }
+        // bill due before the first paycheck of the month: flag the box that pays it
+        if (sg && sg.late && sg.monthEnd >= nowP0) {
+          const cur = v || 0;
+          const firstCk = periodsInMonth(c.iso)[0];
+          const monthHasAmt = sg.have > 0;
+          if (cur > 0 || (!monthHasAmt && c.iso === firstCk)) {
+            const prev = futurePeriods(toISO(fromISO(firstCk) - 30 * DAY)).filter(d => d < firstCk).pop();
+            bal += ' due-late';
+            tip = ` title="${esc((itemInfo(id) || {}).name)} is ${sg.label.replace('due', 'due on')}, before the ${fmtDate(firstCk)} check. Pay it from the ${prev ? fmtDate(prev) + ' check' : 'previous check'} or savings so the account doesn't go negative."`;
+          }
+        }
+        if (needs) { bal += ' due-short'; tip = ` title="${esc((itemInfo(id) || {}).name)} ${sg.label}: needs ${money(sg.A)}, planned ${money(sg.have) || '$0'} — short ${money(sg.short)}${bal.includes('due-late') ? '. Due before this check — pay it early from the previous check or savings.' : ''}"`; }
         const hint = needs ? `<button type="button" class="sugg" tabindex="-1" data-sid="${id}" data-sd="${c.iso}" title="Suggested ${money(sg.amt)} so ${money(sg.A)} ${sg.label} is covered. Double-click to use it.">?</button>` : '';
         return `<td class="${cls(c)}${bal}" data-cid="${id}" data-cd="${c.iso}"${tip}>${grip}${hint}<input class="${k}" data-id="${id}" data-d="${c.iso}" value="${esc(val)}" placeholder="${esc(ph)}" inputmode="decimal" autocomplete="off" aria-label="${esc((itemInfo(id) || {}).name)} ${c.iso}" /></td>`;
       };
@@ -962,7 +977,7 @@
       const sg = suggestion(b.dataset.sid, b.dataset.sd); if (!sg) return;
       const pop = document.createElement('div'); pop.className = 'sugg-pop';
       const nm = esc(itemInfo(b.dataset.sid).name);
-      pop.innerHTML = `Suggested <b>${money(sg.amt)}</b><small>${nm} ${sg.label}: ${money(sg.A)} · planned this month ${money(sg.have) || '$0'} · short ${money(sg.short)}</small>${sg.late ? '<small style="color:#ffb46b">No check before the due date this month, so it goes on the first check</small>' : (sg.n > 1 ? '<small>Split across the ' + sg.n + ' checks before the due date</small>' : '')}<small>Double-click ? to use it</small>`;
+      pop.innerHTML = `Suggested <b>${money(sg.amt)}</b><small>${nm} ${sg.label}: ${money(sg.A)} · planned this month ${money(sg.have) || '$0'} · short ${money(sg.short)}</small>${sg.late ? '<small style="color:#ff8a80">Due before the first check this month — pay it from the previous check or savings</small>' : (sg.n > 1 ? '<small>Split across the ' + sg.n + ' checks before the due date</small>' : '')}<small>Double-click ? to use it</small>`;
       b.parentElement.appendChild(pop);
     }, true);
     document.addEventListener('dblclick', (e) => {
