@@ -127,10 +127,11 @@
     table.ov tr.ov-save td.tot, table.ov tr.ov-rem td.tot { font-weight: 700; }
     table.ov tr.ov-per td { vertical-align: top; padding-top: 0.35rem; padding-bottom: 0.35rem; }
     table.ov tr.ov-per th small { display: block; font-size: 0.64rem; color: var(--muted); font-weight: 400; }
-    table.ov tr.ov-per td div { display: flex; justify-content: flex-end; gap: 0.5rem; font-size: 0.8rem; line-height: 1.55; }
-    table.ov tr.ov-per td div span { color: var(--muted); font-weight: 500; font-size: 0.72rem; }
-    table.ov tr.ov-per td div.pos { color: #2e7d32; }
-    table.ov tr.ov-per td div.neg { color: var(--neg); }
+    table.ov .per-grid { display: inline-grid; grid-template-columns: max-content max-content; column-gap: 0.6rem; row-gap: 0.1rem; line-height: 1.55; }
+    table.ov .per-grid .dt { text-align: left; color: var(--muted); font-weight: 500; font-size: 0.72rem; align-self: center; }
+    table.ov .per-grid .amt { text-align: right; font-size: 0.8rem; }
+    table.ov .per-grid .amt.pos { color: #2e7d32; }
+    table.ov .per-grid .amt.neg { color: var(--neg); }
     table.ov tr.ov-per td.tot div { color: var(--muted); font-weight: 500; font-size: 0.75rem; }
     .ov-month { background: none; border: 0; cursor: pointer; font-weight: 600; font-size: 0.85rem; color: var(--ink); text-align: right; }
     .ov-month small { display: block; font-weight: 400; font-size: 0.66rem; color: var(--muted); }
@@ -552,7 +553,7 @@
           ${orow('Paychecks', 'pay')}
           ${orow('Paid from paycheck', 'from')}
           ${orow('Send to savings', 'save', 'ov-save')}
-          <tr class="ov-per"><th>Difference by paycheck<small>send to savings from each check</small></th>${ahead.map(a => `<td>${a.per.map(x => `<div class="${x.v < 0 ? 'neg' : 'pos'}"><span>${fmtDate(x.d)}</span>${x.v < 0 ? '−' : '+'}${money(Math.abs(x.v)) || '$0'}</div>`).join('')}</td>`).join('')}<td class="tot"><div class="${tot.from > tot.pay ? 'neg' : 'pos'}">${ahead.reduce((n, a) => n + a.n, 0)} checks</div></td></tr>
+          <tr class="ov-per"><th>Difference by paycheck<small>send to savings from each check</small></th>${ahead.map(a => `<td><div class="per-grid">${a.per.map(x => `<span class="dt">${fmtDate(x.d)}</span><span class="amt ${x.v < 0 ? 'neg' : 'pos'}">${x.v < 0 ? '−' : '+'}${money(Math.abs(x.v)) || '$0'}</span>`).join('')}</div></td>`).join('')}<td class="tot"><div class="${tot.from > tot.pay ? 'neg' : 'pos'}">${ahead.reduce((n, a) => n + a.n, 0)} checks</div></td></tr>
           ${orow('Remainder', 'rem', 'ov-rem')}
         </tbody></table></div></div>`;
 
