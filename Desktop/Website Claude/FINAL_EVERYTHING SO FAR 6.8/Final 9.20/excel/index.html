@@ -364,7 +364,7 @@
     let mode = 'server';  // 'server' | 'local'
     let saveTimer = null, saving = false, pendingSave = false;
 
-    const view = { start: null, months: 3 };
+    const view = { start: null, months: 3, extra: 0 };
     try { const v = JSON.parse(localStorage.getItem(LS_VIEW) || '{}'); if ([3,6,12].includes(v.months)) view.months = v.months; } catch {}
 
     const $ = (id) => document.getElementById(id);
@@ -478,7 +478,7 @@
     // ── rendering ──
     function visibleMonths() {
       const out = [];
-      for (let i = 0; i < view.months; i++) {
+      for (let i = 0; i < view.months + view.extra; i++) {
         const t = monthStart(view.start.y, view.start.m + i), d = new Date(t);
         out.push({ y: d.getUTCFullYear(), m: d.getUTCMonth(), periods: periodsBetween(t, monthStart(view.start.y, view.start.m + i + 1)) });
       }
@@ -604,12 +604,7 @@
       const payHeadId = payHead ? payHead.id : null;
       // summary block (paycheck math)
       h += `<tr class="section-head"><td class="col-name"><div class="sec-title"><span class="sec-name" style="font-weight:600;letter-spacing:.04em;font-size:.85rem">Paycheck Summary</span></div></td><td class="col-due"></td><td class="col-budget"></td><td colspan="${span}"></td></tr>`;
-      h += `<tr class="sum-row sum-pay"><td class="col-name"><button class="name-btn" data-special="paycheck"><span class="txt"><span class="nm">${esc(data.special.paycheck.name)}</span><span class="nt">${payHead ? 'Same as the ' + esc(payHead.name) + ' header' : 'Repeats every paycheck'}</span></span></button></td><td class="col-due"></td><td class="col-budget"></td>${cols.map(c => inputCell('paycheck', c)).join('')}</tr>`;
-      h += `<tr class="sum-row"><td class="col-name"><span class="lbl">Paid from paycheck<small>Total of the paycheck sections</small></span></td><td class="col-due"></td><td class="col-budget"></td>${cols.map(c => calcCell(c, calc[c.iso].fromPay)).join('')}</tr>`;
-      h += `<tr class="sum-row sum-save"><td class="col-name"><span class="lbl">Send to our Savings<small>Paycheck − paid from paycheck</small></span></td><td class="col-due"></td><td class="col-budget"></td>${cols.map(c => calcCell(c, calc[c.iso].savings)).join('')}</tr>`;
-      h += `<tr class="sum-row sum-shared"><td class="col-name"><span class="lbl">Send to Shared<small>Shared lines + savings</small></span></td><td class="col-due"></td><td class="col-budget"></td>${cols.map(c => calcCell(c, calc[c.iso].sharedTotal)).join('')}</tr>`;
-      h += `<tr class="sum-row"><td class="col-name"><button class="name-btn" data-special="withdraw"><span class="txt"><span class="nm">${esc(data.special.withdraw.name)}</span><span class="nt">Taken out of savings</span></span></button></td><td class="col-due"></td><td class="col-budget"></td>${cols.map(c => inputCell('withdraw', c)).join('')}</tr>`;
-      h += `<tr class="sum-row sum-rem"><td class="col-name"><span class="lbl">Remainder<small>Savings − withdrawals</small></span></td><td class="col-due"></td><td class="col-budget"></td>${cols.map(c => calcCell(c, calc[c.iso].remainder)).join('')}</tr>`;
+      h += `<tr class="sum-row sum-rem"><td class="col-name"><span class="lbl">Remainder<small>Paycheck − paid from paycheck − withdrawals</small></span></td><td class="col-due"></td><td class="col-budget"></td>${cols.map(c => calcCell(c, calc[c.iso].remainder)).join('')}</tr>`;
 
       data.sections.forEach(s => {
         h += `<tr class="spacer-row"><td class="col-name"></td><td class="col-due"></td><td class="col-budget"></td><td colspan="${span}"></td></tr>`;
@@ -637,6 +632,7 @@
       const prevScroll = $('sheetWrap') ? $('sheetWrap').scrollTop : 0;
       app.innerHTML = h;
       $('sheetWrap').scrollTop = prevScroll;
+      if (jumpToNow) { jumpToNow = false; scrollToNow(); }
     }
 
     function renderWelcome() {
@@ -659,10 +655,23 @@
         ], values: {} };
     }
 
+    // Open on the most recent paycheck that has already arrived
+    let jumpToNow = false;
     function goToday() {
-      const d = new Date(); let y = d.getFullYear(), m = d.getMonth() - 1;
-      if (m < 0) { m = 11; y--; }
-      view.start = { y, m };
+      const cp = data ? currentPeriod() : toISO(todayUTC());
+      view.start = { y: +cp.slice(0, 4), m: +cp.slice(5, 7) - 1 };
+      view.extra = 0;
+      jumpToNow = true;
+    }
+    function scrollToNow() {
+      const wrap = $('sheetWrap'), th = wrap && wrap.querySelector('thead tr.dates th.now');
+      if (!th) return;
+      const wr = wrap.getBoundingClientRect(), bud = wrap.querySelector('thead th.col-budget').getBoundingClientRect();
+      const target = Math.max(0, Math.round(wrap.scrollLeft + th.getBoundingClientRect().left - bud.right));
+      if (target > 8 && target > wrap.scrollWidth - wrap.clientWidth + 8 && view.extra < 6) {
+        view.extra++; jumpToNow = true; render(); return; // show another month so there's room to scroll
+      }
+      wrap.scrollLeft = target;
     }
     function shift(n) {
       const d = new Date(monthStart(view.start.y, view.start.m + n));
@@ -768,6 +777,7 @@
         if (migrate(data)) saveLocal();
         banner(e.nc ? notConfiguredMsg : 'Can\'t reach the server right now — showing the copy saved on this device.');
       }
+      if (data) goToday();
       render();
     }
 
@@ -776,8 +786,8 @@
       const t = e.target.closest('[data-act],[data-item],[data-special],[data-sec],[data-add],[data-goto]');
       if (!$('menu').contains(e.target)) $('menu').classList.remove('open');
       if (!t) return;
-      if (t.dataset.act === 'prev') { shift(-1); render(); }
-      else if (t.dataset.act === 'next') { shift(1); render(); }
+      if (t.dataset.act === 'prev') { view.extra = 0; shift(-1); render(); }
+      else if (t.dataset.act === 'next') { view.extra = 0; shift(1); render(); }
       else if (t.dataset.act === 'today') { goToday(); render(); }
       else if (t.dataset.goto) { const [y, m] = t.dataset.goto.split('-').map(Number); view.start = { y, m }; render(); $('sheetWrap').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
       else if (t.dataset.act === 'import') $('fileInput').click();
@@ -790,7 +800,7 @@
     document.addEventListener('change', (e) => {
       const t = e.target;
       if (t.dataset && t.dataset.act === 'months') {
-        view.months = +t.value; try { localStorage.setItem(LS_VIEW, JSON.stringify({ months: view.months })); } catch {}
+        view.months = +t.value; view.extra = 0; try { localStorage.setItem(LS_VIEW, JSON.stringify({ months: view.months })); } catch {}
         render(); return;
       }
       if (t.matches('.cell input')) commitCell(t);
