@@ -200,6 +200,8 @@
           <option value="every">Every paycheck</option>
           <option value="monthly">Once a month</option>
           <option value="quarterly">Every 3 months</option>
+          <option value="semiannual">Every 6 months</option>
+          <option value="yearly">Once a year</option>
         </select>
         <span class="help">A repeating line copies its last amount into later pay periods (shown in grey). Type over any period to change it from there on. Type 0 to stop it.</span>
       </label>
@@ -324,9 +326,10 @@
       if (inMonth.some(d => d in vals)) return { v: null, carried: false };
       const src = lastBefore(id, inMonth[0]);
       if (!src) return { v: null, carried: false };
-      if (rep === 'quarterly') {
+      const every = { quarterly: 3, semiannual: 6, yearly: 12 }[rep];
+      if (every) {
         const mi = (d) => (+d.slice(0, 4)) * 12 + (+d.slice(5, 7));
-        if ((mi(iso) - mi(src)) % 3 !== 0) return { v: null, carried: false };
+        if ((mi(iso) - mi(src)) % every !== 0) return { v: null, carried: false };
       }
       const srcSlot = periodsInMonth(src).indexOf(src);
       const slot = Math.min(srcSlot, inMonth.length - 1);
@@ -443,7 +446,7 @@
         let budgetTotal = 0;
         s.items.forEach(it => {
           budgetTotal += it.budget || 0;
-          const chips = (it.repeat === 'every' ? '<span class="chip rep" title="Repeats every paycheck">↻ check</span>' : it.repeat === 'monthly' ? '<span class="chip rep" title="Repeats once a month">↻ month</span>' : it.repeat === 'quarterly' ? '<span class="chip rep" title="Repeats every 3 months">↻ 3 mo</span>' : '')
+          const chips = (it.repeat === 'every' ? '<span class="chip rep" title="Repeats every paycheck">↻ check</span>' : it.repeat === 'monthly' ? '<span class="chip rep" title="Repeats once a month">↻ month</span>' : it.repeat === 'quarterly' ? '<span class="chip rep" title="Repeats every 3 months">↻ 3 mo</span>' : it.repeat === 'semiannual' ? '<span class="chip rep" title="Repeats every 6 months">↻ 6 mo</span>' : it.repeat === 'yearly' ? '<span class="chip rep" title="Repeats once a year">↻ yearly</span>' : '')
             + (it.shared ? '<span class="chip shr" title="Included in Send to Shared">shared</span>' : '');
           h += `<tr><td class="col-name"><button class="name-btn" data-item="${it.id}" title="${esc(it.name)}${it.note ? ' — ' + esc(it.note) : ''}"><span class="txt"><span class="nm">${esc(it.name)}</span>${it.note ? `<span class="nt">${esc(it.note)}</span>` : ''}</span>${chips}</button></td>
             <td class="col-budget"><div class="budget-val">${money(it.budget)}</div></td>${cols.map(c => inputCell(it.id, c)).join('')}</tr>`;
