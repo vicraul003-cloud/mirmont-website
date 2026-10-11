@@ -92,6 +92,10 @@
     .sugg-pop b { color: var(--gold-light, #dbb97a); font-size: 0.85rem; }
     .sugg-pop small { display: block; color: #c8c0b0; font-size: 0.66rem; }
 
+    /* ── bill not fully planned before its due date ── */
+    .sheet td.cell.due-short { background: #ffe1bd !important; box-shadow: inset 0 0 0 1px #f0a24a; }
+    .sheet td.cell.due-short .sugg { opacity: 1; background: #f0a24a; color: #fff; }
+
     /* ── drag to move amounts ── */
     .sheet td.cell { position: relative; }
     .grip { position: absolute; left: 3px; top: 50%; transform: translateY(-50%); font-size: 0.8rem; line-height: 1; color: #a8a090; cursor: grab; opacity: 0; padding: 4px 2px; border-radius: 3px; z-index: 2; user-select: none; }
@@ -560,7 +564,10 @@
         }
         const grip = v != null && v !== 0 && id !== 'paycheck' ? `<span class="grip" draggable="true" data-gid="${id}" data-gd="${c.iso}" title="Drag to move this amount to another pay period (hold Option to copy)">⠿</span>` : '';
         const sg = suggestion(id, c.iso);
-        const hint = sg && sg.amt !== v ? `<button type="button" class="sugg" tabindex="-1" data-sid="${id}" data-sd="${c.iso}" title="Suggested ${money(sg.amt)} (${money(sg.budget)} ÷ ${sg.n} checks this month). Double-click to use it.">?</button>` : '';
+        const nowP0 = currentPeriod();
+        const needs = sg && sg.short > 0.005 && sg.due >= nowP0;
+        if (needs) { bal += ' due-short'; tip = ` title="${esc((itemInfo(id) || {}).name)} ${sg.label}: needs ${money(sg.A)}, planned ${money(sg.have) || '$0'} — short ${money(sg.short)}"`; }
+        const hint = sg ? `<button type="button" class="sugg" tabindex="-1" data-sid="${id}" data-sd="${c.iso}" title="Suggested ${money(sg.amt)} (${money(sg.A)} ${sg.label} ÷ ${sg.n} checks). Double-click to use it.">?</button>` : '';
         return `<td class="${cls(c)}${bal}" data-cid="${id}" data-cd="${c.iso}"${tip}>${grip}${hint}<input class="${k}" data-id="${id}" data-d="${c.iso}" value="${esc(val)}" placeholder="${esc(ph)}" inputmode="decimal" autocomplete="off" aria-label="${esc((itemInfo(id) || {}).name)} ${c.iso}" /></td>`;
       };
       const calcCell = (c, v) => `<td class="${cls(c)}"><div class="calc ${v < 0 ? 'neg' : ''}">${money(v)}</div></td>`;
@@ -864,15 +871,58 @@
     }
 
     // Suggested amount: monthly budget split across the paychecks in that month
-    function suggestion(id, iso) {
+    // ── bill planning: which paychecks pay each bill, based on the Due column ──
+    const MON = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+    const everyMonths = { quarterly: 3, semiannual: 6, yearly: 12 };
+    const mIdx = (iso) => (+iso.slice(0, 4)) * 12 + (+iso.slice(5, 7) - 1);
+    const dueOn = (mi, day) => { const y = Math.floor(mi / 12), m = mi % 12, dim = new Date(Date.UTC(y, m + 1, 0)).getUTCDate(); return toISO(Date.UTC(y, m, Math.min(day, dim))); };
+    function dueRule(it) {
+      const t = String(it.due || '').trim();
+      let m;
+      if (/^\d{1,2}$/.test(t) && +t >= 1 && +t <= 31) {
+        const F = everyMonths[it.repeat] || 1;
+        let anchor = 0;
+        if (F > 1) { const ds = explicitDates(it.id).filter(d => data.values[it.id][d]); anchor = ds.length ? mIdx(ds[0]) : mIdx(toISO(todayUTC())); }
+        return { day: +t, F, anchor };
+      }
+      if (/^(eom|end of month|last day)/i.test(t)) return { day: 31, F: everyMonths[it.repeat] || 1, anchor: 0 };
+      if ((m = t.match(/^([a-z]{3})[a-z]*\.?\s+(\d{1,2})/i)) && MON[m[1].toLowerCase()] != null) {
+        return { day: +m[2], F: everyMonths[it.repeat] && everyMonths[it.repeat] < 12 ? everyMonths[it.repeat] : 12, anchor: MON[m[1].toLowerCase()] };
+      }
+      if (everyMonths[it.repeat]) { // e.g. "Quarterly" with no day: due at the end of the cycle month
+        const F = everyMonths[it.repeat], ds = explicitDates(it.id).filter(d => data.values[it.id][d]);
+        return { day: 31, F, anchor: ds.length ? mIdx(ds[0]) : mIdx(toISO(todayUTC())) };
+      }
+      return null; // no usable due date: plan by calendar month
+    }
+    // Returns the bill window that this pay period belongs to
+    function billWindow(id, iso) {
       const it = itemInfo(id);
       if (!it || !it.budget || data.special[id]) return null;
+      const r = dueRule(it);
+      let due, start, A, label;
+      if (r) {
+        const ok = (mi) => (((mi - r.anchor) % r.F) + r.F) % r.F === 0;
+        let mi = mIdx(iso);
+        for (let k = 0; k < 30; k++, mi++) { if (ok(mi) && dueOn(mi, r.day) >= iso) break; }
+        due = dueOn(mi, r.day); start = dueOn(mi - r.F, r.day);
+        A = Math.round(it.budget * r.F * 100) / 100;
+        label = `due ${fmtDate(due)}`;
+        const checks = periodsBetween(fromISO(start) + DAY, fromISO(due) + DAY);
+        return { it, due, A, checks, label };
+      }
       const checks = periodsInMonth(iso);
-      const n = checks.length; if (!n) return null;
-      const per = Math.floor(it.budget / n * 100) / 100;
-      const idx = checks.indexOf(iso);
-      const amt = idx === n - 1 ? Math.round((it.budget - per * (n - 1)) * 100) / 100 : per;
-      return { amt, n, budget: it.budget };
+      const d = new Date(fromISO(iso));
+      due = toISO(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0));
+      return { it, due, A: it.budget, checks, label: `for ${MONTHS[d.getUTCMonth()]}` };
+    }
+    function suggestion(id, iso) {
+      const w = billWindow(id, iso); if (!w || !w.checks.length) return null;
+      const n = w.checks.length, per = Math.floor(w.A / n * 100) / 100, idx = w.checks.indexOf(iso);
+      const amt = idx === n - 1 ? Math.round((w.A - per * (n - 1)) * 100) / 100 : per;
+      const have = Math.round(w.checks.reduce((t, d) => t + (cellValue(id, d).v || 0), 0) * 100) / 100;
+      const short = Math.round((w.A - have) * 100) / 100;
+      return { amt, n, A: w.A, label: w.label, due: w.due, checks: w.checks, have, short, budget: w.it.budget };
     }
 
     function finishApply(choice) {
@@ -906,7 +956,8 @@
       closeSugg(); if (open) return;
       const sg = suggestion(b.dataset.sid, b.dataset.sd); if (!sg) return;
       const pop = document.createElement('div'); pop.className = 'sugg-pop';
-      pop.innerHTML = `Suggested <b>${money(sg.amt)}</b><small>${money(sg.budget)}/mo ÷ ${sg.n} checks this month</small><small>Double-click ? to use it</small>`;
+      const span2 = sg.n > 1 ? `${fmtDate(sg.checks[0])} – ${fmtDate(sg.checks[sg.n - 1])}` : fmtDate(sg.checks[0]);
+      pop.innerHTML = `Suggested <b>${money(sg.amt)}</b><small>${esc(sg.budget && itemInfo(b.dataset.sid).name)} ${sg.label}: ${money(sg.A)} ÷ ${sg.n} check${sg.n > 1 ? 's' : ''} (${span2})</small><small>${sg.short > 0.005 ? '<span style="color:#ffb46b">Planned ' + (money(sg.have) || '$0') + ' — short ' + money(sg.short) + '</span>' : 'Covered ✓ (' + money(sg.have) + ' planned)'}</small><small>Double-click ? to use it</small>`;
       b.parentElement.appendChild(pop);
     }, true);
     document.addEventListener('dblclick', (e) => {
