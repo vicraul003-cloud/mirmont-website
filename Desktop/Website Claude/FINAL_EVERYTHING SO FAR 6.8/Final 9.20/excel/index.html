@@ -297,7 +297,7 @@
     const money = (n, blankZero) => {
       if (n == null || isNaN(n)) return '';
       if (blankZero && n === 0) return '';
-      const s = Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+      const s = Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: Number.isInteger(n) ? 0 : 2, maximumFractionDigits: 2 });
       return (n < 0 ? '−$' : '$') + s;
     };
     const plain = (n) => n == null ? '' : String(Math.round(n * 100) / 100);
@@ -713,7 +713,7 @@
       const repeats = it.repeat && it.repeat !== 'off';
       const future = futurePeriods(iso);
       const vals = data.values[id] || {};
-      const sameLater = before != null ? future.filter(d => d in vals && vals[d] === before) : [];
+      const sameLater = Object.keys(vals).filter(d => d > iso); // every later box that has its own amount
 
       // Clearing a box, or a one-off line with nothing later to update: just save it.
       if (n === null || (!repeats && sameLater.length === 0) || before === n) {
@@ -725,7 +725,7 @@
         ? `<b>${esc(name)}</b>: ${money(before)} → <b>${money(n)}</b> on ${fmtDate(iso)}.`
         : `<b>${esc(name)}</b>: <b>${money(n)}</b> on ${fmtDate(iso)}.`;
       $('applyOne').innerHTML = `Just ${fmtDate(iso)}<small>Later pay periods keep ${before != null ? 'their current amount' : 'what they have now'}</small>`;
-      $('applyFuture').innerHTML = `${fmtDate(iso)} and all future<small>${repeats ? 'The new amount carries forward' : 'Later boxes with ' + money(before) + ' change too'}${repeats && sameLater.length ? '; later boxes with ' + money(before) + ' change too' : ''}</small>`;
+      $('applyFuture').innerHTML = `${fmtDate(iso)} and all future<small>Every later pay period for this line becomes ${money(n)}</small>`;
 
       applyPending = { id, iso, n, before, future, sameLater, input, done };
       $('applyDlg').showModal();
@@ -756,7 +756,7 @@
       const periods = [nowP, ...futurePeriods(nowP)];
       const anchor = periods.find(d => { const v = cellValue(id, d).v; return v != null && v !== 0; }) || nowP;
       const vals = data.values[id] || {};
-      Object.keys(vals).forEach(d => { if (d > anchor && vals[d] !== 0) setValue(id, d, amt); });
+      Object.keys(vals).forEach(d => { if (d > anchor) setValue(id, d, amt); });
       setValue(id, anchor, amt);
     }
 
