@@ -708,6 +708,12 @@
         }));
         d.migrations.dueFromNames = true; changed = true;
       }
+      if (!d.migrations.maryFirst) {
+        // Mary's paycheck section goes above Vic's section
+        const hi = d.sections.findIndex(x => x.id === 'house'), vi = d.sections.findIndex(x => x.id === 'vic');
+        if (hi > vi && vi >= 0) { const [h] = d.sections.splice(hi, 1); d.sections.splice(vi, 0, h); }
+        d.migrations.maryFirst = true; changed = true;
+      }
       if (d.migrations.splitUnplanned) return changed;
       const i = d.sections.findIndex(s => s.name === 'Projected & Unplanned');
       if (i >= 0) {
