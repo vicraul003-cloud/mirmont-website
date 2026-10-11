@@ -131,6 +131,15 @@
     .overview { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 0.75rem 0.9rem 0.5rem; margin-bottom: 1rem; }
     .ov-title { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.4rem; }
     .ov-scroll { overflow-x: auto; }
+    .ov-toggle { display: flex; align-items: center; gap: 0.5rem; background: none; border: 0; cursor: pointer; padding: 0; width: 100%; text-align: left; }
+    .ov-toggle:hover { color: var(--gold-ink); }
+    .ov-arrow { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--line-strong); font-size: 0.6rem; color: var(--gold-ink); transition: transform 0.2s; }
+    .ov-toggle:hover .ov-arrow { border-color: var(--gold); }
+    .overview.collapsed { padding-bottom: 0.75rem; }
+    .overview.collapsed .ov-scroll { display: none; }
+    .overview.collapsed .ov-title { margin-bottom: 0; }
+    .overview.collapsed .ov-arrow { transform: rotate(180deg); }
+    .ov-hint { text-transform: none; letter-spacing: 0; color: var(--muted); font-size: 0.72rem; }
     table.ov { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; min-width: 640px; }
     table.ov th, table.ov td { padding: 0.4rem 0.6rem; text-align: right; font-size: 0.85rem; border-bottom: 1px solid var(--line); white-space: nowrap; }
     table.ov tbody th { text-align: left; font-weight: 500; color: var(--muted); font-size: 0.78rem; }
@@ -384,7 +393,8 @@
     let saveTimer = null, saving = false, pendingSave = false;
 
     const view = { start: null, months: 3, extra: 0 };
-    try { const v = JSON.parse(localStorage.getItem(LS_VIEW) || '{}'); if ([3,6,12].includes(v.months)) view.months = v.months; } catch {}
+    try { const v = JSON.parse(localStorage.getItem(LS_VIEW) || '{}'); if ([3,6,12].includes(v.months)) view.months = v.months; view.ovHidden = !!v.ovHidden; } catch {}
+    const saveView = () => { try { localStorage.setItem(LS_VIEW, JSON.stringify({ months: view.months, ovHidden: !!view.ovHidden })); } catch {} };
 
     const $ = (id) => document.getElementById(id);
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -569,7 +579,7 @@
       const tot = ahead.reduce((o, a) => { ['pay', 'from', 'save', 'rem'].forEach(k => o[k] += a[k]); return o; }, { pay: 0, from: 0, save: 0, rem: 0 });
       const cell = (v, extra = '', i = -1) => `<td class="${v < 0 ? 'neg' : ''} ${extra} ${i === 0 ? 'cur' : ''}">${money(Math.round(v * 100) / 100) || '$0'}</td>`;
       const orow = (label, k, cls = '') => `<tr class="${cls}"><th>${label}</th>${ahead.map((a, i) => cell(a[k], '', i)).join('')}${cell(tot[k], 'tot')}</tr>`;
-      h += `<div class="overview"><div class="ov-title">This month + next 6 months</div><div class="ov-scroll"><table class="ov">
+      h += `<div class="overview${view.ovHidden ? ' collapsed' : ''}"><button type="button" class="ov-title ov-toggle" data-act="ovtoggle" aria-expanded="${!view.ovHidden}" title="${view.ovHidden ? 'Show' : 'Hide'} the overview"><span class="ov-arrow">▲</span>This month + next 6 months${view.ovHidden ? '<span class="ov-hint">— click to show</span>' : ''}</button><div class="ov-scroll"><table class="ov">
         <thead><tr><th></th>${ahead.map((a, i) => `<th class="${i === 0 ? 'cur' : ''}"><button class="ov-month" data-goto="${a.y}-${a.m}" title="Show ${MONTHS[a.m]} ${a.y} in the sheet">${MONTHS[a.m]} ${a.y !== nd.getUTCFullYear() ? "'" + String(a.y).slice(2) : ''}<small>${a.n} paychecks</small></button></th>`).join('')}<th class="tot">7-mo total</th></tr></thead>
         <tbody>
           ${orow('Paychecks', 'pay')}
@@ -812,6 +822,7 @@
       if (t.dataset.act === 'prev') { view.extra = 0; shift(-1); render(); }
       else if (t.dataset.act === 'next') { view.extra = 0; shift(1); render(); }
       else if (t.dataset.act === 'today') { goToday(); render(); }
+      else if (t.dataset.act === 'ovtoggle') { const sl = $('sheetWrap') ? $('sheetWrap').scrollLeft : 0; view.ovHidden = !view.ovHidden; saveView(); render(); $('sheetWrap').scrollLeft = sl; }
       else if (t.dataset.goto) { const [y, m] = t.dataset.goto.split('-').map(Number); view.start = { y, m }; render(); $('sheetWrap').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
       else if (t.dataset.act === 'import') $('fileInput').click();
       else if (t.dataset.act === 'blank') { data = blankData(); scheduleSave(); render(); }
@@ -823,7 +834,7 @@
     document.addEventListener('change', (e) => {
       const t = e.target;
       if (t.dataset && t.dataset.act === 'months') {
-        view.months = +t.value; view.extra = 0; try { localStorage.setItem(LS_VIEW, JSON.stringify({ months: view.months })); } catch {}
+        view.months = +t.value; view.extra = 0; saveView();
         render(); return;
       }
       if (t.matches('.cell input')) commitCell(t);
