@@ -430,6 +430,8 @@
       return (n < 0 ? '−$' : '$') + s;
     };
     const plain = (n) => n == null ? '' : String(Math.round(n * 100) / 100);
+    // accounting look for the amount boxes: $4,739.64
+    const acct = (n) => n == null ? '' : (n < 0 ? '-' : '') + '$' + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const parseAmt = (s) => {
       s = String(s ?? '').trim().replace(/[$,\s]/g, '').replace(/^\((.*)\)$/, '-$1').replace('−', '-');
       if (s === '') return null;
@@ -627,8 +629,9 @@
 
       const inputCell = (id, c) => {
         const { v, carried } = cellValue(id, c.iso);
-        const val = carried || v == null ? '' : plain(v);
-        const ph = carried && v != null ? plain(v) : '';
+        const val = carried || v == null ? '' : acct(v);
+        const ph = carried && v != null ? acct(v) : '';
+        const raw = carried || v == null ? '' : plain(v);
         const k = v === 0 && !carried ? 'zero' : (v < 0 ? 'neg' : '');
         let bal = '', tip = '';
         if (id === 'paycheck') {
@@ -651,7 +654,7 @@
         }
         if (needs) { bal += ' due-short'; tip = ` title="${esc((itemInfo(id) || {}).name)} ${sg.label}: needs ${money(sg.A)}, planned ${money(sg.have) || '$0'} — short ${money(sg.short)}${bal.includes('due-late') ? '. This bill is due next month, before its first paycheck, so pay it from this check.' : ''}"`; }
         const hint = needs ? `<button type="button" class="sugg" tabindex="-1" data-sid="${id}" data-sd="${c.iso}" title="Suggested ${money(sg.amt)} so ${money(sg.A)} ${sg.label} is covered. Double-click to use it.">?</button>` : '';
-        return `<td class="${cls(c)}${bal}" data-cid="${id}" data-cd="${c.iso}"${tip}>${grip}${hint}<input class="${k}" data-id="${id}" data-d="${c.iso}" value="${esc(val)}" placeholder="${esc(ph)}" inputmode="decimal" autocomplete="off" aria-label="${esc((itemInfo(id) || {}).name)} ${c.iso}" /></td>`;
+        return `<td class="${cls(c)}${bal}" data-cid="${id}" data-cd="${c.iso}"${tip}>${grip}${hint}<input class="${k}" data-id="${id}" data-d="${c.iso}" value="${esc(val)}" data-raw="${esc(raw)}" placeholder="${esc(ph)}" inputmode="decimal" autocomplete="off" aria-label="${esc((itemInfo(id) || {}).name)} ${c.iso}" /></td>`;
       };
       const calcCell = (c, v) => `<td class="${cls(c)}"><div class="calc ${v < 0 ? 'neg' : ''}">${money(v)}</div></td>`;
       const span = cols.length;
@@ -1219,6 +1222,21 @@
     }, true);
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeCtx(); });
     window.addEventListener('scroll', () => { const m = document.getElementById('ctxMenu'); if (m && Date.now() - (+m.dataset.t || 0) > 250) m.remove(); }, true);
+
+    // ── amount boxes: show $ format, switch to the plain number while editing ──
+    document.addEventListener('focusin', (e) => {
+      const inp = e.target; if (!inp.matches || !inp.matches('.cell input')) return;
+      if (inp.dataset.fmt != null) return;
+      inp.dataset.fmt = inp.value;
+      const raw = inp.dataset.raw || '';
+      inp.defaultValue = raw; inp.value = raw;
+      if (raw) inp.select();
+    });
+    document.addEventListener('focusout', (e) => {
+      const inp = e.target; if (!inp.matches || !inp.matches('.cell input') || inp.dataset.fmt == null) return;
+      if (inp.value === (inp.dataset.raw || '')) { inp.defaultValue = inp.dataset.fmt; inp.value = inp.dataset.fmt; }
+      delete inp.dataset.fmt;
+    });
 
     // ── crosshair: highlight the row and column of the box being edited ──
     function clearCross() { document.querySelectorAll('.xh-row,.xh-col').forEach(el => el.classList.remove('xh-row', 'xh-col')); }
