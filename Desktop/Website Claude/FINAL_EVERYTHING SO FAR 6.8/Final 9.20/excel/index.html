@@ -231,6 +231,10 @@
     tr.section-head .sec-title button.sec-name { background: none; border: 0; color: #fff; font-weight: 600; letter-spacing: 0.04em; cursor: pointer; font-size: 0.85rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
     tr.section-head .sec-title { padding-right: 0.5rem; }
     tr.section-head .add-line { flex: none; }
+    tr.section-head .sec-toggle { flex: none; display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.35); background: transparent; color: #fff; font-size: 0.55rem; cursor: pointer; transition: transform 0.15s; padding: 0; }
+    tr.section-head .sec-toggle:hover { border-color: var(--gold); color: var(--gold); }
+    tr.section-head .sec-toggle.closed { transform: rotate(180deg); }
+    tr.section-head .sec-hidden { flex: none; font-size: 0.66rem; color: #c8c0b0; font-weight: 400; letter-spacing: 0; }
     tr.add-row td, tr.add-row td.col-name, tr.add-row td.col-due, tr.add-row td.col-budget { background: var(--card); height: 34px; }
     tr.add-row .add-exp { display: flex; align-items: center; gap: 0.45rem; width: 100%; height: 100%; padding: 0 0.8rem; background: none; border: 0; cursor: pointer; color: var(--gold-ink); font-weight: 600; font-size: 0.8rem; text-align: left; }
     tr.add-row .add-exp .plus { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--gold); color: var(--gold-ink); font-size: 0.95rem; line-height: 1; }
@@ -661,16 +665,18 @@
 
       data.sections.forEach(s => {
         h += `<tr class="spacer-row"><td class="col-name"></td><td class="col-due"></td><td class="col-budget"></td><td colspan="${span}"></td></tr>`;
-        h += `<tr class="section-head"><td class="col-name"><div class="sec-title"><button class="sec-name" data-sec="${s.id}" title="Edit section">${esc(s.name)}</button><button class="add-line" data-add="${s.id}">+ Line</button></div></td><td class="col-due"></td><td class="col-budget">${s.id === payHeadId ? '<span class="tag">PAYCHECK&nbsp;→&nbsp;</span>' : s.fromPaycheck ? '<span class="tag">FROM PAYCHECK&nbsp;</span>' : ''}</td>${s.id === payHeadId ? cols.map(c => inputCell('paycheck', c)).join('') : `<td colspan="${span}"></td>`}</tr>`;
+        h += `<tr class="section-head"><td class="col-name"><div class="sec-title"><button type="button" class="sec-toggle${collapsedSecs.has(s.id) ? ' closed' : ''}" data-act="sectoggle" data-sid="${s.id}" title="${collapsedSecs.has(s.id) ? 'Show' : 'Hide'} this section's lines">▲</button><button class="sec-name" data-sec="${s.id}" title="Edit section">${esc(s.name)}</button>${collapsedSecs.has(s.id) ? `<span class="sec-hidden" title="${s.items.length} lines hidden">${s.items.length} hidden</span>` : ''}<button class="add-line" data-add="${s.id}">+ Line</button></div></td><td class="col-due"></td><td class="col-budget">${s.id === payHeadId ? '<span class="tag">PAYCHECK&nbsp;→&nbsp;</span>' : s.fromPaycheck ? '<span class="tag">FROM PAYCHECK&nbsp;</span>' : ''}</td>${s.id === payHeadId ? cols.map(c => inputCell('paycheck', c)).join('') : `<td colspan="${span}"></td>`}</tr>`;
         let budgetTotal = 0;
+        const secClosed = collapsedSecs.has(s.id);
         s.items.forEach(it => {
           budgetTotal += it.budget || 0;
+          if (secClosed) return;
           const chips = (it.repeat === 'every' ? '<span class="chip rep" title="Repeats every paycheck">↻ check</span>' : it.repeat === 'monthly' ? '<span class="chip rep" title="Repeats once a month">↻ month</span>' : it.repeat === 'quarterly' ? '<span class="chip rep" title="Repeats every 3 months">↻ 3 mo</span>' : it.repeat === 'semiannual' ? '<span class="chip rep" title="Repeats every 6 months">↻ 6 mo</span>' : it.repeat === 'yearly' ? '<span class="chip rep" title="Repeats once a year">↻ yearly</span>' : '')
             + (it.shared ? '<span class="chip shr" title="Included in Send to Shared">shared</span>' : '');
           h += `<tr><td class="col-name"><button class="name-btn${it.sub ? ' sub' : ''}" data-item="${it.id}" title="${esc(it.name)}${it.note ? ' — ' + esc(it.note) : ''}"><span class="txt"><span class="nm">${esc(it.name)}</span>${it.note ? `<span class="nt">${esc(it.note)}</span>` : ''}</span>${chips}</button></td>
             <td class="col-due">${dueHtml(it.due)}</td><td class="col-budget"><div class="budget-val">${money(it.budget)}</div></td>${cols.map(c => inputCell(it.id, c)).join('')}</tr>`;
         });
-        h += `<tr class="add-row"><td class="col-name"><button class="add-exp" data-add="${s.id}"><span class="plus">+</span>Add expense</button></td><td class="col-due"></td><td class="col-budget"></td><td colspan="${span}"></td></tr>`;
+        if (!secClosed) h += `<tr class="add-row"><td class="col-name"><button class="add-exp" data-add="${s.id}"><span class="plus">+</span>Add expense</button></td><td class="col-due"></td><td class="col-budget"></td><td colspan="${span}"></td></tr>`;
         h += `<tr class="total-row"><td class="col-name">Total</td><td class="col-due"></td><td class="col-budget">${money(budgetTotal) || '$0'}</td>${cols.map(c => `<td class="${cls(c)}"><div class="calc">${money(calc[c.iso].sections[s.id], true)}</div></td>`).join('')}</tr>`;
         if (s.id === payHeadId) {
           h += `<tr class="diff-row"><td class="col-name"><span class="lbl">Difference<small>Paycheck − total · <span class="g">over</span> / <span class="r">short</span></small></span></td><td class="col-due"></td><td class="col-budget"></td>${cols.map(c => {
@@ -711,6 +717,7 @@
 
     // Open on the most recent paycheck that has already arrived
     let jumpToNow = false, userScrolled = false;
+    const collapsedSecs = new Set(); // sections folded up this visit (all open when the page opens)
     document.addEventListener('wheel', () => { userScrolled = true; }, { passive: true, once: true });
     function goToday() {
       const cp = data ? currentPeriod() : toISO(todayUTC());
@@ -872,6 +879,7 @@
       else if (t.dataset.act === 'today') { goToday(); view.focus = { ...view.start }; jumpToNow = false; render(); $('sheetWrap').scrollLeft = 0; }
       else if (t.dataset.focus) { if (!view.focus) { const [y, m] = t.dataset.focus.split('-').map(Number); view.focus = { y, m }; render(); $('sheetWrap').scrollLeft = 0; } }
       else if (t.dataset.act === 'unfocus') { const f = view.focus; view.focus = null; render(); const th = f && document.querySelector(`#sheetWrap .mon-btn[data-focus="${f.y}-${f.m}"]`); if (th) { const wrap = $('sheetWrap'), bud = wrap.querySelector('thead th.col-budget').getBoundingClientRect(); wrap.scrollLeft += th.closest('th').getBoundingClientRect().left - bud.right; } }
+      else if (t.dataset.act === 'sectoggle') { const id = t.dataset.sid, sl = $('sheetWrap').scrollLeft; collapsedSecs.has(id) ? collapsedSecs.delete(id) : collapsedSecs.add(id); render(); $('sheetWrap').scrollLeft = sl; }
       else if (t.dataset.act === 'ovtoggle') { const sl = $('sheetWrap') ? $('sheetWrap').scrollLeft : 0; view.ovHidden = !view.ovHidden; saveView(); render(); $('sheetWrap').scrollLeft = sl; }
       else if (t.dataset.goto) { const [y, m] = t.dataset.goto.split('-').map(Number); view.start = { y, m }; render(); $('sheetWrap').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
       else if (t.dataset.act === 'import') $('fileInput').click();
