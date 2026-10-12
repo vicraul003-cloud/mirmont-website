@@ -323,7 +323,8 @@
     }
 
     /* ═════════ MATRIX BACKGROUND ═════════ */
-    #matrixBg { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.9; display: none; }
+    #matrixBg { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.9; display: none; will-change: transform; transform: translateZ(0); }
+    .sheet-wrap { will-change: scroll-position; }
     html.matrix #matrixBg { display: block; }
     html.matrix body { background: #000; }
     html.matrix .topbar { z-index: 30; }
@@ -402,7 +403,6 @@
     html.matrix .sheet td.cell.past { background-color: var(--past); }
     html.matrix .sheet td.cell.now { background-color: var(--now); }
     html.matrix .sheet tr.total-row td.cell { background-color: var(--row-total); }
-    html.matrix .overview, html.matrix .stat, html.matrix .controls, html.matrix .stats-wrap, html.matrix .hint { backdrop-filter: blur(1px); }
     /* pinned columns + header stay nearly solid so scrolled numbers don't show through */
     html.matrix:not(.dark) .sheet thead th, html.matrix:not(.dark) .sheet thead th.col-name, html.matrix:not(.dark) .sheet thead th.col-due, html.matrix:not(.dark) .sheet thead th.col-budget { background: rgba(251, 250, 247, 0.97); }
     html.matrix.dark .sheet thead th, html.matrix.dark .sheet thead th.col-name, html.matrix.dark .sheet thead th.col-due, html.matrix.dark .sheet thead th.col-budget { background: rgba(26, 33, 49, 0.97); }
@@ -1468,9 +1468,15 @@
       const cv = $('matrixBg'), ctx = cv.getContext('2d');
       const chars = 'abcdefghijklmnopqrstuvwxyz0123456789'.split('');
       const FS = 15; let cols = 0, drops = [], timer = null, w = 0, h = 0;
+      // pause the rain while the page or the sheet is scrolling, so scrolling stays smooth
+      let scrolling = false, scrollT = null;
+      const onScroll = () => { scrolling = true; clearTimeout(scrollT); scrollT = setTimeout(() => { scrolling = false; }, 250); };
+      window.addEventListener('scroll', onScroll, { capture: true, passive: true });
+      window.addEventListener('wheel', onScroll, { passive: true });
+      window.addEventListener('touchmove', onScroll, { passive: true });
       const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       function size() {
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const dpr = 1; // the rain doesn't need Retina sharpness; 1x is ~4x less drawing
         w = window.innerWidth; h = window.innerHeight;
         cv.width = w * dpr; cv.height = h * dpr; cv.style.width = w + 'px'; cv.style.height = h + 'px';
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -1498,7 +1504,7 @@
         stop(); size();
         if (reduce) { staticFill(); return; }
         staticFill();
-        timer = setInterval(() => { if (!document.hidden) frame(); }, 55);
+        timer = setInterval(() => { if (!document.hidden && !scrolling) frame(); }, 80);
       }
       function stop() { clearInterval(timer); timer = null; }
       window.addEventListener('resize', () => { if (document.documentElement.classList.contains('matrix')) start(); });
