@@ -1512,7 +1512,7 @@
         stop(); size();
         if (reduce) { staticFill(); return; }
         staticFill();
-        timer = setInterval(() => { if (!document.hidden && !scrolling) frame(); }, 80);
+        timer = setInterval(() => { if (!document.hidden && !scrolling) frame(); }, 85); // ~6% slower than 80ms
       }
       function stop() { clearInterval(timer); timer = null; }
       window.addEventListener('resize', () => { if (document.documentElement.classList.contains('matrix')) start(); });
