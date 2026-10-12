@@ -860,7 +860,7 @@
 
     // Open on the most recent paycheck that has already arrived
     let jumpToNow = false, userScrolled = false;
-    const collapsedSecs = new Set(); // sections folded up this visit (all open when the page opens)
+    const collapsedSecs = new Set(); // sections folded up this visit (on open, all but Mary's Paycheck start folded)
     document.addEventListener('wheel', () => { userScrolled = true; }, { passive: true, once: true });
     function goToday() {
       const cp = data ? currentPeriod() : toISO(todayUTC());
@@ -1006,7 +1006,15 @@
         banner(e.nc ? notConfiguredMsg : 'Can\'t reach the server right now — showing the copy saved on this device.');
       }
       resetUndo();
-      if (data) goToday();
+      if (data) {
+        goToday();
+        // on open: only Mary's Paycheck section and the overview are expanded
+        const keep = (data.sections.find(x => x.fromPaycheck) || {}).id;
+        collapsedSecs.clear();
+        data.sections.forEach(x => { if (x.id !== keep) collapsedSecs.add(x.id); });
+        view.statsHidden = true;
+        view.ovHidden = false;
+      }
       render();
       // re-align once web fonts have loaded (column widths change slightly)
       if (data && document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (!userScrolled) scrollToNow(); });
