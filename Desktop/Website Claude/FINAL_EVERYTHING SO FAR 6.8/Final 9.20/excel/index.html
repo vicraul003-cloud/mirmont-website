@@ -317,7 +317,6 @@
       .topbar h1 { font-size: 1.3rem; }
       .save-state span { display: none; }
       .undo-btn span:not(#themeIcon) { display: none; }
-      .info-pop { right: auto; left: 50%; transform: translateX(-50%); }
       .undo-btn { padding: 0.35rem 0.5rem; }
       .topbar { gap: 0.45rem; }
       .range-label { flex-basis: 100%; order: -1; text-align: left; min-width: 0; white-space: nowrap; }
@@ -445,13 +444,19 @@
     html.matrix.dark table.ov tr.ov-rem td { background: rgba(43, 37, 64, 0.86); }
     html.matrix .cell input:focus { background: var(--card); }
 
-    .info-wrap { position: relative; display: inline-flex; }
-    .info-btn { font-family: Georgia, 'Times New Roman', serif; font-style: italic; font-weight: 700; width: 2rem; justify-content: center; padding: 0.35rem 0; }
-    .info-pop { position: absolute; top: calc(100% + 8px); right: 0; z-index: 60; min-width: 260px; max-width: 340px; background: #1c1a17; color: #f8f5ef; border: 1px solid rgba(201,160,90,0.55); border-radius: 8px; padding: 0.7rem 0.85rem; box-shadow: 0 8px 24px rgba(0,0,0,0.35); font-size: 0.82rem; line-height: 1.4; }
+    .info-wrap { display: inline-flex; align-items: center; gap: 0.5rem; min-width: 0; }
+    .info-btn { font-family: Georgia, 'Times New Roman', serif; font-style: italic; font-weight: 700; width: 2rem; justify-content: center; padding: 0.35rem 0; flex: none; }
+    .info-btn[aria-expanded="true"] { border-color: var(--gold); color: var(--gold); }
+    .info-pop { background: rgba(255,255,255,0.06); color: #f8f5ef; border: 1px solid rgba(201,160,90,0.55); border-radius: 6px; padding: 0.22rem 0.65rem; font-size: 0.8rem; line-height: 1.25; max-width: 460px; min-width: 0; }
     .info-pop[hidden] { display: none; }
-    .info-pop .ip-label { color: var(--gold); font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 0.25rem; }
-    .info-pop .ip-msg { font-weight: 600; word-break: break-word; }
-    .info-pop .ip-date { opacity: 0.7; margin-top: 0.3rem; font-size: 0.75rem; }
+    .info-pop .ip-label { color: var(--gold); font-size: 0.64rem; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; }
+    .info-pop .ip-label span { text-transform: none; letter-spacing: 0.02em; opacity: 0.85; color: #f8f5ef; }
+    .info-pop .ip-msg { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    @media (max-width: 700px) {
+      .info-wrap { position: relative; }
+      .info-pop { position: absolute; top: calc(100% + 8px); right: 0; z-index: 60; background: #1c1a17; max-width: 70vw; }
+      .info-pop .ip-msg, .info-pop .ip-label { white-space: normal; }
+    }
 
   </style>
 </head>
@@ -460,7 +465,7 @@
   <header class="topbar">
     <a href="/"><img src="/FullLogo_Transparent.png" alt="Mirmont Construction" /></a>
     <h1>Budget</h1>
-    <span class="info-wrap"><button type="button" class="undo-btn info-btn" id="infoBtn" title="Latest update" aria-expanded="false" aria-controls="infoPop">i</button><div class="info-pop" id="infoPop" role="status" hidden><div class="ip-label">Latest update</div><div class="ip-msg" id="infoMsg"></div><div class="ip-date" id="infoDate"></div></div></span>
+    <span class="info-wrap"><div class="info-pop" id="infoPop" role="status" hidden><div class="ip-label">Latest update · <span id="infoDate"></span></div><div class="ip-msg" id="infoMsg"></div></div><button type="button" class="undo-btn info-btn" id="infoBtn" title="Show/hide latest update" aria-expanded="false" aria-controls="infoPop">i</button></span>
     <button type="button" class="undo-btn theme-btn" id="themeBtn" title="Switch between light and dark"><span id="themeIcon">🌙</span><span id="themeText">Dark</span></button>
     <button type="button" class="undo-btn" id="undoBtn" title="Undo last change (⌘Z)" disabled>
       <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M9 14 4 9l5-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
@@ -1539,13 +1544,14 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: month summary shows difference per paycheck', date: '2026-10-12' };
+    const PAGE_VERSION = { msg: 'Budget: update note in top bar with time', at: '2026-10-12T17:52:00-04:00' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
-    $('infoDate').textContent = 'Updated ' + new Date(PAGE_VERSION.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    const setInfo = (open) => { $('infoPop').hidden = !open; $('infoBtn').setAttribute('aria-expanded', String(open)); };
-    $('infoBtn').addEventListener('click', (e) => { e.stopPropagation(); setInfo($('infoPop').hidden); });
-    document.addEventListener('click', (e) => { if (!$('infoPop').hidden && !e.target.closest('.info-wrap')) setInfo(false); });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setInfo(false); });
+    { const at = new Date(PAGE_VERSION.at); $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/New_York' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }); }
+    $('infoPop').title = PAGE_VERSION.msg;
+    // stays shown until the "i" is clicked again (remembered on this device)
+    const setInfo = (open) => { $('infoPop').hidden = !open; $('infoBtn').setAttribute('aria-expanded', String(open)); try { localStorage.setItem('mirmont-info', open ? '1' : '0'); } catch {} };
+    try { if (localStorage.getItem('mirmont-info') === '1') setInfo(true); } catch {}
+    $('infoBtn').addEventListener('click', () => setInfo($('infoPop').hidden));
     function paintThemeBtn() { const d = document.documentElement.classList.contains('dark'); $('themeIcon').textContent = d ? '☀️' : '🌙'; $('themeText').textContent = d ? 'Light' : 'Dark'; }
     $('themeBtn').addEventListener('click', () => {
       const d = document.documentElement.classList.toggle('dark');
