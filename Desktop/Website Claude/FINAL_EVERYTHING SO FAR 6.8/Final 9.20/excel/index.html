@@ -69,6 +69,10 @@
     .stat .k { font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
     .stat .v { font-size: 1.25rem; font-weight: 700; margin-top: 0.25rem; font-variant-numeric: tabular-nums; }
     .stat .v.neg { color: var(--neg); }
+    .stat .v.pos { color: #2e7d32; }
+    .stat-per .k { text-transform: none; letter-spacing: 0.02em; font-size: 0.9rem; font-weight: 600; color: var(--ink); }
+    .stat-per.cur { border-color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); }
+    html.dark .stat .v.pos { color: #7fd18a; }
 
     /* ── difference row under the paycheck section total ── */
     tr.diff-row td, tr.diff-row td.col-name, tr.diff-row td.col-due, tr.diff-row td.col-budget { background: #fbfaf7; }
@@ -739,12 +743,10 @@
       const stat = (k, v) => `<div class="stat"><div class="k">${k}</div><div class="v ${v < 0 ? 'neg' : ''}">${money(v) || '$0'}</div></div>`;
       const FULLM = ['January','February','March','April','May','June','July','August','September','October','November','December'];
       h += `<div class="stats-wrap${view.statsHidden ? ' collapsed' : ''}">
-        <button type="button" class="ov-title ov-toggle stats-toggle" data-act="statstoggle" aria-expanded="${!view.statsHidden}" title="${view.statsHidden ? 'Show' : 'Hide'} this month's summary"><span class="ov-arrow">▲</span>${FULLM[nd.getUTCMonth()]} summary${view.statsHidden ? `<span class="ov-hint">— Remainder ${money(agg.rem) || '$0'} · click to show</span>` : ''}</button>
+        <button type="button" class="ov-title ov-toggle stats-toggle" data-act="statstoggle" aria-expanded="${!view.statsHidden}" title="${view.statsHidden ? 'Show' : 'Hide'} this month's summary"><span class="ov-arrow">▲</span>${FULLM[nd.getUTCMonth()]} summary${view.statsHidden ? `<span class="ov-hint">— ${nowMonth.map(p => { const c = computePeriod(p), v = Math.round((c.pay - c.fromPay) * 100) / 100; return `${fmtDate(p)} ${v < 0 ? '−' : '+'}${money(Math.abs(v)) || '$0'}`; }).join(' · ')} · click to show</span>` : ''}</button>
         <div class="stats">
-        ${stat(`${MONTHS[nd.getUTCMonth()]} paychecks (${nowMonth.length})`, agg.pay)}
-        ${stat('Paid from paycheck', agg.from)}
-        ${stat('Send to savings', agg.save)}
-        ${stat('Remainder', agg.rem)}
+        ${nowMonth.map(p => { const c = computePeriod(p), v = Math.round((c.pay - c.fromPay) * 100) / 100;
+          return `<div class="stat stat-per${p === nowP ? ' cur' : ''}" title="Difference for this paycheck — send to savings"><div class="k">${fmtDate(p)}</div><div class="v ${v < 0 ? 'neg' : 'pos'}">${v < 0 ? '−' : '+'}${money(Math.abs(v)) || '$0'}</div></div>`; }).join('')}
       </div></div>`;
 
       // next 6 months overview
@@ -1537,7 +1539,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: add "i" latest-update button', date: '2026-10-12' };
+    const PAGE_VERSION = { msg: 'Budget: month summary shows difference per paycheck', date: '2026-10-12' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     $('infoDate').textContent = 'Updated ' + new Date(PAGE_VERSION.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     const setInfo = (open) => { $('infoPop').hidden = !open; $('infoBtn').setAttribute('aria-expanded', String(open)); };
