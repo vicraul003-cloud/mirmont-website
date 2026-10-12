@@ -152,6 +152,13 @@
     .ov-arrow { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--line-strong); font-size: 0.6rem; color: var(--gold-ink); transition: transform 0.2s; }
     .ov-toggle:hover .ov-arrow { border-color: var(--gold); }
     .overview.collapsed { padding-bottom: 0.75rem; }
+    .stats-wrap { margin-bottom: 1rem; }
+    .stats-wrap .stats { margin-bottom: 0; }
+    .stats-toggle { margin: 0 0 0.45rem 0.15rem; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+    .stats-wrap.collapsed { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 0.75rem 0.9rem; }
+    .stats-wrap.collapsed .stats-toggle { margin: 0; }
+    .stats-wrap.collapsed .stats { display: none; }
+    .stats-wrap.collapsed .ov-arrow { transform: rotate(180deg); }
     .overview.collapsed .ov-scroll { display: none; }
     .overview.collapsed .ov-title { margin-bottom: 0; }
     .overview.collapsed .ov-arrow { transform: rotate(180deg); }
@@ -590,12 +597,15 @@
       const agg = nowMonth.reduce((a, p) => { const c = computePeriod(p); a.pay += c.pay; a.from += c.fromPay; a.save += c.savings; a.rem += c.remainder; return a; }, { pay: 0, from: 0, save: 0, rem: 0 });
       const nd = new Date(fromISO(nowP));
       const stat = (k, v) => `<div class="stat"><div class="k">${k}</div><div class="v ${v < 0 ? 'neg' : ''}">${money(v) || '$0'}</div></div>`;
-      h += `<div class="stats">
+      const FULLM = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      h += `<div class="stats-wrap${view.statsHidden ? ' collapsed' : ''}">
+        <button type="button" class="ov-title ov-toggle stats-toggle" data-act="statstoggle" aria-expanded="${!view.statsHidden}" title="${view.statsHidden ? 'Show' : 'Hide'} this month's summary"><span class="ov-arrow">▲</span>${FULLM[nd.getUTCMonth()]} summary${view.statsHidden ? `<span class="ov-hint">— Remainder ${money(agg.rem) || '$0'} · click to show</span>` : ''}</button>
+        <div class="stats">
         ${stat(`${MONTHS[nd.getUTCMonth()]} paychecks (${nowMonth.length})`, agg.pay)}
         ${stat('Paid from paycheck', agg.from)}
         ${stat('Send to savings', agg.save)}
         ${stat('Remainder', agg.rem)}
-      </div>`;
+      </div></div>`;
 
       // next 6 months overview
       const ahead = [];
@@ -883,6 +893,7 @@
       else if (t.dataset.focus) { if (!view.focus) { const [y, m] = t.dataset.focus.split('-').map(Number); view.focus = { y, m }; render(); $('sheetWrap').scrollLeft = 0; } }
       else if (t.dataset.act === 'unfocus') { const f = view.focus; view.focus = null; render(); const th = f && document.querySelector(`#sheetWrap .mon-btn[data-focus="${f.y}-${f.m}"]`); if (th) { const wrap = $('sheetWrap'), bud = wrap.querySelector('thead th.col-budget').getBoundingClientRect(); wrap.scrollLeft += th.closest('th').getBoundingClientRect().left - bud.right; } }
       else if (t.dataset.act === 'sectoggle') { const id = t.dataset.sid, sl = $('sheetWrap').scrollLeft; collapsedSecs.has(id) ? collapsedSecs.delete(id) : collapsedSecs.add(id); render(); $('sheetWrap').scrollLeft = sl; }
+      else if (t.dataset.act === 'statstoggle') { const sl = $('sheetWrap') ? $('sheetWrap').scrollLeft : 0; view.statsHidden = !view.statsHidden; render(); $('sheetWrap').scrollLeft = sl; }
       else if (t.dataset.act === 'ovtoggle') { const sl = $('sheetWrap') ? $('sheetWrap').scrollLeft : 0; view.ovHidden = !view.ovHidden; saveView(); render(); $('sheetWrap').scrollLeft = sl; }
       else if (t.dataset.goto) { const [y, m] = t.dataset.goto.split('-').map(Number); view.start = { y, m }; render(); $('sheetWrap').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
       else if (t.dataset.act === 'import') $('fileInput').click();
