@@ -1117,16 +1117,23 @@
       const m = document.createElement('div'); m.id = 'ctxMenu'; m.className = 'ctx-menu'; m.dataset.t = Date.now();
       m.innerHTML = `
         <button type="button" data-ctx="copy" ${cur == null ? 'disabled' : ''}>Copy <span>${cur == null ? 'empty' : money(cur) || '$0'}</span></button>
-        <button type="button" data-ctx="paste" ${clip ? '' : 'disabled'}>Paste${many} <span>${clip ? money(clip.v) || '$0' : 'nothing copied'}</span></button>
+        <button type="button" data-ctx="paste">Paste${many} <span>${clip ? money(clip.v) || '$0' : 'from clipboard'}</span></button>
         <div class="sep"></div>
         <button type="button" data-ctx="zero" class="danger">Delete — set to $0${many}</button>`;
       document.body.appendChild(m);
       const r = m.getBoundingClientRect();
       m.style.left = Math.min(e.clientX, window.innerWidth - r.width - 8) + 'px';
       m.style.top = Math.min(e.clientY, window.innerHeight - r.height - 8) + 'px';
-      m.addEventListener('click', (ev) => {
+      m.addEventListener('click', async (ev) => {
         const b = ev.target.closest('button[data-ctx]'); if (!b || b.disabled) return;
         const act = b.dataset.ctx;
+        if (act === 'paste' && !clip) {
+          let txt = '';
+          try { txt = await navigator.clipboard.readText(); } catch {}
+          const v = parseAmt(txt);
+          if (v == null || Number.isNaN(v)) { closeCtx(); alert('Nothing to paste. Copy an amount first (right-click → Copy, or ⌘C on a box).'); return; }
+          clip = { v, from: null };
+        }
         if (act === 'copy') {
           clip = { v: cur, from: k };
           try { navigator.clipboard && navigator.clipboard.writeText(String(cur)); } catch {}
@@ -1142,6 +1149,36 @@
       });
     });
     document.addEventListener('mousedown', (e) => { if (!(e.target.closest && e.target.closest('#ctxMenu'))) closeCtx(); }, true);
+    const focusedKey = () => { const a = document.activeElement; const td = a && a.closest && a.closest('#sheetWrap td.cell[data-cid]'); return td ? keyOf(td) : null; };
+    const partialText = (el) => el && el.matches && el.matches('.cell input') && el.selectionStart !== el.selectionEnd && !(el.selectionStart === 0 && el.selectionEnd === el.value.length);
+    document.addEventListener('copy', (e) => {
+      if (partialText(document.activeElement)) return; // copying part of the text: let the browser do it
+      const k = sel.size === 1 ? [...sel][0] : (focusedKey() || (sel.size ? selAnchor : null));
+      if (!k) return;
+      const [id, d] = k.split('|'); const v = cellValue(id, d).v;
+      if (v == null) return;
+      clip = { v, from: k };
+      e.clipboardData.setData('text/plain', String(v)); e.preventDefault();
+    });
+    document.addEventListener('paste', (e) => {
+      const fk = focusedKey();
+      if (!sel.size && !fk) return;
+      const v = parseAmt((e.clipboardData || window.clipboardData).getData('text'));
+      if (v == null || Number.isNaN(v)) return;
+      e.preventDefault();
+      const targets = sel.size ? cellKeysSorted(sel) : [fk];
+      targets.forEach(t => { const [id, d] = t.split('|'); setOnlyThis(id, d, v); });
+      clip = { v, from: null };
+      clearSelection(); redraw();
+      if (fk) { const [id, d] = fk.split('|'); const n = document.querySelector(`.cell input[data-id="${id}"][data-d="${d}"]`); if (n) n.focus(); }
+    });
+    document.addEventListener('keydown', (e) => {
+      if (sel.size > 1 && (e.key === 'Delete' || e.key === 'Backspace')) {
+        e.preventDefault();
+        cellKeysSorted(sel).forEach(t => { const [id, d] = t.split('|'); setOnlyThis(id, d, 0); });
+        clearSelection(); redraw();
+      }
+    }, true);
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeCtx(); });
     window.addEventListener('scroll', () => { const m = document.getElementById('ctxMenu'); if (m && Date.now() - (+m.dataset.t || 0) > 250) m.remove(); }, true);
 
