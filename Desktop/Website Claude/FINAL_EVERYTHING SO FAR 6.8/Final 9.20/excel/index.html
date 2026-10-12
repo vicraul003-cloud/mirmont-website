@@ -31,6 +31,9 @@
     .save-state::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #6fbf73; }
     .save-state[data-s="saving"]::before { background: var(--gold); }
     .save-state[data-s="local"]::before, .save-state[data-s="error"]::before { background: #e57373; }
+    .undo-btn { display: inline-flex; align-items: center; gap: 0.35rem; background: transparent; border: 1px solid rgba(201,160,90,0.4); color: #f8f5ef; border-radius: 6px; padding: 0.35rem 0.65rem; cursor: pointer; font-size: 0.78rem; }
+    .undo-btn:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
+    .undo-btn:disabled { opacity: 0.35; cursor: default; }
     .menu-btn { background: transparent; border: 1px solid rgba(201,160,90,0.4); color: #f8f5ef; border-radius: 6px; padding: 0.4rem 0.7rem; cursor: pointer; font-size: 0.78rem; }
     .menu-btn:hover { border-color: var(--gold); color: var(--gold); }
     .menu { position: relative; }
@@ -305,6 +308,10 @@
   <header class="topbar">
     <a href="/"><img src="/FullLogo_Transparent.png" alt="Mirmont Construction" /></a>
     <h1>Budget</h1>
+    <button type="button" class="undo-btn" id="undoBtn" title="Undo last change (⌘Z)" disabled>
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M9 14 4 9l5-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      <span>Undo</span>
+    </button>
     <div class="save-state" id="saveState" data-s="ok"><span id="saveText">Loading…</span></div>
     <div class="menu" id="menu">
       <button class="menu-btn" id="menuBtn" aria-haspopup="true">Menu ▾</button>
@@ -732,7 +739,29 @@
     function banner(html) { const b = $('banner'); b.innerHTML = html || ''; b.classList.toggle('show', !!html); }
     function saveLocal() { try { localStorage.setItem(LS_KEY, JSON.stringify({ rev, data })); } catch {} }
 
+    // ── undo / redo: snapshot of the budget before each saved change ──
+    let undoStack = [], redoStack = [], lastSnap = null, undoing = false;
+    function resetUndo() { undoStack = []; redoStack = []; lastSnap = data ? JSON.stringify(data) : null; updateUndoBtn(); }
+    function updateUndoBtn() { const b = $('undoBtn'); if (!b) return; b.disabled = !undoStack.length; b.title = undoStack.length ? `Undo last change (⌘Z) — ${undoStack.length} step${undoStack.length > 1 ? 's' : ''} available` : 'Nothing to undo'; }
+    function recordUndo() {
+      if (undoing || !data) return;
+      const now = JSON.stringify(data);
+      if (lastSnap && now !== lastSnap) { undoStack.push(lastSnap); if (undoStack.length > 100) undoStack.shift(); redoStack = []; }
+      lastSnap = now; updateUndoBtn();
+    }
+    function restoreSnap(snap) {
+      const sl = $('sheetWrap') ? $('sheetWrap').scrollLeft : 0;
+      data = JSON.parse(snap); lastSnap = snap; sortedCache.clear();
+      undoing = true; render(); scheduleSave(); undoing = false;
+      if ($('sheetWrap')) $('sheetWrap').scrollLeft = sl;
+      updateUndoBtn();
+    }
+    function undo() { if (!undoStack.length) return; redoStack.push(lastSnap); restoreSnap(undoStack.pop()); flashUndo('Undone'); }
+    function redo() { if (!redoStack.length) return; undoStack.push(lastSnap); restoreSnap(redoStack.pop()); flashUndo('Redone'); }
+    function flashUndo(t) { const b = $('undoBtn'); if (!b) return; const sp = b.querySelector('span'); sp.textContent = t; clearTimeout(flashUndo.t); flashUndo.t = setTimeout(() => sp.textContent = 'Undo', 900); }
+
     function scheduleSave() {
+      recordUndo();
       saveLocal();
       if (mode === 'local') { setState('local', 'Saved on this device'); return; }
       setState('saving', 'Saving…');
@@ -747,7 +776,7 @@
         const body = await res.json().catch(() => ({}));
         if (res.ok) { rev = body.rev; saveLocal(); setState('ok', 'Saved'); banner(''); }
         else if (res.status === 409) {
-          data = body.data; rev = body.rev; saveLocal(); render();
+          data = body.data; rev = body.rev; saveLocal(); resetUndo(); render();
           setState('ok', 'Saved');
           banner('This budget was changed on another device, so the latest version was loaded. Please re-enter your last change if it is missing.');
         } else if (res.status === 501) { mode = 'local'; setState('local', 'Saved on this device'); banner(notConfiguredMsg); }
@@ -826,6 +855,7 @@
         if (migrate(data)) saveLocal();
         banner(e.nc ? notConfiguredMsg : 'Can\'t reach the server right now — showing the copy saved on this device.');
       }
+      resetUndo();
       if (data) goToday();
       render();
       // re-align once web fonts have loaded (column widths change slightly)
@@ -1262,6 +1292,18 @@
       }
       redraw();
     }
+
+    $('undoBtn').addEventListener('click', undo);
+    document.addEventListener('keydown', (e) => {
+      if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 'z') return;
+      const a = document.activeElement;
+      // while typing in a box (or a dialog field), let the browser undo the typing itself
+      if (a && a.matches && a.matches('input[type=text], dialog input') ) return;
+      if (a && a.matches && a.matches('.cell input') && a.value !== a.defaultValue) return;
+      if (document.querySelector('dialog[open]')) return;
+      e.preventDefault();
+      if (e.shiftKey) redo(); else undo();
+    });
 
     $('menuBtn').addEventListener('click', (e) => { e.stopPropagation(); $('menu').classList.toggle('open'); });
     // ── Excel export (SheetJS loaded only when needed) ──
