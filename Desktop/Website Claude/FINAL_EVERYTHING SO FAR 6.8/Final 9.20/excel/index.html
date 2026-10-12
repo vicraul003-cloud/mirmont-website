@@ -383,6 +383,60 @@
     html.dark .ov-arrow { border-color: var(--line-strong); }
     html.dark tr.add-row td, html.dark tr.add-row td.col-name, html.dark tr.add-row td.col-due, html.dark tr.add-row td.col-budget { background: var(--card); }
     html.dark .theme-btn span:first-child { font-size: 0.85rem; }
+    /* see-through panels over the rain */
+    html.matrix:not(.dark) {
+      --card: rgba(255, 255, 255, 0.86); --page: rgba(243, 241, 236, 0.74);
+      --past: rgba(247, 246, 242, 0.84); --now: rgba(253, 246, 231, 0.88);
+      --row-pay: rgba(238, 243, 251, 0.82); --row-save: rgba(255, 243, 191, 0.82); --row-shared: rgba(251, 233, 198, 0.82);
+      --row-rem: rgba(235, 227, 247, 0.84); --row-total: rgba(244, 241, 234, 0.84); }
+    html.matrix.dark {
+      --card: rgba(23, 29, 43, 0.74); --page: rgba(15, 20, 32, 0.62);
+      --past: rgba(20, 26, 38, 0.72); --now: rgba(42, 38, 24, 0.78);
+      --row-pay: rgba(27, 36, 55, 0.78); --row-save: rgba(57, 51, 24, 0.78); --row-shared: rgba(58, 46, 23, 0.78);
+      --row-rem: rgba(43, 37, 64, 0.80); --row-total: rgba(29, 35, 51, 0.80); }
+    html.matrix .sheet-wrap { background: transparent; }
+    html.matrix .sheet td.cell { background-color: var(--card); }
+    html.matrix .sheet td.cell.past { background-color: var(--past); }
+    html.matrix .sheet td.cell.now { background-color: var(--now); }
+    html.matrix .sheet tr.total-row td.cell { background-color: var(--row-total); }
+    html.matrix .overview, html.matrix .stat, html.matrix .controls, html.matrix .stats-wrap, html.matrix .hint { backdrop-filter: blur(1px); }
+    /* pinned columns + header stay nearly solid so scrolled numbers don't show through */
+    html.matrix:not(.dark) .sheet thead th, html.matrix:not(.dark) .sheet thead th.col-name, html.matrix:not(.dark) .sheet thead th.col-due, html.matrix:not(.dark) .sheet thead th.col-budget { background: rgba(251, 250, 247, 0.97); }
+    html.matrix.dark .sheet thead th, html.matrix.dark .sheet thead th.col-name, html.matrix.dark .sheet thead th.col-due, html.matrix.dark .sheet thead th.col-budget { background: rgba(26, 33, 49, 0.97); }
+    html.matrix:not(.dark) .sheet td.col-name, html.matrix:not(.dark) .sheet td.col-due, html.matrix:not(.dark) .sheet td.col-budget { background-color: rgba(255, 255, 255, 0.96); }
+    html.matrix.dark .sheet td.col-name, html.matrix.dark .sheet td.col-due, html.matrix.dark .sheet td.col-budget { background-color: rgba(23, 29, 43, 0.96); }
+    html.matrix:not(.dark) tr.sum-rem td.col-name, html.matrix:not(.dark) tr.sum-rem td.col-due, html.matrix:not(.dark) tr.sum-rem td.col-budget { background-color: rgba(235, 227, 247, 0.97); }
+    html.matrix.dark tr.sum-rem td.col-name, html.matrix.dark tr.sum-rem td.col-due, html.matrix.dark tr.sum-rem td.col-budget { background-color: rgba(43, 37, 64, 0.97); }
+    html.matrix tr.total-row td.col-name, html.matrix tr.total-row td.col-due, html.matrix tr.total-row td.col-budget { background-color: var(--row-total); }
+    html.matrix:not(.dark) tr.total-row td.col-name, html.matrix:not(.dark) tr.total-row td.col-due, html.matrix:not(.dark) tr.total-row td.col-budget { background-color: rgba(244, 241, 234, 0.97); }
+    html.matrix.dark tr.total-row td.col-name, html.matrix.dark tr.total-row td.col-due, html.matrix.dark tr.total-row td.col-budget { background-color: rgba(29, 35, 51, 0.97); }
+    html.matrix .sheet tr.section-head td { background-color: rgba(13, 30, 74, 0.88); }
+    html.matrix tr.section-head td.col-name, html.matrix tr.section-head td.col-due, html.matrix tr.section-head td.col-budget { background: rgba(13, 30, 74, 0.97) !important; }
+    html.matrix.dark .sheet tr.section-head td { background-color: rgba(10, 16, 41, 0.86); }
+    html.matrix.dark tr.section-head td.col-name, html.matrix.dark tr.section-head td.col-due, html.matrix.dark tr.section-head td.col-budget { background: rgba(10, 16, 41, 0.97) !important; }
+    /* colored cells: same colors, see-through */
+    html.matrix:not(.dark) .sheet tr.diff-row td.cell.over, html.matrix:not(.dark) .sheet tr.diff-row td.cell.over.past, html.matrix:not(.dark) .sheet tr.diff-row td.cell.over.now,
+    html.matrix:not(.dark) .sheet tr.sum-rem td.cell.over, html.matrix:not(.dark) .sheet tr.sum-rem td.cell.over.past, html.matrix:not(.dark) .sheet tr.sum-rem td.cell.over.now,
+    html.matrix:not(.dark) .sheet td.cell.bal-pos, html.matrix:not(.dark) tr.section-head td.cell.bal-pos { background: rgba(220, 241, 220, 0.82) !important; }
+    html.matrix:not(.dark) .sheet tr.diff-row td.cell.short, html.matrix:not(.dark) .sheet tr.diff-row td.cell.short.past, html.matrix:not(.dark) .sheet tr.diff-row td.cell.short.now,
+    html.matrix:not(.dark) .sheet tr.sum-rem td.cell.short, html.matrix:not(.dark) .sheet tr.sum-rem td.cell.short.past, html.matrix:not(.dark) .sheet tr.sum-rem td.cell.short.now,
+    html.matrix:not(.dark) .sheet td.cell.bal-neg, html.matrix:not(.dark) tr.section-head td.cell.bal-neg { background: rgba(248, 215, 213, 0.84) !important; }
+    html.matrix:not(.dark) .sheet td.cell.due-short { background: rgba(255, 225, 189, 0.84) !important; }
+    html.matrix.dark .sheet tr.diff-row td.cell.over, html.matrix.dark .sheet tr.diff-row td.cell.over.past, html.matrix.dark .sheet tr.diff-row td.cell.over.now,
+    html.matrix.dark .sheet tr.sum-rem td.cell.over, html.matrix.dark .sheet tr.sum-rem td.cell.over.past, html.matrix.dark .sheet tr.sum-rem td.cell.over.now,
+    html.matrix.dark .sheet td.cell.bal-pos, html.matrix.dark tr.section-head td.cell.bal-pos { background: rgba(24, 51, 34, 0.80) !important; }
+    html.matrix.dark .sheet tr.diff-row td.cell.short, html.matrix.dark .sheet tr.diff-row td.cell.short.past, html.matrix.dark .sheet tr.diff-row td.cell.short.now,
+    html.matrix.dark .sheet tr.sum-rem td.cell.short, html.matrix.dark .sheet tr.sum-rem td.cell.short.past, html.matrix.dark .sheet tr.sum-rem td.cell.short.now,
+    html.matrix.dark .sheet td.cell.bal-neg, html.matrix.dark tr.section-head td.cell.bal-neg { background: rgba(61, 29, 31, 0.82) !important; }
+    html.matrix.dark .sheet td.cell.due-short { background: rgba(71, 48, 26, 0.82) !important; }
+    html.matrix:not(.dark) tr.diff-row td, html.matrix:not(.dark) tr.add-row td { background: rgba(251, 250, 247, 0.8); }
+    html.matrix.dark tr.diff-row td, html.matrix.dark tr.add-row td { background: rgba(22, 28, 41, 0.76); }
+    html.matrix:not(.dark) table.ov .tot { background: rgba(250, 248, 243, 0.85); }
+    html.matrix.dark table.ov .tot { background: rgba(26, 32, 48, 0.82); }
+    html.matrix:not(.dark) table.ov tr.ov-rem td { background: rgba(235, 227, 247, 0.84); }
+    html.matrix.dark table.ov tr.ov-rem td { background: rgba(43, 37, 64, 0.80); }
+    html.matrix .cell input:focus { background: var(--card); }
+
   </style>
 </head>
 <body>
