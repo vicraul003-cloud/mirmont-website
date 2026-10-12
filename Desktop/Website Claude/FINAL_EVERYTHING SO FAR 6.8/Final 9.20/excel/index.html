@@ -18,7 +18,7 @@
       --ink: #1c232b; --muted: #6b7480; --neg: #b3261e;
       --past: #f7f6f2; --now: #fdf6e7;
       --row-pay: #eef3fb; --row-save: #fff3bf; --row-shared: #fbe9c6; --row-rem: #ebe3f7; --row-total: #f4f1ea;
-      --stick-w: 260px; --due-w: 64px; --budget-w: 92px;
+      --stick-w: 290px; --due-w: 70px; --budget-w: 104px;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Montserrat', sans-serif; background: var(--page); color: var(--ink); min-height: 100vh; font-size: 14px; }
@@ -65,14 +65,14 @@
     /* ── stats ── */
     .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0.75rem; margin-bottom: 1rem; }
     .stat { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 0.75rem 0.9rem; }
-    .stat .k { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+    .stat .k { font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
     .stat .v { font-size: 1.25rem; font-weight: 700; margin-top: 0.25rem; font-variant-numeric: tabular-nums; }
     .stat .v.neg { color: var(--neg); }
 
     /* ── difference row under the paycheck section total ── */
     tr.diff-row td, tr.diff-row td.col-name, tr.diff-row td.col-due, tr.diff-row td.col-budget { background: #fbfaf7; }
-    tr.diff-row td.col-name .lbl { padding-left: 0.8rem; font-weight: 600; font-size: 0.82rem; display: block; }
-    tr.diff-row td.col-name .lbl small { display: block; font-weight: 400; font-size: 0.66rem; color: var(--muted); }
+    tr.diff-row td.col-name .lbl { padding-left: 0.8rem; font-weight: 600; font-size: 0.94rem; display: block; }
+    tr.diff-row td.col-name .lbl small { display: block; font-weight: 400; font-size: 0.74rem; color: var(--muted); }
     tr.diff-row .g { color: #2e7d32; font-weight: 600; } tr.diff-row .r { color: var(--neg); font-weight: 600; }
     .sheet tr.diff-row td.cell.over, .sheet tr.diff-row td.cell.over.past, .sheet tr.diff-row td.cell.over.now { background: #dcf1dc; }
     .sheet tr.diff-row td.cell.short, .sheet tr.diff-row td.cell.short.past, .sheet tr.diff-row td.cell.short.now { background: #f8d7d5; }
@@ -142,7 +142,7 @@
 
     /* ── 6-month overview ── */
     .overview { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 0.75rem 0.9rem 0.5rem; margin-bottom: 1rem; }
-    .ov-title { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.4rem; }
+    .ov-title { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.4rem; }
     .ov-scroll { overflow-x: auto; }
     .mon-btn { background: none; border: 0; cursor: pointer; font: inherit; color: inherit; letter-spacing: inherit; text-transform: inherit; padding: 0.15rem 0.4rem; border-radius: 4px; }
     .mon-btn:hover { background: var(--now); text-decoration: underline; text-decoration-color: var(--gold); }
@@ -165,8 +165,8 @@
     .overview.collapsed .ov-arrow { transform: rotate(180deg); }
     .ov-hint { text-transform: none; letter-spacing: 0; color: var(--muted); font-size: 0.72rem; }
     table.ov { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; min-width: 640px; }
-    table.ov th, table.ov td { padding: 0.4rem 0.6rem; text-align: right; font-size: 0.85rem; border-bottom: 1px solid var(--line); white-space: nowrap; }
-    table.ov tbody th { text-align: left; font-weight: 500; color: var(--muted); font-size: 0.78rem; }
+    table.ov th, table.ov td { padding: 0.45rem 0.6rem; text-align: right; font-size: 0.94rem; border-bottom: 1px solid var(--line); white-space: nowrap; }
+    table.ov tbody th { text-align: left; font-weight: 500; color: var(--muted); font-size: 0.9rem; }
     table.ov tr:last-child th, table.ov tr:last-child td { border-bottom: 0; }
     table.ov td { font-weight: 600; }
     table.ov td.neg { color: var(--neg); }
@@ -179,10 +179,10 @@
     table.ov thead th.cur { box-shadow: inset 2px 0 0 var(--gold), inset -2px 0 0 var(--gold), inset 0 2px 0 var(--gold); background: var(--now); }
     table.ov tbody tr:last-child td.cur { box-shadow: inset 2px 0 0 var(--gold), inset -2px 0 0 var(--gold), inset 0 -2px 0 var(--gold); }
     table.ov tr.ov-per td { vertical-align: top; padding-top: 0.35rem; padding-bottom: 0.35rem; }
-    table.ov tr.ov-per th small { display: block; font-size: 0.64rem; color: var(--muted); font-weight: 400; }
+    table.ov tr.ov-per th small { display: block; font-size: 0.72rem; color: var(--muted); font-weight: 400; }
     table.ov .per-grid { display: inline-grid; grid-template-columns: max-content max-content; column-gap: 0.6rem; row-gap: 0.1rem; line-height: 1.55; }
-    table.ov .per-grid .dt { text-align: left; color: var(--muted); font-weight: 500; font-size: 0.72rem; align-self: center; }
-    table.ov .per-grid .amt { text-align: right; font-size: 0.8rem; }
+    table.ov .per-grid .dt { text-align: left; color: var(--muted); font-weight: 500; font-size: 0.8rem; align-self: center; }
+    table.ov .per-grid .amt { text-align: right; font-size: 0.9rem; }
     table.ov .per-grid .amt.pos { color: #2e7d32; }
     table.ov .per-grid .amt.neg { color: var(--neg); }
     table.ov tr.ov-per td.tot div { color: var(--muted); font-weight: 500; font-size: 0.75rem; }
@@ -193,20 +193,20 @@
     /* ── grid ── */
     .sheet-wrap { background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: auto; max-height: calc(100vh - 230px); }
     table.sheet { border-collapse: separate; border-spacing: 0; width: 100%; table-layout: fixed; }
-    .sheet th, .sheet td { border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); padding: 0; height: 34px; white-space: nowrap; }
-    .sheet thead th { position: sticky; background: #fbfaf7; z-index: 5; font-weight: 600; font-size: 0.75rem; }
+    .sheet th, .sheet td { border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); padding: 0; height: 38px; white-space: nowrap; }
+    .sheet thead th { position: sticky; background: #fbfaf7; z-index: 5; font-weight: 600; font-size: 0.82rem; }
     .sheet thead tr.months th { top: 0; height: 30px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gold-ink); border-bottom-color: var(--line); }
     .sheet thead tr.dates th { top: 30px; color: var(--muted); font-weight: 500; }
     .sheet thead th.month { border-right: 2px solid var(--line-strong); }
     .sheet th.col-name, .sheet td.col-name { position: sticky; left: 0; z-index: 4; background: var(--card); width: var(--stick-w); min-width: var(--stick-w); max-width: var(--stick-w); text-align: left; }
     .sheet th.col-due, .sheet td.col-due { position: sticky; left: var(--stick-w); z-index: 4; background: var(--card); width: var(--due-w); min-width: var(--due-w); max-width: var(--due-w); text-align: center; }
-    .due-val { font-size: 0.78rem; font-weight: 600; color: var(--gold-ink); overflow: hidden; text-overflow: ellipsis; padding: 0 0.2rem; }
+    .due-val { font-size: 0.86rem; font-weight: 600; color: var(--gold-ink); overflow: hidden; text-overflow: ellipsis; padding: 0 0.2rem; }
     .due-val.soon { background: var(--gold); color: #fff; border-radius: 999px; padding: 0.15rem 0.45rem; display: inline-block; }
     .sheet th.col-budget, .sheet td.col-budget { position: sticky; left: calc(var(--stick-w) + var(--due-w)); z-index: 4; background: var(--card); width: var(--budget-w); min-width: var(--budget-w); text-align: right; border-right: 2px solid var(--line-strong); }
     .sheet thead th.col-name, .sheet thead th.col-due, .sheet thead th.col-budget { z-index: 7; background: #fbfaf7; }
     .sheet thead th.col-name { padding-left: 0.8rem; }
     .sheet thead th.col-budget { padding-right: 0.6rem; }
-    .sheet td.cell { min-width: 96px; }
+    .sheet td.cell { min-width: 108px; }
     .sheet td.cell.month-end, .sheet th.month-end { border-right: 2px solid var(--line-strong); }
     .sheet td.cell.past { background: var(--past); }
     .sheet td.cell.now, .sheet thead th.now { background: var(--now); }
@@ -215,28 +215,28 @@
     .name-btn { display: flex; align-items: center; gap: 0.4rem; width: 100%; height: 100%; padding: 0 0.6rem 0 0.8rem; background: none; border: 0; cursor: pointer; text-align: left; overflow: hidden; }
     .name-btn:hover .nm { text-decoration: underline; text-decoration-color: var(--gold); }
     .name-btn .txt { display: flex; flex-direction: column; overflow: hidden; min-width: 0; flex: 1; }
-    .name-btn .nm { font-weight: 500; overflow: hidden; text-overflow: ellipsis; font-size: 0.85rem; }
-    .name-btn .nt { font-size: 0.68rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
-    .chip { font-size: 0.6rem; font-weight: 600; letter-spacing: 0.04em; padding: 0.1rem 0.35rem; border-radius: 999px; background: #eef0f2; color: var(--muted); flex: none; }
+    .name-btn .nm { font-weight: 500; overflow: hidden; text-overflow: ellipsis; font-size: 0.96rem; }
+    .name-btn .nt { font-size: 0.76rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
+    .chip { font-size: 0.66rem; font-weight: 600; letter-spacing: 0.04em; padding: 0.1rem 0.35rem; border-radius: 999px; background: #eef0f2; color: var(--muted); flex: none; }
     .chip.rep { background: #e7f0e4; color: #3d6b35; }
     .chip.shr { background: var(--row-shared); color: var(--gold-ink); }
     .name-btn.sub { padding-left: 2.1rem; }
     .name-btn.sub::before { content: '↳'; color: var(--line-strong); margin-left: -1.1rem; width: 0.8rem; flex: none; }
     .name-btn.sub .nm { font-weight: 400; color: #3b434c; }
-    .budget-val { padding-right: 0.6rem; font-size: 0.82rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .budget-val { padding-right: 0.6rem; font-size: 0.92rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 
-    .cell input { width: 100%; height: 33px; border: 0; background: transparent; text-align: right; padding: 0 0.55rem; font-size: 0.85rem; font-variant-numeric: tabular-nums; outline: none; }
+    .cell input { width: 100%; height: 37px; border: 0; background: transparent; text-align: right; padding: 0 0.55rem; font-size: 0.94rem; font-variant-numeric: tabular-nums; outline: none; }
     .cell input::placeholder { color: var(--ink); font-style: normal; opacity: 1; }
     .cell input:focus { background: #fff; box-shadow: inset 0 0 0 2px var(--gold); }
     .cell input.zero { color: #b5bac1; }
     .cell input.neg { color: var(--neg); }
-    .calc { text-align: right; padding: 0 0.55rem; font-weight: 600; font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+    .calc { text-align: right; padding: 0 0.55rem; font-weight: 600; font-size: 0.94rem; font-variant-numeric: tabular-nums; }
     .calc.neg { color: var(--neg); }
 
     tr.section-head td { background: var(--navy); color: #fff; height: 38px; }
     tr.section-head td.col-name, tr.section-head td.col-due, tr.section-head td.col-budget { background: var(--navy); }
     tr.section-head .sec-title { display: flex; align-items: center; gap: 0.6rem; padding-left: 0.8rem; }
-    tr.section-head .sec-title button.sec-name { background: none; border: 0; color: #fff; font-weight: 600; letter-spacing: 0.04em; cursor: pointer; font-size: 0.85rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
+    tr.section-head .sec-title button.sec-name { background: none; border: 0; color: #fff; font-weight: 600; letter-spacing: 0.04em; cursor: pointer; font-size: 0.96rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
     tr.section-head .sec-title { padding-right: 0.5rem; }
     tr.section-head .add-line { flex: none; }
     tr.section-head .sec-toggle { flex: none; display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.35); background: transparent; color: #fff; font-size: 0.55rem; cursor: pointer; transition: transform 0.15s; padding: 0; }
@@ -244,7 +244,7 @@
     tr.section-head .sec-toggle.closed { transform: rotate(180deg); }
     tr.section-head .sec-hidden { flex: none; font-size: 0.66rem; color: #c8c0b0; font-weight: 400; letter-spacing: 0; }
     tr.add-row td, tr.add-row td.col-name, tr.add-row td.col-due, tr.add-row td.col-budget { background: var(--card); height: 34px; }
-    tr.add-row .add-exp { display: flex; align-items: center; gap: 0.45rem; width: 100%; height: 100%; padding: 0 0.8rem; background: none; border: 0; cursor: pointer; color: var(--gold-ink); font-weight: 600; font-size: 0.8rem; text-align: left; }
+    tr.add-row .add-exp { display: flex; align-items: center; gap: 0.45rem; width: 100%; height: 100%; padding: 0 0.8rem; background: none; border: 0; cursor: pointer; color: var(--gold-ink); font-weight: 600; font-size: 0.9rem; text-align: left; }
     tr.add-row .add-exp .plus { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--gold); color: var(--gold-ink); font-size: 0.95rem; line-height: 1; }
     tr.add-row .add-exp:hover { background: var(--now); }
     tr.add-row .add-exp:hover .plus { background: var(--gold); color: #fff; }
@@ -259,14 +259,14 @@
     tr.section-head .cell input::placeholder { color: #fff; font-weight: 600; }
     tr.section-head .cell input:focus { background: #fff; color: var(--ink); }
     tr.total-row td, tr.total-row td.col-name, tr.total-row td.col-due, tr.total-row td.col-budget { background: var(--row-total); font-weight: 600; }
-    tr.total-row td.col-name { padding-left: 0.8rem; font-size: 0.8rem; }
-    tr.total-row td.col-due, tr.total-row td.col-budget { padding-right: 0.6rem; font-size: 0.82rem; }
+    tr.total-row td.col-name { padding-left: 0.8rem; font-size: 0.92rem; }
+    tr.total-row td.col-due, tr.total-row td.col-budget { padding-right: 0.6rem; font-size: 0.92rem; }
     tr.sum-pay td, tr.sum-pay td.col-name, tr.sum-pay td.col-due, tr.sum-pay td.col-budget { background: var(--row-pay); }
     tr.sum-save td, tr.sum-save td.col-name, tr.sum-save td.col-due, tr.sum-save td.col-budget { background: var(--row-save); }
     tr.sum-shared td, tr.sum-shared td.col-name, tr.sum-shared td.col-due, tr.sum-shared td.col-budget { background: var(--row-shared); }
     tr.sum-rem td, tr.sum-rem td.col-name, tr.sum-rem td.col-due, tr.sum-rem td.col-budget { background: var(--row-rem); }
-    tr.sum-row td.col-name .lbl { padding-left: 0.8rem; font-weight: 600; font-size: 0.85rem; display: block; }
-    tr.sum-row td.col-name .lbl small { display: block; font-weight: 400; font-size: 0.66rem; color: var(--muted); }
+    tr.sum-row td.col-name .lbl { padding-left: 0.8rem; font-weight: 600; font-size: 0.96rem; display: block; }
+    tr.sum-row td.col-name .lbl small { display: block; font-weight: 400; font-size: 0.74rem; color: var(--muted); }
     tr.sum-pay td.cell.past, tr.sum-pay td.cell.now { background: var(--row-pay); }
     tr.sum-save td.cell.past, tr.sum-save td.cell.now { background: var(--row-save); }
     tr.sum-shared td.cell.past, tr.sum-shared td.cell.now { background: var(--row-shared); }
@@ -687,7 +687,7 @@
         </tbody></table></div></div>`;
 
       // table
-      h += `<div class="sheet-wrap" id="sheetWrap"><table class="sheet" style="min-width: calc(var(--stick-w) + var(--due-w) + var(--budget-w) + ${cols.length * 96}px)"><colgroup><col style="width: var(--stick-w)"><col style="width: var(--due-w)"><col style="width: var(--budget-w)">${cols.map(() => '<col>').join('')}</colgroup><thead><tr class="months">
+      h += `<div class="sheet-wrap" id="sheetWrap"><table class="sheet" style="min-width: calc(var(--stick-w) + var(--due-w) + var(--budget-w) + ${cols.length * 108}px)"><colgroup><col style="width: var(--stick-w)"><col style="width: var(--due-w)"><col style="width: var(--budget-w)">${cols.map(() => '<col>').join('')}</colgroup><thead><tr class="months">
         <th class="col-name" rowspan="2">Item</th><th class="col-due" rowspan="2">Due</th><th class="col-budget" rowspan="2">Budget/mo</th>`;
       months.forEach(mo => { if (mo.periods.length) h += `<th class="month" colspan="${mo.periods.length}"><button type="button" class="mon-btn" data-focus="${mo.y}-${mo.m}" title="${view.focus ? 'Showing only this month' : 'Show only ' + MONTHS[mo.m] + ' ' + mo.y}">${MONTHS[mo.m]} ${mo.y}</button>${view.focus ? '<button type="button" class="mon-expand" data-act="unfocus" title="Show the other months again">View all months ›</button>' : ''}</th>`; });
       h += `</tr><tr class="dates">`;
