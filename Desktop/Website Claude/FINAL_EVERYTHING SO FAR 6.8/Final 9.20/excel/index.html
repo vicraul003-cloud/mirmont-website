@@ -240,6 +240,9 @@
     tr.section-head .sec-title button.sec-name { background: none; border: 0; color: #fff; font-weight: 600; letter-spacing: 0.04em; cursor: pointer; font-size: 0.96rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
     tr.section-head .sec-title { padding-right: 0.5rem; }
     tr.section-head .add-line { flex: none; }
+    .item-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding-right: 0.6rem; }
+    .all-toggle { text-transform: none; letter-spacing: 0; font-size: 0.72rem; font-weight: 600; color: var(--gold-ink); background: transparent; border: 1px solid var(--line-strong); border-radius: 999px; padding: 0.2rem 0.6rem; cursor: pointer; white-space: nowrap; }
+    .all-toggle:hover { border-color: var(--gold); background: var(--now); }
     tr.section-head .sec-toggle { flex: none; display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.35); background: transparent; color: #fff; font-size: 0.55rem; cursor: pointer; transition: transform 0.15s; padding: 0; }
     tr.section-head .sec-toggle:hover { border-color: var(--gold); color: var(--gold); }
     tr.section-head .sec-toggle.closed { transform: rotate(180deg); }
@@ -758,7 +761,7 @@
 
       // table
       h += `<div class="sheet-wrap" id="sheetWrap"><table class="sheet" style="min-width: calc(var(--stick-w) + var(--due-w) + var(--budget-w) + ${cols.length * 108}px)"><colgroup><col style="width: var(--stick-w)"><col style="width: var(--due-w)"><col style="width: var(--budget-w)">${cols.map(() => '<col>').join('')}</colgroup><thead><tr class="months">
-        <th class="col-name" rowspan="2">Item</th><th class="col-due" rowspan="2">Due</th><th class="col-budget" rowspan="2">Budget/mo</th>`;
+        <th class="col-name" rowspan="2"><div class="item-head">Item${(() => { const allClosed = data.sections.length && data.sections.every(x => collapsedSecs.has(x.id)); return `<button type="button" class="all-toggle" data-act="secall" title="${allClosed ? 'Show every section' : 'Fold every section to its total'}">${allClosed ? '▼ Show all' : '▲ Collapse all'}</button>`; })()}</div></th><th class="col-due" rowspan="2">Due</th><th class="col-budget" rowspan="2">Budget/mo</th>`;
       months.forEach(mo => { if (mo.periods.length) h += `<th class="month" colspan="${mo.periods.length}"><button type="button" class="mon-btn" data-focus="${mo.y}-${mo.m}" title="${view.focus ? 'Showing only this month' : 'Show only ' + MONTHS[mo.m] + ' ' + mo.y}">${MONTHS[mo.m]} ${mo.y}</button>${view.focus ? '<button type="button" class="mon-expand" data-act="unfocus" title="Show the other months again">View all months ›</button>' : ''}</th>`; });
       h += `</tr><tr class="dates">`;
       cols.forEach(c => { const d = new Date(fromISO(c.iso)); h += `<th class="c${c.iso} ${calc[c.iso].remainder < 0 ? 'hd-neg' : 'hd-pos'} ${c.monthEnd ? 'month-end' : ''} ${c.iso === nowP ? 'now' : ''}">${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}${c.iso === nowP ? ' · now' : ''}</th>`; });
@@ -1019,6 +1022,7 @@
       else if (t.dataset.act === 'today') { goToday(); view.focus = { ...view.start }; jumpToNow = false; render(); $('sheetWrap').scrollLeft = 0; }
       else if (t.dataset.focus) { if (!view.focus) { const [y, m] = t.dataset.focus.split('-').map(Number); view.focus = { y, m }; render(); $('sheetWrap').scrollLeft = 0; } }
       else if (t.dataset.act === 'unfocus') { const f = view.focus; view.focus = null; render(); const th = f && document.querySelector(`#sheetWrap .mon-btn[data-focus="${f.y}-${f.m}"]`); if (th) { const wrap = $('sheetWrap'), bud = wrap.querySelector('thead th.col-budget').getBoundingClientRect(); wrap.scrollLeft += th.closest('th').getBoundingClientRect().left - bud.right; } }
+      else if (t.dataset.act === 'secall') { const sl = $('sheetWrap').scrollLeft; const allClosed = data.sections.every(x => collapsedSecs.has(x.id)); if (allClosed) collapsedSecs.clear(); else data.sections.forEach(x => collapsedSecs.add(x.id)); render(); $('sheetWrap').scrollLeft = sl; }
       else if (t.dataset.act === 'sectoggle') { const id = t.dataset.sid, sl = $('sheetWrap').scrollLeft; collapsedSecs.has(id) ? collapsedSecs.delete(id) : collapsedSecs.add(id); render(); $('sheetWrap').scrollLeft = sl; }
       else if (t.dataset.act === 'statstoggle') { const sl = $('sheetWrap') ? $('sheetWrap').scrollLeft : 0; view.statsHidden = !view.statsHidden; render(); $('sheetWrap').scrollLeft = sl; }
       else if (t.dataset.act === 'ovtoggle') { const sl = $('sheetWrap') ? $('sheetWrap').scrollLeft : 0; view.ovHidden = !view.ovHidden; saveView(); render(); $('sheetWrap').scrollLeft = sl; }
