@@ -914,8 +914,9 @@
       $('applyFuture').innerHTML = `${fmtDate(iso)} and all future<small>Every later pay period for this line becomes ${money(n)}</small>`;
 
       applyPending = { id, iso, n, before, future, sameLater, input, done };
+      $('applyOne').classList.add('primary'); $('applyFuture').classList.remove('primary');
       $('applyDlg').showModal();
-      $('applyFuture').focus();
+      $('applyOne').focus(); // Enter = just this pay period
     }
 
     // Amount per occurrence implied by a monthly budget
@@ -932,6 +933,7 @@
       $('applyOne').innerHTML = `Only change the budget number<small>The boxes keep their amounts</small>`;
       $('applyFuture').innerHTML = `Update boxes from ${fmtDate(nowP)} onward<small>${money(amt)} ${occLabel[it.repeat] || ''}${it.repeat === 'every' ? ' (half the monthly budget)' : ''}; earlier boxes stay as they are</small>`;
       applyPending = { kind: 'budget', id: it.id, amt };
+      $('applyFuture').classList.add('primary'); $('applyOne').classList.remove('primary');
       $('applyDlg').showModal();
       $('applyFuture').focus();
     }
