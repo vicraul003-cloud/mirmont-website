@@ -134,6 +134,13 @@
     .ctx-menu button:hover:not(:disabled) { background: var(--page); }
     .ctx-menu button:disabled { opacity: 0.45; cursor: default; }
     .ctx-menu button.danger { color: var(--neg); }
+    .ctx-menu .ctx-dates { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.15rem; padding: 0.15rem 0.3rem 0.3rem; }
+    .ctx-menu .ctx-dates[hidden] { display: none; }
+    .ctx-menu .ctx-dates button { justify-content: center; padding: 0.35rem 0.2rem; font-size: 0.78rem; border: 1px solid var(--line); }
+    .ctx-menu .ctx-dates button.on { background: #3b82c4; color: #fff; border-color: #3b82c4; }
+    .sheet td.cell .lk { position: absolute; right: 3px; bottom: 1px; font-size: 0.6rem; font-weight: 700; line-height: 1.1; color: #fff; background: #3b82c4; border-radius: 3px; padding: 0 3px; z-index: 3; white-space: nowrap; pointer-events: auto; cursor: default; }
+    .sheet tr.diff-row td.cell .lk { left: 3px; right: auto; max-width: calc(100% - 6px); overflow: hidden; text-overflow: ellipsis; }
+    .sheet td.cell.lk-partner { box-shadow: inset 0 0 0 2px #3b82c4 !important; }
     .ctx-menu .sep { height: 1px; background: var(--line); margin: 0.25rem 0.3rem; }
 
     /* ── drag to move amounts ── */
@@ -836,7 +843,9 @@
         }
         if (needs) { bal += ' due-short'; tip = ` title="${esc((itemInfo(id) || {}).name)} ${sg.label}: needs ${money(sg.A)}, planned ${money(sg.have) || '$0'} — short ${money(sg.short)}${bal.includes('due-late') ? '. This bill is due next month, before its first paycheck, so pay it from this check.' : ''}"`; }
         const hint = needs ? `<button type="button" class="sugg" tabindex="-1" data-sid="${id}" data-sd="${c.iso}" title="Suggested ${money(sg.amt)} so ${money(sg.A)} ${sg.label} is covered. Double-click to use it.">?</button>` : '';
-        return `<td class="${cls(c)}${bal}" data-cid="${id}" data-cd="${c.iso}"${tip}>${grip}${hint}<input class="${k}" data-id="${id}" data-d="${c.iso}" value="${esc(val)}" data-raw="${esc(raw)}" placeholder="${esc(ph)}" inputmode="decimal" autocomplete="off" aria-label="${esc((itemInfo(id) || {}).name)} ${c.iso}" /></td>`;
+        const lkT = data.links && data.links[id + '|' + c.iso];
+        const lk = lkT && v != null && v !== 0 && !carried ? `<span class="lk lk-from" data-lk="${lkT}" title="${esc((itemInfo(id) || {}).name)}: ${money(v)} from the ${fmtDate(c.iso)} check covers the ${fmtDate(lkT)} check">→ ${fmtDate(lkT)}</span>` : '';
+        return `<td class="${cls(c)}${bal}${lk ? ' lk-cell' : ''}" data-cid="${id}" data-cd="${c.iso}"${tip}>${grip}${hint}${lk}<input class="${k}" data-id="${id}" data-d="${c.iso}" value="${esc(val)}" data-raw="${esc(raw)}" placeholder="${esc(ph)}" inputmode="decimal" autocomplete="off" aria-label="${esc((itemInfo(id) || {}).name)} ${c.iso}" /></td>`;
       };
       const calcCell = (c, v) => `<td class="${cls(c)}"><div class="calc ${v < 0 ? 'neg' : ''}">${money(v)}</div></td>`;
       const span = cols.length;
@@ -867,7 +876,10 @@
           h += `<tr class="diff-row"><td class="col-name"><span class="lbl">Difference<small>Paycheck − total · <span class="g">over</span> / <span class="r">short</span></small></span></td><td class="col-due"></td><td class="col-budget"></td>${cols.map(c => {
             const d = Math.round((calc[c.iso].pay - calc[c.iso].sections[s.id]) * 100) / 100;
             roVals['=diff|' + c.iso] = d;
-            return `<td class="${cls(c)} ${d < 0 ? 'short' : 'over'} ro" data-cid="=diff" data-cd="${c.iso}" title="Read only · ⌘/Ctrl+click or Shift+click to add up"><div class="calc">${d < 0 ? '−' : '+'}${money(Math.abs(d)) || '$0'}</div></td>`;
+            const inc = linksTo(c.iso);
+            const lkIn = inc.length ? `<span class="lk lk-to" data-lk="${inc.map(x => x.from).join(',')}">← ${inc.map(x => fmtDate(x.from)).join(', ')}</span>` : '';
+            const inTip = inc.length ? ' · Covered by: ' + inc.map(x => `${esc(x.name)} ${money(x.v) || '$0'} from ${fmtDate(x.from)}`).join('; ') : '';
+            return `<td class="${cls(c)} ${d < 0 ? 'short' : 'over'} ro${lkIn ? ' lk-cell' : ''}" data-cid="=diff" data-cd="${c.iso}" title="Read only · ⌘/Ctrl+click or Shift+click to add up${inTip}">${lkIn}<div class="calc">${d < 0 ? '−' : '+'}${money(Math.abs(d)) || '$0'}</div></td>`;
           }).join('')}</tr>`;
         }
       });
@@ -1120,6 +1132,22 @@
       const t = fromISO(iso) + DAY;
       return periodsBetween(t, t + 3 * 366 * DAY);
     }
+    // links: "this box (item|date) sets money aside for that later paycheck" — chosen from the right-click menu
+    function linksTo(iso) {
+      const out = [];
+      Object.entries(data.links || {}).forEach(([k, to]) => {
+        if (to !== iso) return;
+        const [id, from] = k.split('|'); const cv = cellValue(id, from);
+        if (cv.v == null || cv.v === 0 || cv.carried) return;
+        out.push({ id, from, v: cv.v, name: (itemInfo(id) || {}).name || '' });
+      });
+      return out.sort((a, b) => a.from.localeCompare(b.from));
+    }
+    function setLink(keys, to) {
+      data.links = data.links || {};
+      keys.forEach(k => { if (k[0] === '=' || k.startsWith('paycheck|')) return; if (to) data.links[k] = to; else delete data.links[k]; });
+      redraw();
+    }
     const fmtDate = (iso) => { const d = new Date(fromISO(iso)); return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`; };
 
     function redraw() {
@@ -1335,6 +1363,17 @@
     document.addEventListener('focusin', (e) => { const td = e.target.closest && e.target.closest('#sheetWrap td.cell[data-cid]'); if (td && !sel.size) selAnchor = keyOf(td); });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') clearSelection(); });
 
+    // hover a link tag to outline the paycheck(s) on the other end
+    document.addEventListener('mouseover', (e) => {
+      const t = e.target.closest && e.target.closest('.lk');
+      document.querySelectorAll('#sheetWrap td.lk-partner').forEach(x => x.classList.remove('lk-partner'));
+      if (!t) return;
+      const td = t.closest('td.cell');
+      if (t.classList.contains('lk-from')) { const x = document.querySelector(`#sheetWrap tr.diff-row td[data-cd="${t.dataset.lk}"]`); if (x) x.classList.add('lk-partner'); }
+      else t.dataset.lk.split(',').forEach(d => Object.entries(data.links || {}).forEach(([k, to]) => { if (to === td.dataset.cd && k.endsWith('|' + d)) { const [id] = k.split('|'); const x = document.querySelector(`#sheetWrap td.cell[data-cid="${id}"][data-cd="${d}"]`); if (x) x.classList.add('lk-partner'); } }));
+      if (td) td.classList.add('lk-partner');
+    });
+
     // ── right-click menu: copy / paste / delete (set to $0) ──
     let clip = null; // { v, from }
     function closeCtx() { const m = document.getElementById('ctxMenu'); if (m) m.remove(); }
@@ -1356,6 +1395,18 @@
       m.innerHTML = `
         <button type="button" data-ctx="copy" ${cur == null ? 'disabled' : ''}>Copy <span>${cur == null ? 'empty' : money(cur) || '$0'}</span></button>
         <button type="button" data-ctx="paste" ${canEdit ? '' : 'disabled title="Read-only box"'}>Paste${many} <span>${clip ? money(clip.v) || '$0' : 'from clipboard'}</span></button>
+        ${(() => {
+          const ed = targets.filter(t => t[0] !== '=' && !t.startsWith('paycheck|'));
+          if (!ed.length) return '';
+          const first = ed.map(t => t.split('|')[1]).sort()[0];
+          const step = (data.periodDays || 14) * DAY, later = [];
+          for (let i = 1; i <= 12; i++) later.push(toISO(fromISO(first) + i * step));
+          const curLink = ed.length === 1 && data.links && data.links[ed[0]];
+          return `<div class="sep"></div>
+            <button type="button" data-ctx="covers">Covers paycheck… <span>${curLink ? '→ ' + fmtDate(curLink) : 'set aside for'}</span></button>
+            <div class="ctx-dates" hidden>${later.map(d => `<button type="button" data-ctx="link" data-to="${d}" class="${d === curLink ? 'on' : ''}">${fmtDate(d)}${d.slice(0, 4) !== first.slice(0, 4) ? " '" + d.slice(2, 4) : ''}</button>`).join('')}</div>
+            ${ed.some(t => data.links && data.links[t]) ? '<button type="button" data-ctx="unlink">Remove link</button>' : ''}`;
+        })()}
         <div class="sep"></div>
         <button type="button" data-ctx="zero" class="danger" ${canEdit ? '' : 'disabled title="Read-only box"'}>Delete — set to $0${many}</button>`;
       document.body.appendChild(m);
@@ -1365,6 +1416,8 @@
       m.addEventListener('click', async (ev) => {
         const b = ev.target.closest('button[data-ctx]'); if (!b || b.disabled) return;
         const act = b.dataset.ctx;
+        if (act === 'covers') { const dl = m.querySelector('.ctx-dates'); dl.hidden = !dl.hidden; const r2 = m.getBoundingClientRect(); if (r2.bottom > window.innerHeight - 8) m.style.top = Math.max(8, window.innerHeight - r2.height - 8) + 'px'; return; }
+        if (act === 'link' || act === 'unlink') { setLink(targets, act === 'link' ? b.dataset.to : null); closeCtx(); clearSelection(); return; }
         if (act === 'paste' && !clip) {
           let txt = '';
           try { txt = await navigator.clipboard.readText(); } catch {}
@@ -1574,7 +1627,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: Difference row boxes selectable for sum (read only)', at: '2026-10-12T21:55:00-04:00' };
+    const PAGE_VERSION = { msg: 'Budget: link a box to the paycheck it covers', at: '2026-10-12T22:58:00-04:00' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/New_York' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }); }
     $('infoPop').title = PAGE_VERSION.msg;
