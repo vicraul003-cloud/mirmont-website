@@ -134,12 +134,18 @@
     .ctx-menu button:hover:not(:disabled) { background: var(--page); }
     .ctx-menu button:disabled { opacity: 0.45; cursor: default; }
     .ctx-menu button.danger { color: var(--neg); }
-    .ctx-menu .ctx-dates { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.15rem; padding: 0.15rem 0.3rem 0.3rem; }
-    .ctx-menu .ctx-dates[hidden] { display: none; }
-    .ctx-menu .ctx-dates button { justify-content: center; padding: 0.35rem 0.2rem; font-size: 0.78rem; border: 1px solid var(--line); }
-    .ctx-menu .ctx-dates button.on { background: #3b82c4; color: #fff; border-color: #3b82c4; }
     .sheet td.cell .lk { position: absolute; right: 3px; bottom: 1px; font-size: 0.6rem; font-weight: 700; line-height: 1.1; color: #fff; background: #3b82c4; border-radius: 3px; padding: 0 3px; z-index: 3; white-space: nowrap; pointer-events: auto; cursor: default; }
     .sheet tr.diff-row td.cell .lk { left: 3px; right: auto; max-width: calc(100% - 6px); overflow: hidden; text-overflow: ellipsis; }
+    .link-bar { position: fixed; top: 74px; left: 50%; transform: translateX(-50%); z-index: 70; display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; max-width: calc(100vw - 32px); background: #1f4f7a; color: #fff; border-radius: 10px; padding: 0.55rem 0.8rem 0.55rem 1rem; box-shadow: 0 10px 28px rgba(0,0,0,0.3); font-size: 0.85rem; }
+    .link-bar .lb-picked { font-weight: 700; background: rgba(255,255,255,0.15); border-radius: 5px; padding: 0.15rem 0.5rem; }
+    .link-bar button { border: 1px solid rgba(255,255,255,0.5); background: transparent; color: #fff; border-radius: 6px; padding: 0.3rem 0.8rem; cursor: pointer; font-size: 0.8rem; }
+    .link-bar .lb-done { background: #fff; color: #1f4f7a; font-weight: 700; border-color: #fff; }
+    .link-bar button:disabled { opacity: 0.45; cursor: default; }
+    html.link-picking #sheetWrap td.cell, html.link-picking #sheetWrap tr.dates th { cursor: crosshair; }
+    html.link-picking #sheetWrap td.cell input { pointer-events: none; }
+    #sheetWrap .sheet td.cell.lk-col, #sheetWrap .sheet tr.dates th.lk-col { background-image: linear-gradient(rgba(59, 130, 196, 0.25), rgba(59, 130, 196, 0.25)) !important; }
+    #sheetWrap .sheet tr.dates th.lk-col { box-shadow: inset 0 -3px 0 #3b82c4; }
+    #sheetWrap .sheet td.cell.lk-src { box-shadow: inset 0 0 0 2px #e0a030 !important; }
     .sheet td.cell.lk-partner { box-shadow: inset 0 0 0 2px #3b82c4 !important; }
     .ctx-menu .sep { height: 1px; background: var(--line); margin: 0.25rem 0.3rem; }
 
@@ -843,8 +849,8 @@
         }
         if (needs) { bal += ' due-short'; tip = ` title="${esc((itemInfo(id) || {}).name)} ${sg.label}: needs ${money(sg.A)}, planned ${money(sg.have) || '$0'} — short ${money(sg.short)}${bal.includes('due-late') ? '. This bill is due next month, before its first paycheck, so pay it from this check.' : ''}"`; }
         const hint = needs ? `<button type="button" class="sugg" tabindex="-1" data-sid="${id}" data-sd="${c.iso}" title="Suggested ${money(sg.amt)} so ${money(sg.A)} ${sg.label} is covered. Double-click to use it.">?</button>` : '';
-        const lkT = data.links && data.links[id + '|' + c.iso];
-        const lk = lkT && v != null && v !== 0 && !carried ? `<span class="lk lk-from" data-lk="${lkT}" title="${esc((itemInfo(id) || {}).name)}: ${money(v)} from the ${fmtDate(c.iso)} check covers the ${fmtDate(lkT)} check">→ ${fmtDate(lkT)}</span>` : '';
+        const lkT = lkList(data.links && data.links[id + '|' + c.iso]);
+        const lk = lkT.length ? `<span class="lk lk-from" data-lk="${lkT.join(',')}" title="${esc((itemInfo(id) || {}).name)}: ${money(v) || '$0'} from the ${fmtDate(c.iso)} check covers the ${lkT.map(fmtDate).join(' + ')} check${lkT.length > 1 ? 's' : ''}">→ ${lkT.map(fmtDate).join(', ')}</span>` : '';
         return `<td class="${cls(c)}${bal}${lk ? ' lk-cell' : ''}" data-cid="${id}" data-cd="${c.iso}"${tip}>${grip}${hint}${lk}<input class="${k}" data-id="${id}" data-d="${c.iso}" value="${esc(val)}" data-raw="${esc(raw)}" placeholder="${esc(ph)}" inputmode="decimal" autocomplete="off" aria-label="${esc((itemInfo(id) || {}).name)} ${c.iso}" /></td>`;
       };
       const calcCell = (c, v) => `<td class="${cls(c)}"><div class="calc ${v < 0 ? 'neg' : ''}">${money(v)}</div></td>`;
@@ -1136,16 +1142,16 @@
     function linksTo(iso) {
       const out = [];
       Object.entries(data.links || {}).forEach(([k, to]) => {
-        if (to !== iso) return;
+        if (!lkList(to).includes(iso)) return;
         const [id, from] = k.split('|'); const cv = cellValue(id, from);
-        if (cv.v == null || cv.v === 0 || cv.carried) return;
-        out.push({ id, from, v: cv.v, name: (itemInfo(id) || {}).name || '' });
+        out.push({ id, from, v: cv.v || 0, name: (itemInfo(id) || {}).name || '' });
       });
       return out.sort((a, b) => a.from.localeCompare(b.from));
     }
-    function setLink(keys, to) {
+    const lkList = (v) => Array.isArray(v) ? v : (v ? [v] : []);
+    function setLink(keys, to) { // to: array of pay dates, or null to remove
       data.links = data.links || {};
-      keys.forEach(k => { if (k[0] === '=' || k.startsWith('paycheck|')) return; if (to) data.links[k] = to; else delete data.links[k]; });
+      keys.forEach(k => { if (k[0] === '=' || k.startsWith('paycheck|')) return; const t = (to || []).filter(d => d !== k.split('|')[1]).sort(); if (t.length) data.links[k] = t.length === 1 ? t[0] : t; else delete data.links[k]; });
       redraw();
     }
     const fmtDate = (iso) => { const d = new Date(fromISO(iso)); return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`; };
@@ -1363,14 +1369,64 @@
     document.addEventListener('focusin', (e) => { const td = e.target.closest && e.target.closest('#sheetWrap td.cell[data-cid]'); if (td && !sel.size) selAnchor = keyOf(td); });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') clearSelection(); });
 
+    // ── "Covers paycheck…": pick mode — click the box(es) of the paycheck(s) this money is for ──
+    let linkPick = null; // { keys, picked: Set of dates }
+    function startLinkPick(keys) {
+      if (!keys.length) return;
+      linkPick = { keys, picked: new Set(keys.length === 1 ? lkList(data.links && data.links[keys[0]]) : []) };
+      let bar = $('linkBar');
+      if (!bar) { bar = document.createElement('div'); bar.id = 'linkBar'; bar.className = 'link-bar'; document.body.appendChild(bar); }
+      document.documentElement.classList.add('link-picking');
+      paintLinkPick();
+    }
+    function endLinkPick(save) {
+      if (!linkPick) return;
+      const lp = linkPick; linkPick = null;
+      document.documentElement.classList.remove('link-picking');
+      const bar = $('linkBar'); if (bar) bar.remove();
+      document.querySelectorAll('#sheetWrap .lk-col, #sheetWrap .lk-src').forEach(x => x.classList.remove('lk-col', 'lk-src'));
+      if (save) setLink(lp.keys, [...lp.picked]);
+    }
+    function paintLinkPick() {
+      if (!linkPick) return;
+      document.querySelectorAll('#sheetWrap .lk-col, #sheetWrap .lk-src').forEach(x => x.classList.remove('lk-col', 'lk-src'));
+      linkPick.keys.forEach(k => { const [id, d] = k.split('|'); const x = document.querySelector(`#sheetWrap td.cell[data-cid="${id}"][data-cd="${d}"]`); if (x) x.classList.add('lk-src'); });
+      linkPick.picked.forEach(d => document.querySelectorAll(`#sheetWrap td.cell[data-cd="${d}"], #sheetWrap th.c${d}`).forEach(x => x.classList.add('lk-col')));
+      const from = linkPick.keys.map(k => k.split('|')[1]).sort()[0];
+      const pk = [...linkPick.picked].sort();
+      $('linkBar').innerHTML = `<span><b>Covers paycheck:</b> click the box of the paycheck this ${fmtDate(from)} money is for (1 or 2 — click again to unpick)</span>
+        <span class="lb-picked">${pk.length ? '→ ' + pk.map(fmtDate).join(', ') : 'none picked yet'}</span>
+        <button type="button" class="lb-done" data-lb="done">Done</button>
+        <button type="button" class="lb-cancel" data-lb="cancel">Cancel</button>`;
+    }
+    document.addEventListener('mousedown', (e) => {
+      if (!linkPick) return;
+      const lb = e.target.closest && e.target.closest('#linkBar');
+      if (lb) { const b = e.target.closest('button[data-lb]'); if (b && !b.disabled) { e.preventDefault(); endLinkPick(b.dataset.lb === 'done'); } return; }
+      const td = e.target.closest && e.target.closest('#sheetWrap td.cell[data-cd], #sheetWrap tr.dates th');
+      if (!td) return; // scrolling, menus etc. still work while picking
+      e.preventDefault(); e.stopPropagation();
+      const d = td.dataset.cd || ([...td.classList].find(c => /^c\d{4}-/.test(c)) || '').slice(1);
+      if (!d || linkPick.keys.some(k => k.endsWith('|' + d))) return;
+      linkPick.picked.has(d) ? linkPick.picked.delete(d) : linkPick.picked.add(d);
+      paintLinkPick();
+    }, true);
+    document.addEventListener('click', (e) => { if (linkPick && e.target.closest && e.target.closest('#sheetWrap table')) { e.preventDefault(); e.stopPropagation(); } }, true);
+    { const _render = render; render = function () { const r = _render.apply(this, arguments); if (linkPick) paintLinkPick(); return r; }; }
+    document.addEventListener('keydown', (e) => {
+      if (!linkPick) return;
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); endLinkPick(false); }
+      else if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); endLinkPick(true); }
+    }, true);
+
     // hover a link tag to outline the paycheck(s) on the other end
     document.addEventListener('mouseover', (e) => {
       const t = e.target.closest && e.target.closest('.lk');
       document.querySelectorAll('#sheetWrap td.lk-partner').forEach(x => x.classList.remove('lk-partner'));
       if (!t) return;
       const td = t.closest('td.cell');
-      if (t.classList.contains('lk-from')) { const x = document.querySelector(`#sheetWrap tr.diff-row td[data-cd="${t.dataset.lk}"]`); if (x) x.classList.add('lk-partner'); }
-      else t.dataset.lk.split(',').forEach(d => Object.entries(data.links || {}).forEach(([k, to]) => { if (to === td.dataset.cd && k.endsWith('|' + d)) { const [id] = k.split('|'); const x = document.querySelector(`#sheetWrap td.cell[data-cid="${id}"][data-cd="${d}"]`); if (x) x.classList.add('lk-partner'); } }));
+      if (t.classList.contains('lk-from')) t.dataset.lk.split(',').forEach(d => { const x = document.querySelector(`#sheetWrap tr.diff-row td[data-cd="${d}"]`); if (x) x.classList.add('lk-partner'); });
+      else t.dataset.lk.split(',').forEach(d => Object.entries(data.links || {}).forEach(([k, to]) => { if (lkList(to).includes(td.dataset.cd) && k.endsWith('|' + d)) { const [id] = k.split('|'); const x = document.querySelector(`#sheetWrap td.cell[data-cid="${id}"][data-cd="${d}"]`); if (x) x.classList.add('lk-partner'); } }));
       if (td) td.classList.add('lk-partner');
     });
 
@@ -1398,13 +1454,9 @@
         ${(() => {
           const ed = targets.filter(t => t[0] !== '=' && !t.startsWith('paycheck|'));
           if (!ed.length) return '';
-          const first = ed.map(t => t.split('|')[1]).sort()[0];
-          const step = (data.periodDays || 14) * DAY, later = [];
-          for (let i = 1; i <= 12; i++) later.push(toISO(fromISO(first) + i * step));
-          const curLink = ed.length === 1 && data.links && data.links[ed[0]];
+          const curLink = ed.length === 1 ? lkList(data.links && data.links[ed[0]]) : [];
           return `<div class="sep"></div>
-            <button type="button" data-ctx="covers">Covers paycheck… <span>${curLink ? '→ ' + fmtDate(curLink) : 'set aside for'}</span></button>
-            <div class="ctx-dates" hidden>${later.map(d => `<button type="button" data-ctx="link" data-to="${d}" class="${d === curLink ? 'on' : ''}">${fmtDate(d)}${d.slice(0, 4) !== first.slice(0, 4) ? " '" + d.slice(2, 4) : ''}</button>`).join('')}</div>
+            <button type="button" data-ctx="covers">Covers paycheck… <span>${curLink.length ? '→ ' + curLink.map(fmtDate).join(', ') : 'click boxes to pick'}</span></button>
             ${ed.some(t => data.links && data.links[t]) ? '<button type="button" data-ctx="unlink">Remove link</button>' : ''}`;
         })()}
         <div class="sep"></div>
@@ -1416,8 +1468,8 @@
       m.addEventListener('click', async (ev) => {
         const b = ev.target.closest('button[data-ctx]'); if (!b || b.disabled) return;
         const act = b.dataset.ctx;
-        if (act === 'covers') { const dl = m.querySelector('.ctx-dates'); dl.hidden = !dl.hidden; const r2 = m.getBoundingClientRect(); if (r2.bottom > window.innerHeight - 8) m.style.top = Math.max(8, window.innerHeight - r2.height - 8) + 'px'; return; }
-        if (act === 'link' || act === 'unlink') { setLink(targets, act === 'link' ? b.dataset.to : null); closeCtx(); clearSelection(); return; }
+        if (act === 'covers') { const ed = targets.filter(t => t[0] !== '=' && !t.startsWith('paycheck|')); closeCtx(); clearSelection(); startLinkPick(ed); return; }
+        if (act === 'unlink') { setLink(targets, null); closeCtx(); clearSelection(); return; }
         if (act === 'paste' && !clip) {
           let txt = '';
           try { txt = await navigator.clipboard.readText(); } catch {}
@@ -1627,7 +1679,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: link a box to the paycheck it covers', at: '2026-10-12T22:58:00-04:00' };
+    const PAGE_VERSION = { msg: 'Budget: Covers paycheck picks boxes on the sheet', at: '2026-10-12T23:05:00-04:00' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/New_York' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }); }
     $('infoPop').title = PAGE_VERSION.msg;
