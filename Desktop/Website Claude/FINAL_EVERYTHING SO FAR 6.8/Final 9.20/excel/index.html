@@ -118,6 +118,7 @@
     #sheetWrap .sheet tr.xh-row > td.xh-col::before { background: transparent; box-shadow: inset 0 0 0 2px #3d9be9; }
 
     /* ── multi-select + sum badge ── */
+    #sheetWrap .sheet td.cell.ro { cursor: cell; user-select: none; position: relative; }
     #sheetWrap .sheet td.cell.sel::after { content: ''; position: absolute; inset: 0; background: rgba(26, 115, 201, 0.22); box-shadow: inset 0 0 0 2px #1a73c9; pointer-events: none; z-index: 2; }
     .sel-sum { position: fixed; top: 74px; right: 20px; z-index: 40; display: none; align-items: baseline; gap: 0.55rem; background: var(--navy-dark); color: #fff; border-radius: 10px; padding: 0.6rem 0.95rem; box-shadow: 0 10px 28px rgba(0,0,0,0.28); font-variant-numeric: tabular-nums; }
     .sel-sum.show { display: flex; }
@@ -648,7 +649,9 @@
       return null;
     }
     // returns {v, carried}
+    const roVals = {}; // read-only calculated boxes (Difference row) — selectable for the sum, never editable
     function cellValue(id, iso) {
+      if (id[0] === '=') { const v = roVals[id + '|' + iso]; return { v: v == null ? null : v, carried: false }; }
       const vals = data.values[id] || {};
       if (iso in vals) return { v: vals[iso], carried: false };
       const it = itemInfo(id);
@@ -863,7 +866,8 @@
         if (s.id === payHeadId) {
           h += `<tr class="diff-row"><td class="col-name"><span class="lbl">Difference<small>Paycheck − total · <span class="g">over</span> / <span class="r">short</span></small></span></td><td class="col-due"></td><td class="col-budget"></td>${cols.map(c => {
             const d = Math.round((calc[c.iso].pay - calc[c.iso].sections[s.id]) * 100) / 100;
-            return `<td class="${cls(c)} ${d < 0 ? 'short' : 'over'}"><div class="calc">${d < 0 ? '−' : '+'}${money(Math.abs(d)) || '$0'}</div></td>`;
+            roVals['=diff|' + c.iso] = d;
+            return `<td class="${cls(c)} ${d < 0 ? 'short' : 'over'} ro" data-cid="=diff" data-cd="${c.iso}" title="Read only · ⌘/Ctrl+click or Shift+click to add up"><div class="calc">${d < 0 ? '−' : '+'}${money(Math.abs(d)) || '$0'}</div></td>`;
           }).join('')}</tr>`;
         }
       });
@@ -1191,6 +1195,7 @@
 
     // Set one pay period without changing what later periods show
     function setOnlyThis(id, iso, n) {
+      if (id[0] === '=') return; // calculated box: read only
       const snap = futurePeriods(iso).map(d => [d, cellValue(id, d)]);
       setValue(id, iso, n);
       for (const [d, old] of snap) {
@@ -1345,13 +1350,14 @@
       const targets = cellKeysSorted(sel);
       const [cid, cd] = k.split('|');
       const cur = cellValue(cid, cd).v;
-      const n = targets.length, many = n > 1 ? ` (${n} cells)` : '';
+      const canEdit = targets.some(t => t[0] !== '=');
+      const n = targets.filter(t => t[0] !== '=').length, many = n > 1 ? ` (${n} cells)` : '';
       const m = document.createElement('div'); m.id = 'ctxMenu'; m.className = 'ctx-menu'; m.dataset.t = Date.now();
       m.innerHTML = `
         <button type="button" data-ctx="copy" ${cur == null ? 'disabled' : ''}>Copy <span>${cur == null ? 'empty' : money(cur) || '$0'}</span></button>
-        <button type="button" data-ctx="paste">Paste${many} <span>${clip ? money(clip.v) || '$0' : 'from clipboard'}</span></button>
+        <button type="button" data-ctx="paste" ${canEdit ? '' : 'disabled title="Read-only box"'}>Paste${many} <span>${clip ? money(clip.v) || '$0' : 'from clipboard'}</span></button>
         <div class="sep"></div>
-        <button type="button" data-ctx="zero" class="danger">Delete — set to $0${many}</button>`;
+        <button type="button" data-ctx="zero" class="danger" ${canEdit ? '' : 'disabled title="Read-only box"'}>Delete — set to $0${many}</button>`;
       document.body.appendChild(m);
       const r = m.getBoundingClientRect();
       m.style.left = Math.min(e.clientX, window.innerWidth - r.width - 8) + 'px';
@@ -1568,7 +1574,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: Select all button for overview months', at: '2026-10-12T21:44:00-04:00' };
+    const PAGE_VERSION = { msg: 'Budget: Difference row boxes selectable for sum (read only)', at: '2026-10-12T21:55:00-04:00' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/New_York' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }); }
     $('infoPop').title = PAGE_VERSION.msg;
