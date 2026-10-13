@@ -203,6 +203,8 @@
     .ov-picked .amt.pos { color: #2e7d32; } .ov-picked .amt.neg { color: var(--neg); }
     html.dark .ov-picked .amt.pos { color: #7fd18a; }
     .ov-clear { margin-left: auto; background: none; border: 1px solid var(--line-strong); border-radius: 5px; padding: 0.15rem 0.55rem; font-size: 0.75rem; color: var(--ink); cursor: pointer; }
+    .ov-clear.next { margin-left: 0; }
+    .ov-picked.empty .ov-clear { font-size: 0.72rem; }
     .ov-clear:hover { border-color: var(--gold); color: var(--gold-ink); }
     .ov-month:hover { color: var(--gold-ink); text-decoration: underline; text-decoration-color: var(--gold); }
 
@@ -781,9 +783,11 @@
       h += `<div class="overview${view.ovHidden ? ' collapsed' : ''}"><button type="button" class="ov-title ov-toggle" data-act="ovtoggle" aria-expanded="${!view.ovHidden}" title="${view.ovHidden ? 'Show' : 'Hide'} the overview"><span class="ov-arrow">▲</span>This month + next 6 months${view.ovHidden ? '<span class="ov-hint">— click to show</span>' : ''}</button>${(() => {
           if (view.ovHidden) return '';
           const sel = ahead.filter(a => ovPicked.has(`${a.y}-${a.m}`));
-          if (!sel.length) return '<div class="ov-picked empty">Tip: click month names to add up their Remainder</div>';
+          const allKeys = ahead.map(a => `${a.y}-${a.m}`).join(',');
+          const allBtn = sel.length < ahead.length ? `<button type="button" class="ov-clear ov-all" data-act="ovall" data-keys="${allKeys}">Select all</button>` : '';
+          if (!sel.length) return `<div class="ov-picked empty">Tip: click month names to add up their Remainder${allBtn}</div>`;
           const sum = Math.round(sel.reduce((n, a) => n + a.rem, 0) * 100) / 100;
-          return `<div class="ov-picked"><span class="lbl">Remainder total · ${sel.map(a => MONTHS[a.m]).join(' + ')}</span><span class="amt ${sum < 0 ? 'neg' : 'pos'}">${sum < 0 ? '−' : ''}${money(Math.abs(sum)) || '$0'}</span><button type="button" class="ov-clear" data-act="ovclear">Clear</button></div>`;
+          return `<div class="ov-picked"><span class="lbl">Remainder total · ${sel.map(a => MONTHS[a.m]).join(' + ')}</span><span class="amt ${sum < 0 ? 'neg' : 'pos'}">${sum < 0 ? '−' : ''}${money(Math.abs(sum)) || '$0'}</span>${allBtn}<button type="button" class="ov-clear${allBtn ? ' next' : ''}" data-act="ovclear">Clear</button></div>`;
         })()}<div class="ov-scroll"><table class="ov">
         <thead><tr><th></th>${ahead.map((a, i) => `<th class="${i === 0 ? 'cur' : ''} ${pk(a)}"><button class="ov-month" data-act="ovpick" data-k="${a.y}-${a.m}" aria-pressed="${!!pk(a)}" title="${pk(a) ? 'Remove' : 'Add'} ${MONTHS[a.m]} ${a.y} ${pk(a) ? 'from' : 'to'} the Remainder total"><span class="pick-box" aria-hidden="true">${pk(a) ? '✓' : ''}</span>${MONTHS[a.m]} ${a.y !== nd.getUTCFullYear() ? "'" + String(a.y).slice(2) : ''}<small>${a.n} paychecks</small></button></th>`).join('')}<th class="tot">7-mo total</th></tr></thead>
         <tbody>
@@ -1069,7 +1073,7 @@
       else if (t.dataset.act === 'secall') { const sl = $('sheetWrap').scrollLeft; const allClosed = data.sections.every(x => collapsedSecs.has(x.id)); if (allClosed) collapsedSecs.clear(); else data.sections.forEach(x => collapsedSecs.add(x.id)); render(); $('sheetWrap').scrollLeft = sl; }
       else if (t.dataset.act === 'sectoggle') { const id = t.dataset.sid, sl = $('sheetWrap').scrollLeft; collapsedSecs.has(id) ? collapsedSecs.delete(id) : collapsedSecs.add(id); render(); $('sheetWrap').scrollLeft = sl; }
       else if (t.dataset.act === 'statstoggle') { const sl = $('sheetWrap') ? $('sheetWrap').scrollLeft : 0; view.statsHidden = !view.statsHidden; render(); $('sheetWrap').scrollLeft = sl; }
-      else if (t.dataset.act === 'ovpick' || t.dataset.act === 'ovclear') { const sl = $('sheetWrap') ? $('sheetWrap').scrollLeft : 0; const ox = document.querySelector('.ov-scroll') ? document.querySelector('.ov-scroll').scrollLeft : 0; if (t.dataset.act === 'ovclear') ovPicked.clear(); else { const k = t.dataset.k; ovPicked.has(k) ? ovPicked.delete(k) : ovPicked.add(k); } render(); $('sheetWrap').scrollLeft = sl; if (document.querySelector('.ov-scroll')) document.querySelector('.ov-scroll').scrollLeft = ox; }
+      else if (t.dataset.act === 'ovpick' || t.dataset.act === 'ovclear' || t.dataset.act === 'ovall') { const sl = $('sheetWrap') ? $('sheetWrap').scrollLeft : 0; const ox = document.querySelector('.ov-scroll') ? document.querySelector('.ov-scroll').scrollLeft : 0; if (t.dataset.act === 'ovclear') ovPicked.clear(); else if (t.dataset.act === 'ovall') t.dataset.keys.split(',').forEach(k => ovPicked.add(k)); else { const k = t.dataset.k; ovPicked.has(k) ? ovPicked.delete(k) : ovPicked.add(k); } render(); $('sheetWrap').scrollLeft = sl; if (document.querySelector('.ov-scroll')) document.querySelector('.ov-scroll').scrollLeft = ox; }
       else if (t.dataset.act === 'ovtoggle') { const sl = $('sheetWrap') ? $('sheetWrap').scrollLeft : 0; view.ovHidden = !view.ovHidden; saveView(); render(); $('sheetWrap').scrollLeft = sl; }
       else if (t.dataset.goto) { const [y, m] = t.dataset.goto.split('-').map(Number); view.start = { y, m }; render(); $('sheetWrap').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
       else if (t.dataset.act === 'import') $('fileInput').click();
@@ -1564,7 +1568,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: click overview months to total their Remainder', at: '2026-10-12T21:40:00-04:00' };
+    const PAGE_VERSION = { msg: 'Budget: Select all button for overview months', at: '2026-10-12T21:44:00-04:00' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/New_York' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }); }
     $('infoPop').title = PAGE_VERSION.msg;
