@@ -771,7 +771,7 @@
         <tbody>
           ${orow('Paychecks', 'pay')}
           ${orow('Paid from paycheck', 'from')}
-          ${orow('Send to savings', 'save', 'ov-save')}
+          ${orow('Send to *5011 Everyday Checking', 'save', 'ov-save')}
           <tr class="ov-per"><th>Difference by paycheck<small>send to savings from each check</small></th>${ahead.map((a, i) => `<td class="${i === 0 ? 'cur' : ''}"><div class="per-grid">${a.per.map(x => `<span class="dt">${fmtDate(x.d)}</span><span class="amt ${x.v < 0 ? 'neg' : 'pos'}">${x.v < 0 ? '−' : '+'}${money(Math.abs(x.v)) || '$0'}</span>`).join('')}</div></td>`).join('')}<td class="tot"><div class="${tot.from > tot.pay ? 'neg' : 'pos'}">${ahead.reduce((n, a) => n + a.n, 0)} checks</div></td></tr>
           ${orow('Remainder', 'rem', 'ov-rem')}
         </tbody></table></div></div>`;
@@ -1544,7 +1544,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: update note in top bar with time', at: '2026-10-12T17:52:00-04:00' };
+    const PAGE_VERSION = { msg: 'Budget: rename Send to savings row to *5011 Everyday Checking', at: '2026-10-12T21:12:00-04:00' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/New_York' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }); }
     $('infoPop').title = PAGE_VERSION.msg;
