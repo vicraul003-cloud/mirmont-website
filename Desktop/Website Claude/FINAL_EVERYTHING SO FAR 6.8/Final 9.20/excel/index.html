@@ -139,6 +139,8 @@
     .ctx-menu button.danger { color: var(--neg); }
     .sheet td.cell .lk { position: absolute; right: 3px; bottom: 1px; font-size: 0.6rem; font-weight: 700; line-height: 1.1; color: #fff; background: #3b82c4; border-radius: 3px; padding: 0 3px; z-index: 3; white-space: nowrap; pointer-events: auto; cursor: default; }
     .sheet tr.diff-row td.cell .lk { left: 3px; right: auto; max-width: calc(100% - 6px); overflow: hidden; text-overflow: ellipsis; }
+    .sheet tr.diff-row td.cell .lk-to + .lk-cov { left: auto; right: 3px; max-width: 48%; }
+    .sheet td.cell .lk.lk-cov { background: #2e7d32; }
     .cover-pop { position: fixed; z-index: 65; width: 300px; background: var(--navy-dark); color: #fff; border-radius: 10px; padding: 0.7rem 0.75rem; box-shadow: 0 12px 32px rgba(0,0,0,0.35); font-size: 0.8rem; border: 1px solid rgba(201,160,90,0.5); }
     .cover-pop .cp-title { margin-bottom: 0.5rem; line-height: 1.35; }
     .cover-pop .cp-title b { color: #dbb97a; }
@@ -873,8 +875,8 @@
         }
         if (needs) { bal += ' due-short'; tip = ` title="${esc((itemInfo(id) || {}).name)} ${sg.label}: needs ${money(sg.A)}, planned ${money(sg.have) || '$0'} — short ${money(sg.short)}${bal.includes('due-late') ? '. This bill is due next month, before its first paycheck, so pay it from this check.' : ''}"`; }
         const hint = needs ? `<button type="button" class="sugg" tabindex="-1" data-sid="${id}" data-sd="${c.iso}" title="Suggested ${money(sg.amt)} so ${money(sg.A)} ${sg.label} is covered. Double-click to use it.">?</button>` : '';
-        const lkT = lkList(data.links && data.links[id + '|' + c.iso]);
-        const inc = lkT.length ? [] : Object.entries(data.links || {}).filter(([k, to]) => k.startsWith(id + '|') && lkList(to).includes(c.iso)).map(([k]) => k.split('|')[1]).sort();
+        const lkT = v != null && v !== 0 ? lkList(data.links && data.links[id + '|' + c.iso]) : [];
+        const inc = v != null && v < 0 ? lkList(data.coveredBy && data.coveredBy[id + '|' + c.iso]) : [];
         const lk = !lkT.length && inc.length ? `<span class="lk lk-to" data-lk="${inc.join(',')}" title="Covered by the ${inc.map(fmtDate).join(' + ')} check${inc.length > 1 ? 's' : ''}">← ${inc.map(fmtDate).join(', ')}</span>` : lkT.length ? `<span class="lk lk-from" data-lk="${lkT.join(',')}" title="${esc((itemInfo(id) || {}).name)}: ${money(v) || '$0'} from the ${fmtDate(c.iso)} check covers the ${lkT.map(fmtDate).join(' + ')} check${lkT.length > 1 ? 's' : ''}">→ ${lkT.map(fmtDate).join(', ')}</span>` : '';
         return `<td class="${cls(c)}${bal}${lk ? ' lk-cell' : ''}" data-cid="${id}" data-cd="${c.iso}"${tip}>${grip}${hint}${lk}<input class="${k}" data-id="${id}" data-d="${c.iso}" value="${esc(val)}" data-raw="${esc(raw)}" placeholder="${esc(ph)}" inputmode="decimal" autocomplete="off" aria-label="${esc((itemInfo(id) || {}).name)} ${c.iso}" /></td>`;
       };
@@ -908,9 +910,13 @@
             const d = Math.round((calc[c.iso].pay - calc[c.iso].sections[s.id]) * 100) / 100;
             roVals['=diff|' + c.iso] = d;
             const inc = linksTo(c.iso);
+            const outs = [];
+            Object.entries(data.coveredBy || {}).forEach(([k, by]) => { if (lkList(by).includes(c.iso)) { const [cid, cd] = k.split('|'); const cv = cellValue(cid, cd).v; if (cv != null && cv < 0) outs.push({ d: cd, v: cv, name: (itemInfo(cid) || {}).name || '' }); } });
+            outs.sort((a, b) => a.d.localeCompare(b.d));
+            const lkOut = outs.length ? `<span class="lk lk-cov" title="This check covers: ${outs.map(o => `${esc(o.name)} ${money(Math.abs(o.v))} short on ${fmtDate(o.d)}`).join('; ')}">→ ${outs.map(o => fmtDate(o.d)).join(', ')}</span>` : '';
             const lkIn = inc.length ? `<span class="lk lk-to" data-lk="${inc.map(x => x.from).join(',')}">← ${inc.map(x => fmtDate(x.from)).join(', ')}</span>` : '';
             const inTip = inc.length ? ' · Covered by: ' + inc.map(x => `${esc(x.name)} ${money(x.v) || '$0'} from ${fmtDate(x.from)}`).join('; ') : '';
-            return `<td class="${cls(c)} ${d < 0 ? 'short' : 'over'} ro${lkIn ? ' lk-cell' : ''}" data-cid="=diff" data-cd="${c.iso}" title="Read only · ⌘/Ctrl+click or Shift+click to add up${inTip}">${lkIn}<div class="calc">${d < 0 ? '−' : '+'}${money(Math.abs(d)) || '$0'}</div></td>`;
+            return `<td class="${cls(c)} ${d < 0 ? 'short' : 'over'} ro${lkIn || lkOut ? ' lk-cell' : ''}" data-cid="=diff" data-cd="${c.iso}" title="Read only · ⌘/Ctrl+click or Shift+click to add up${inTip}">${lkIn}${lkOut}<div class="calc">${d < 0 ? '−' : '+'}${money(Math.abs(d)) || '$0'}</div></td>`;
           }).join('')}</tr>`;
         }
       });
@@ -997,6 +1003,7 @@
     function redo() { if (!redoStack.length) return; undoStack.push(lastSnap); restoreSnap(redoStack.pop()); flashUndo('Redone'); }
     function flashUndo(t) { const b = $('undoBtn'); if (!b) return; const sp = b.querySelector('span'); sp.textContent = t; clearTimeout(flashUndo.t); flashUndo.t = setTimeout(() => sp.textContent = 'Undo', 900); }
 
+    function scheduleSaveQuiet() { saveLocal(); if (mode !== 'local') { clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 700); } }
     function scheduleSave() {
       recordUndo();
       saveLocal();
@@ -1092,6 +1099,12 @@
         if (migrate(data)) saveLocal();
         banner(e.nc ? notConfiguredMsg : 'Can\'t reach the server right now — showing the copy saved on this device.');
       }
+      if (data && (data.links || data.coveredBy)) { // tidy links left on boxes that are now empty or $0
+        let changed = false;
+        Object.keys(data.links || {}).forEach(k => { const [id, d] = k.split('|'); const v = cellValue(id, d).v; if (v == null || v === 0) { delete data.links[k]; changed = true; } });
+        Object.keys(data.coveredBy || {}).forEach(k => { const [id, d] = k.split('|'); const v = cellValue(id, d).v; if (v == null || v >= 0) { delete data.coveredBy[k]; changed = true; } });
+        if (changed) scheduleSaveQuiet();
+      }
       resetUndo();
       if (data) {
         goToday();
@@ -1169,19 +1182,15 @@
       Object.entries(data.links || {}).forEach(([k, to]) => {
         if (!lkList(to).includes(iso)) return;
         const [id, from] = k.split('|'); const cv = cellValue(id, from);
+        if (cv.v == null || cv.v === 0) return;
         out.push({ id, from, v: cv.v || 0, name: (itemInfo(id) || {}).name || '' });
       });
       return out.sort((a, b) => a.from.localeCompare(b.from));
     }
     // box emptied / set to $0: forget its "covers" link (and, on Adjustments, links pointing at it) so a new date can be picked
     function dropLinks(id, iso) {
-      if (!data.links) return;
-      delete data.links[id + '|' + iso];
-      if (/adjust/i.test((itemInfo(id) || {}).name || '')) Object.keys(data.links).forEach(k => {
-        if (!k.startsWith(id + '|')) return;
-        const l = lkList(data.links[k]).filter(d => d !== iso);
-        if (!l.length) delete data.links[k]; else data.links[k] = l.length === 1 ? l[0] : l;
-      });
+      if (data.links) delete data.links[id + '|' + iso];
+      if (data.coveredBy) delete data.coveredBy[id + '|' + iso];
     }
     const lkList = (v) => Array.isArray(v) ? v : (v ? [v] : []);
     function setLink(keys, to) { // to: array of pay dates, or null to remove
@@ -1417,7 +1426,7 @@
       if (give) for (let i = 1; i <= 12; i++) dates.push(toISO(fromISO(iso) + i * step));
       else for (let i = 8; i >= 1; i--) dates.push(toISO(fromISO(iso) - i * step));
       const cur = give ? lkList(data.links && data.links[id + '|' + iso])
-        : Object.entries(data.links || {}).filter(([k, to]) => k.startsWith(id + '|') && lkList(to).includes(iso)).map(([k]) => k.split('|')[1]);
+        : lkList(data.coveredBy && data.coveredBy[id + '|' + iso]);
       const yr = iso.slice(0, 4);
       const pop = document.createElement('div'); pop.id = 'coverPop'; pop.className = 'cover-pop';
       pop.innerHTML = `<div class="cp-title">${give ? `<b>${money(n)}</b> set aside on ${fmtDate(iso)} — which paycheck is it for?` : `<b>${money(Math.abs(n))}</b> short on ${fmtDate(iso)} — which paycheck is covering it?`}</div>
@@ -1437,7 +1446,7 @@
         const d = b.dataset.cp; closeCover();
         data.links = data.links || {};
         if (give) setLink([id + '|' + iso], [d]);
-        else { const k = id + '|' + d, l = lkList(data.links[k]); setLink([k], l.includes(iso) ? l : [...l, iso]); }
+        else { data.coveredBy = data.coveredBy || {}; data.coveredBy[id + '|' + iso] = d; redraw(); }
       });
     }
     document.addEventListener('mousedown', (e) => { const x = $('coverPop'); if (x && !(e.target.closest && e.target.closest('#coverPop')) && Date.now() - (+x.dataset.t || 0) > 200) closeCover(); });
@@ -1503,6 +1512,7 @@
       const td = t.closest('td.cell');
       if (t.classList.contains('lk-from')) t.dataset.lk.split(',').forEach(d => { const x = document.querySelector(`#sheetWrap tr.diff-row td[data-cd="${d}"]`); if (x) x.classList.add('lk-partner'); });
       else t.dataset.lk.split(',').forEach(d => Object.entries(data.links || {}).forEach(([k, to]) => { if (lkList(to).includes(td.dataset.cd) && k.endsWith('|' + d)) { const [id] = k.split('|'); const x = document.querySelector(`#sheetWrap td.cell[data-cid="${id}"][data-cd="${d}"]`); if (x) x.classList.add('lk-partner'); } }));
+      if (t.classList.contains('lk-to') && td && !td.closest('tr.diff-row')) t.dataset.lk.split(',').forEach(d => { const x = document.querySelector(`#sheetWrap tr.diff-row td[data-cd="${d}"]`); if (x) x.classList.add('lk-partner'); });
       if (td) td.classList.add('lk-partner');
     });
 
@@ -1766,7 +1776,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: clearing a box removes its paycheck link', at: '2026-10-14T13:55:00-04:00' };
+    const PAGE_VERSION = { msg: 'Budget: clear paycheck links on empty boxes', at: '2026-10-14T14:00:00-04:00' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/New_York' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }); }
     $('infoPop').title = PAGE_VERSION.msg;
