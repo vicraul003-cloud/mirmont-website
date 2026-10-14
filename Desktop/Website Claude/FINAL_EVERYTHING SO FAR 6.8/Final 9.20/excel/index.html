@@ -743,7 +743,7 @@
   <!-- Calendar: paydays and Nanny Fridays -->
   <dialog id="calDlg" class="cal-dlg">
     <form method="dialog">
-      <div class="cal-head"><button type="button" class="btn icon" id="calPrev" title="Previous month">◀</button><h3 id="calTitle"></h3><button type="button" class="btn icon" id="calNext" title="Next month">▶</button><span class="spacer"></span><button type="button" class="btn" id="calToday">This month</button><button type="button" class="btn" id="calClose">Close</button></div>
+      <div class="cal-head"><button type="button" class="btn icon" id="calPrev" title="Previous month">◀</button><h3 id="calTitle"></h3><button type="button" class="btn icon" id="calNext" title="Next month">▶</button><span class="spacer"></span><button type="button" class="btn" id="calIcs" title="Download the next 12 months as a calendar file for iPhone / iCloud">Export to iPhone (.ics)</button><button type="button" class="btn" id="calToday">This month</button><button type="button" class="btn" id="calClose">Close</button></div>
       <div class="cal-strip" id="calStrip"></div>
       <div class="cal-legend"><span><i class="lg pay"></i>Payday (solid) — each paycheck has its own color</span><span><i class="lg nan"></i>Pay Nanny (Friday) — same color as the paycheck it comes from</span><span><i class="lg bill"></i>Bill due (amount set aside) · grey = taken from each paycheck · $0 items are left off</span><span><i class="lg three"></i>Month with 3 paychecks</span></div>
       <div class="cal-grid" id="calGrid"></div>
@@ -2264,7 +2264,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: big Calendar lists every bill + tags in 2 columns', at: '2026-10-14T21:21:00Z' };
+    const PAGE_VERSION = { msg: 'Budget: export Calendar to iPhone (.ics)', at: '2026-10-14T21:27:00Z' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); // shown in the viewer's own time zone
       $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }); }
@@ -2449,6 +2449,29 @@
     $('calNext').addEventListener('click', () => { const d = new Date(Date.UTC(calMonth.y, calMonth.m + 1, 1)); calMonth = { y: d.getUTCFullYear(), m: d.getUTCMonth() }; paintCal(); });
     $('calToday').addEventListener('click', () => { const d = new Date(); calMonth = { y: d.getFullYear(), m: d.getMonth() }; paintCal(); });
     $('calClose').addEventListener('click', () => $('calDlg').close());
+    // ── export paydays, Nanny Fridays and bills (next 12 months) as an .ics file for Apple Calendar / iCloud ──
+    function buildIcs() {
+      const d0 = new Date(), startT = Date.UTC(d0.getFullYear(), d0.getMonth(), 1), endT = Date.UTC(d0.getFullYear(), d0.getMonth() + 12, 0);
+      const esc2 = (t) => String(t).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+      const fold = (line) => { const out = []; let cur = ''; for (const ch of line) { if (new TextEncoder().encode(cur + ch).length > 73) { out.push(cur); cur = ' ' + ch; } else cur += ch; } out.push(cur); return out.join('\r\n'); };
+      const ymd = (iso) => iso.replace(/-/g, ''), next = (iso) => ymd(toISO(fromISO(iso) + DAY));
+      const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
+      const ev = [];
+      const add = (iso, uid, summary, desc, alarm) => {
+        ev.push(['BEGIN:VEVENT', `UID:${uid}@mirmont-budget`, `DTSTAMP:${stamp}`, `DTSTART;VALUE=DATE:${ymd(iso)}`, `DTEND;VALUE=DATE:${next(iso)}`, `SUMMARY:${esc2(summary)}`, desc ? `DESCRIPTION:${esc2(desc)}` : null, 'TRANSP:TRANSPARENT',
+          ...(alarm ? ['BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${esc2(summary)}`, 'TRIGGER:-PT15H', 'END:VALARM'] : []), 'END:VEVENT'].filter(Boolean).map(fold).join('\r\n'));
+      };
+      periodsBetween(startT, endT + DAY).forEach(p => { const v = num('paycheck', p); if (v > 0) add(p, 'pay-' + p, `💵 Payday ${money(v)}`, `Paycheck on ${fmtDate(p)}`, false); });
+      for (let t = startT; t <= endT; t += DAY) { const iso = toISO(t), n = nannyOn(iso); if (n && n.amt > 0) add(iso, 'nanny-' + iso, `👶 Nanny ${money(n.amt)}`, `Paid from the ${fmtDate(n.from)} check${n.fr > 1 ? ` (${money(n.total)} ÷ ${n.fr} Fridays)` : ''}`, true); }
+      calBills(startT, endT).forEach((list, iso) => list.forEach((x, i) => { if (!(x.amt > 0)) return; add(iso, `bill-${iso}-${i}-${String(x.name).replace(/[^a-z0-9]/gi, '').slice(0, 20)}`, `🧾 ${x.name} ${money(x.amt)}`, x.kind === 'ded' ? 'Taken from this paycheck' : `Due ${fmtDate(iso)}${x.note ? ' · ' + x.note : ''}`, x.kind !== 'ded'); }));
+      return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Mirmont//Budget//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'X-WR-CALNAME:Budget', 'X-WR-TIMEZONE:America/New_York', ...ev, 'END:VCALENDAR'].join('\r\n') + '\r\n';
+    }
+    $('calIcs').addEventListener('click', () => {
+      const blob = new Blob([buildIcs()], { type: 'text/calendar;charset=utf-8' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `budget-calendar-${toISO(todayUTC())}.ics`; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+      flashMsg('Calendar file downloaded — open it to add the events to Apple Calendar');
+    });
     $('calGrid').addEventListener('click', (e) => { const d = e.target.closest('[data-day].out'); if (!d) return; const dt = new Date(fromISO(d.dataset.day)); calMonth = { y: dt.getUTCFullYear(), m: dt.getUTCMonth() }; paintCal(); });
     $('calStrip').addEventListener('click', (e) => { const b = e.target.closest('[data-cm]'); if (!b) return; const [yy, mm] = b.dataset.cm.split('-').map(Number); calMonth = { y: yy, m: mm }; paintCal(); });
 
