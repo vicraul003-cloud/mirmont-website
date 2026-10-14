@@ -138,8 +138,11 @@
     .ctx-menu button:disabled { opacity: 0.45; cursor: default; }
     .ctx-menu button.danger { color: var(--neg); }
     .sheet td.cell .lk { position: absolute; right: 3px; bottom: 1px; font-size: 0.6rem; font-weight: 700; line-height: 1.1; color: #fff; background: #3b82c4; border-radius: 3px; padding: 0 3px; z-index: 3; white-space: nowrap; pointer-events: auto; cursor: default; }
-    .sheet tr.diff-row td.cell .lk { left: 3px; right: auto; max-width: calc(100% - 6px); overflow: hidden; text-overflow: ellipsis; }
-    .sheet tr.diff-row td.cell .lk-to + .lk-cov { left: auto; right: 3px; max-width: 48%; }
+    /* Difference row: amount on top, link tag(s) underneath, both centered */
+    .sheet tr.diff-row td.cell { height: 54px; vertical-align: middle; text-align: center; }
+    .sheet tr.diff-row td.cell .calc { text-align: center; padding-left: 0.3rem; padding-right: 0.3rem; }
+    .sheet tr.diff-row td.cell .lk-line { line-height: 1; }
+    .sheet tr.diff-row td.cell .lk { position: static; display: inline-block; margin: 3px 2px 0; max-width: calc(100% - 8px); overflow: hidden; text-overflow: ellipsis; vertical-align: top; font-size: 0.64rem; padding: 1px 5px; }
     .sheet td.cell .lk.lk-cov { background: #2e7d32; }
     .sheet td.cell .lk.lk-adj { background: #d93025; }
     .cover-pop { position: fixed; z-index: 65; width: 300px; background: var(--navy-dark); color: #fff; border-radius: 10px; padding: 0.7rem 0.75rem; box-shadow: 0 12px 32px rgba(0,0,0,0.35); font-size: 0.8rem; border: 1px solid rgba(201,160,90,0.5); }
@@ -918,7 +921,7 @@
             const lkOut = outs.length ? `<span class="lk lk-cov" title="This check covers: ${outs.map(o => `${esc(o.name)} ${money(Math.abs(o.v))} short on ${fmtDate(o.d)}`).join('; ')}">→ ${outs.map(o => fmtDate(o.d)).join(', ')}</span>` : '';
             const lkIn = inc.length ? `<span class="lk lk-to" data-lk="${inc.map(x => x.from).join(',')}">← ${inc.map(x => fmtDate(x.from)).join(', ')}</span>` : '';
             const inTip = inc.length ? ' · Covered by: ' + inc.map(x => `${esc(x.name)} ${money(x.v) || '$0'} from ${fmtDate(x.from)}`).join('; ') : '';
-            return `<td class="${cls(c)} ${d < 0 ? 'short' : 'over'} ro${lkIn || lkOut ? ' lk-cell' : ''}" data-cid="=diff" data-cd="${c.iso}" title="Read only · ⌘/Ctrl+click or Shift+click to add up${inTip}">${lkIn}${lkOut}<div class="calc">${d < 0 ? '−' : '+'}${money(Math.abs(d)) || '$0'}</div></td>`;
+            return `<td class="${cls(c)} ${d < 0 ? 'short' : 'over'} ro${lkIn || lkOut ? ' lk-cell' : ''}" data-cid="=diff" data-cd="${c.iso}" title="Read only · ⌘/Ctrl+click or Shift+click to add up${inTip}"><div class="calc">${d < 0 ? '−' : '+'}${money(Math.abs(d)) || '$0'}</div>${lkIn || lkOut ? `<div class="lk-line">${lkIn}${lkOut}</div>` : ''}</td>`;
           }).join('')}</tr>`;
         }
       });
@@ -1796,7 +1799,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: red link tags on the Adjustments line', at: '2026-10-14T14:30:00-04:00' };
+    const PAGE_VERSION = { msg: 'Budget: Difference row shows amount over link tag, centered', at: '2026-10-14T14:35:00-04:00' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/New_York' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }); }
     $('infoPop').title = PAGE_VERSION.msg;
