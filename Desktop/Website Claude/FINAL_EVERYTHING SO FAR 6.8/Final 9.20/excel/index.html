@@ -55,6 +55,14 @@
     .menu.open .menu-list { display: block; }
     .menu-list button { display: block; width: 100%; text-align: left; background: none; border: 0; padding: 0.55rem 0.7rem; border-radius: 5px; cursor: pointer; font-size: 0.85rem; }
     .menu-list button:hover { background: var(--page); }
+    .mv-list { display: grid; gap: 0.35rem; max-height: 360px; overflow: auto; }
+    .mv-row { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; border: 1px solid var(--line); border-radius: 7px; padding: 0.5rem 0.7rem; font-size: 0.9rem; }
+    .mv-row small { display: block; color: var(--muted); font-size: 0.78rem; margin-top: 2px; }
+    .mv-row .btn { font-size: 0.72rem; padding: 0.25rem 0.55rem; flex: none; }
+    .lk-mv-demo { background: #7b5cd6; color: #fff; border-radius: 3px; padding: 0 4px; font-size: 0.72rem; font-weight: 700; }
+    .sheet td.cell .lk.lk-mv { background: #7b5cd6; }
+    .flash-msg { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); opacity: 0; pointer-events: none; z-index: 80; background: #7b5cd6; color: #fff; padding: 0.6rem 1rem; border-radius: 8px; font-size: 0.88rem; box-shadow: 0 10px 28px rgba(0,0,0,0.3); transition: opacity 0.25s, transform 0.25s; }
+    .flash-msg.show { opacity: 1; transform: translate(-50%, 0); }
     .rs-list { display: grid; gap: 0.3rem; max-height: 300px; overflow: auto; font-size: 0.88rem; }
     .rs-list button { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; width: 100%; text-align: left; background: transparent; color: var(--ink); border: 1px solid var(--line); border-radius: 7px; padding: 0.5rem 0.7rem; cursor: pointer; font-size: 0.88rem; }
     .rs-list button small { color: var(--muted); font-size: 0.74rem; }
@@ -601,6 +609,7 @@
         <button type="button" id="mAddSection">Add a section</button>
         <button type="button" id="mExport">Download backup (.json)</button>
         <button type="button" id="mExportXlsx">Download as Excel (.xlsx)</button>
+        <button type="button" id="mMoves">Moves history…</button>
         <button type="button" id="mRestore">Restore a backup…</button>
         <button type="button" id="mImport">Import data file…</button>
         <a href="/">← Back to website</a>
@@ -660,6 +669,16 @@
         <button type="button" class="btn primary" id="applyFuture"></button>
       </div>
       <div class="actions"><button type="button" class="btn" id="applyCancel">Cancel</button></div>
+    </form>
+  </dialog>
+
+  <!-- Moves made from Suggestions -->
+  <dialog id="movesDlg">
+    <form method="dialog">
+      <h3>Moves history</h3>
+      <p style="font-size:0.85rem;line-height:1.45;color:var(--muted);margin-top:-0.4rem">Every expense moved with a Suggestion — where it came from and where it went. Boxes on the sheet show <span class="lk-mv-demo">⇢ date</span> (moved out) and <span class="lk-mv-demo">⇠ date</span> (moved in).</p>
+      <div class="mv-list" id="mvList"></div>
+      <div class="actions"><button type="button" class="btn" id="mvClose">Close</button></div>
     </form>
   </dialog>
 
@@ -973,10 +992,12 @@
         const lkT = v != null && v !== 0 ? lkList(data.links && data.links[id + '|' + c.iso]) : [];
         const inc = v != null && v < 0 ? lkList(data.coveredBy && data.coveredBy[id + '|' + c.iso]) : [];
         const adjCls = /adjust/i.test((itemInfo(id) || {}).name || '') ? ' lk-adj' : '';
+        const mvIn = (data.moves || []).filter(m => m.id === id && m.to === c.iso), mvOut = (data.moves || []).filter(m => m.id === id && m.from === c.iso);
+        const mvTag = (mvIn.length || mvOut.length) && !(data.links && data.links[id + '|' + c.iso]) ? `<span class="lk lk-mv" title="${esc([...mvIn.map(m => `Moved in ${money(m.amt)} from ${fmtDate(m.from)} (${new Date(m.at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`), ...mvOut.map(m => `Moved out ${money(m.amt)} to ${fmtDate(m.to)} (${new Date(m.at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`)].join(' · '))}">${mvIn.length ? '⇠ ' + mvIn.map(m => fmtDate(m.from)).join(', ') : ''}${mvIn.length && mvOut.length ? ' ' : ''}${mvOut.length ? '⇢ ' + mvOut.map(m => fmtDate(m.to)).join(', ') : ''}</span>` : '';
         const cov = id !== 'paycheck' ? coverAmt(id, c.iso) : 0;
         if (cov && !tip) tip = ` title="This check also covers ${money(cov)} of shortages (counted in this column's Total)"`;
         const lk = !lkT.length && inc.length ? `<span class="lk lk-to${adjCls}" data-lk="${inc.join(',')}" title="Covered by the ${inc.map(fmtDate).join(' + ')} check${inc.length > 1 ? 's' : ''}">← ${inc.map(fmtDate).join(', ')}</span>` : lkT.length ? `<span class="lk lk-from${adjCls}" data-lk="${lkT.join(',')}" title="${esc((itemInfo(id) || {}).name)}: ${money(v) || '$0'} from the ${fmtDate(c.iso)} check covers the ${lkT.map(fmtDate).join(' + ')} check${lkT.length > 1 ? 's' : ''}">→ ${lkT.map(fmtDate).join(', ')}</span>` : '';
-        return `<td class="${cls(c)}${bal}${lk ? ' lk-cell' : ''}" data-cid="${id}" data-cd="${c.iso}"${tip}>${grip}${hint}${lk}<input class="${k}" data-id="${id}" data-d="${c.iso}" value="${esc(val)}" data-raw="${esc(raw)}" placeholder="${esc(ph)}" inputmode="decimal" autocomplete="off" aria-label="${esc((itemInfo(id) || {}).name)} ${c.iso}" /></td>`;
+        return `<td class="${cls(c)}${bal}${lk ? ' lk-cell' : ''}" data-cid="${id}" data-cd="${c.iso}"${tip}>${grip}${hint}${lk || mvTag}<input class="${k}" data-id="${id}" data-d="${c.iso}" value="${esc(val)}" data-raw="${esc(raw)}" placeholder="${esc(ph)}" inputmode="decimal" autocomplete="off" aria-label="${esc((itemInfo(id) || {}).name)} ${c.iso}" /></td>`;
       };
       const calcCell = (c, v) => `<td class="${cls(c)}"><div class="calc ${v < 0 ? 'neg' : ''}">${money(v)}</div></td>`;
       const span = cols.length;
@@ -1077,6 +1098,10 @@
 
     // ── saving ──
     function setState(s, text) { $('saveState').dataset.s = s; $('saveText').textContent = text; }
+    function flashMsg(t) {
+      let el = $('flashMsg'); if (!el) { el = document.createElement('div'); el.id = 'flashMsg'; el.className = 'flash-msg'; document.body.appendChild(el); }
+      el.textContent = t; el.classList.add('show'); clearTimeout(flashMsg.t); flashMsg.t = setTimeout(() => el.classList.remove('show'), 4500);
+    }
     function banner(html) { const b = $('banner'); b.innerHTML = html || ''; b.classList.toggle('show', !!html); }
     function saveLocal() { try { localStorage.setItem(LS_KEY, JSON.stringify({ rev, data })); } catch {} }
 
@@ -1641,7 +1666,9 @@
         const tv = cellValue(x.id, x.to).v || 0;
         setOnlyThis(x.id, x.from, Math.round((x.v - x.amt) * 100) / 100);
         setOnlyThis(x.id, x.to, Math.round((tv + x.amt) * 100) / 100);
+        (data.moves = data.moves || []).push({ at: new Date().toISOString(), id: x.id, name: x.name, from: x.from, to: x.to, amt: x.amt });
         redraw(); paint();
+        flashMsg(`Moved ${money(x.amt)} of ${x.name}: ${fmtDate(x.from)} → ${fmtDate(x.to)} (see Menu → Moves history)`);
       });
     }
     document.addEventListener('click', (e) => {
@@ -2114,7 +2141,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: paycheck picker 50% bigger', at: '2026-10-14T20:10:00Z' };
+    const PAGE_VERSION = { msg: 'Budget: record of each Suggestions move', at: '2026-10-14T20:22:00Z' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); // shown in the viewer's own time zone
       $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }); }
@@ -2206,6 +2233,16 @@
       a.download = `budget-backup-${toISO(todayUTC())}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
       $('menu').classList.remove('open');
     });
+    // ── moves history ──
+    function paintMoves() {
+      const list = (data.moves || []).map((m, i) => ({ ...m, i })).reverse();
+      $('mvList').innerHTML = list.length ? list.map(m => `<div class="mv-row"><div><b>${esc(m.name)}</b> · ${money(m.amt)}<small>${fmtDate(m.from)} '${m.from.slice(2, 4)} ⇢ ${fmtDate(m.to)} '${m.to.slice(2, 4)} · moved ${new Date(m.at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</small></div><button type="button" class="btn" data-mvdel="${m.i}" title="Remove this record (does not change any amounts)">Remove record</button></div>`).join('')
+        : '<p style="color:var(--muted);font-size:0.88rem">No moves yet. Click a red Remainder box and use Move to see them here.</p>';
+    }
+    $('mMoves').addEventListener('click', () => { $('menu').classList.remove('open'); if (!data) return; paintMoves(); $('movesDlg').showModal(); });
+    $('mvClose').addEventListener('click', () => $('movesDlg').close());
+    $('mvList').addEventListener('click', (e) => { const b = e.target.closest('[data-mvdel]'); if (!b) return; data.moves.splice(+b.dataset.mvdel, 1); redraw(); paintMoves(); });
+
     // ── restore a daily backup kept on the server ──
     let rsChosen = null;
     const rsLabel = (name) => {
