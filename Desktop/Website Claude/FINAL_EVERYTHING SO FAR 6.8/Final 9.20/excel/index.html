@@ -69,7 +69,7 @@
     .lg.pay { background: linear-gradient(90deg, #2e7d32 33%, #1f6fb2 33% 66%, #b5621b 66%); } .lg.nan { background: rgba(46,125,50,0.25); border-left: 4px solid #2e7d32; } .lg.three { background: rgba(201,160,90,0.5); border: 1px solid var(--gold); }
     .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
     .cal-grid .dow { text-align: center; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 2px 0; }
-    .cal-day { height: 88px; overflow: hidden; border: 1px solid var(--line); border-radius: 7px; padding: 4px 5px; font-size: 0.78rem; display: flex; flex-direction: column; gap: 3px; background: var(--card); }
+    .cal-day { height: 96px; overflow: hidden; border: 1px solid var(--line); border-radius: 7px; padding: 4px 5px; font-size: 0.78rem; display: flex; flex-direction: column; gap: 3px; background: var(--card); }
     .cal-day.out { opacity: 0.35; }
     .cal-day.today { box-shadow: inset 0 0 0 2px var(--gold); }
     .cal-day .dn { font-weight: 700; font-size: 0.85rem; }
@@ -77,6 +77,29 @@
     .cal-day .ev small { display: block; font-weight: 400; opacity: 0.85; font-size: 0.66rem; }
     .cal-day .ev.pay { background: var(--pc, #2e7d32); }
     .cal-day .ev.nan { background: color-mix(in srgb, var(--pc, #7b5cd6) 22%, transparent); color: var(--ink); border-left: 4px solid var(--pc, #7b5cd6); }
+    .cal-day { cursor: pointer; }
+    .cal-day.sel { box-shadow: inset 0 0 0 2px #3b82c4; }
+    .cal-day.today.sel { box-shadow: inset 0 0 0 2px #3b82c4, inset 0 0 0 4px var(--gold); }
+    .cal-day .bl { display: flex; justify-content: space-between; gap: 4px; font-size: 0.68rem; line-height: 1.2; padding: 1px 4px; border-radius: 4px; background: rgba(217,48,37,0.12); color: var(--ink); }
+    .cal-day .bl span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+    .cal-day .bl b { flex: none; font-variant-numeric: tabular-nums; color: #c0392b; }
+    .cal-day .bl.ded { background: rgba(120,120,140,0.14); }
+    .cal-day .bl.ded b { color: var(--muted); }
+    .cal-day .bl.unplanned { background: transparent; border: 1px dashed rgba(217,48,37,0.45); }
+    .cal-day .bl.unplanned b { opacity: 0.7; }
+    .cal-detail .dl.unplanned b { opacity: 0.7; }
+    .cal-day .bl.more { background: none; color: var(--muted); font-style: italic; justify-content: flex-start; }
+    html.dark .cal-day .bl b { color: #ff8a80; }
+    .lg.bill { background: rgba(217,48,37,0.3); }
+    .cal-detail { border: 1px solid var(--line); border-radius: 8px; padding: 0.45rem 0.7rem; height: 132px; overflow: auto; font-size: 0.85rem; columns: 2; column-gap: 1.6rem; }
+    .cal-detail .dt { column-span: all; font-weight: 700; margin-bottom: 0.25rem; }
+    .cal-detail .dl { display: flex; justify-content: space-between; gap: 0.6rem; padding: 2px 0; border-bottom: 1px dashed var(--line); break-inside: avoid; }
+    .cal-detail .dl b { font-variant-numeric: tabular-nums; }
+    .cal-detail .dl small { color: var(--muted); font-size: 0.72rem; }
+    .cal-detail .dl.pay b { color: var(--pc); } .cal-detail .dl.nan span { border-left: 4px solid var(--pc); padding-left: 5px; }
+    .cal-detail .dl.bill b { color: #c0392b; } html.dark .cal-detail .dl.bill b { color: #ff8a80; }
+    .cal-detail .dl.none { color: var(--muted); border: 0; }
+    @media (max-width: 700px) { .cal-detail { columns: 1; } .cal-day .bl { display: none; } .cal-day .bl.more { display: none; } }
     .cal-sum { display: flex; flex-wrap: wrap; gap: 0.5rem 1.4rem; font-size: 0.86rem; padding: 0.5rem 0.7rem; border-radius: 8px; background: rgba(201,160,90,0.1); }
     .cal-sum b { font-variant-numeric: tabular-nums; }
     @media (max-width: 700px) { .cal-strip { grid-template-columns: repeat(6, 1fr); } .cal-day { height: 64px; font-size: 0.7rem; } .cal-day .ev small { display: none; } }
@@ -707,8 +730,9 @@
     <form method="dialog">
       <div class="cal-head"><button type="button" class="btn icon" id="calPrev" title="Previous month">◀</button><h3 id="calTitle"></h3><button type="button" class="btn icon" id="calNext" title="Next month">▶</button><span class="spacer"></span><button type="button" class="btn" id="calToday">This month</button><button type="button" class="btn" id="calClose">Close</button></div>
       <div class="cal-strip" id="calStrip"></div>
-      <div class="cal-legend"><span><i class="lg pay"></i>Payday (solid) — each paycheck has its own color</span><span><i class="lg nan"></i>Pay Nanny (Friday) — same color as the paycheck it comes from</span><span><i class="lg three"></i>Month with 3 paychecks</span></div>
+      <div class="cal-legend"><span><i class="lg pay"></i>Payday (solid) — each paycheck has its own color</span><span><i class="lg nan"></i>Pay Nanny (Friday) — same color as the paycheck it comes from</span><span><i class="lg bill"></i>Bill due (amount set aside) — click a day for the full list</span><span><i class="lg three"></i>Month with 3 paychecks</span></div>
       <div class="cal-grid" id="calGrid"></div>
+      <div class="cal-detail" id="calDetail"></div>
       <div class="cal-sum" id="calSum"></div>
     </form>
   </dialog>
@@ -2224,7 +2248,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: link tags wrap inside their box', at: '2026-10-14T21:12:00Z' };
+    const PAGE_VERSION = { msg: 'Budget: Calendar shows bills on their due dates', at: '2026-10-14T21:16:00Z' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); // shown in the viewer's own time zone
       $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }); }
@@ -2336,6 +2360,33 @@
     // each paycheck gets its own color; the Nanny Fridays it pays use the same color
     const PAY_COLORS = ['#2e7d32', '#1f6fb2', '#b5621b', '#8e3fa8', '#0f8a83', '#b02e5a'];
     function payColor(iso) { const step = (data.periodDays || 14) * DAY; const k = Math.round((fromISO(iso) - fromISO(data.anchor)) / step); return PAY_COLORS[((k % PAY_COLORS.length) + PAY_COLORS.length) % PAY_COLORS.length]; }
+    // bills from Mary's Paycheck section on their due dates (amount = what the sheet sets aside for that bill)
+    function calBills(startT, endT) {
+      const out = new Map(), add = (iso, e) => { if (!out.has(iso)) out.set(iso, []); out.get(iso).push(e); };
+      const sec = data.sections.find(x => x.fromPaycheck); if (!sec) return out;
+      const nan = nannyItem();
+      sec.items.forEach(it => {
+        if ((nan && it.id === nan.id) || /adjust/i.test(it.name || '')) return;
+        const r = dueRule(it);
+        if (r) {
+          const ok = (mi) => (((mi - r.anchor) % r.F) + r.F) % r.F === 0;
+          for (let mi = mIdx(toISO(startT)); mi <= mIdx(toISO(endT)); mi++) {
+            if (!ok(mi)) continue;
+            const due = dueOn(mi, r.day); if (fromISO(due) < startT || fromISO(due) > endT) continue;
+            const prev = dueOn(mi - r.F, r.day);
+            const amt = Math.round(periodsBetween(fromISO(prev) + DAY, fromISO(due) + DAY).reduce((t, c) => t + (cellValue(it.id, c).v || 0), 0) * 100) / 100;
+            const eom = /^(eom|end)/i.test(String(it.due)) ? 'end of month' : '';
+            if (amt > 0) add(due, { name: it.name, amt, kind: 'bill', note: eom });
+            else if (it.budget > 0) add(due, { name: it.name, amt: Math.round(it.budget * r.F * 100) / 100, kind: 'bill unplanned', note: (eom ? eom + ' · ' : '') + 'nothing set aside yet' });
+          }
+        } else { // no due date (bi-weekly / weekly / per check): taken from each paycheck on payday
+          periodsBetween(startT, endT + DAY).forEach(p => { const v = cellValue(it.id, p).v || 0; if (v > 0) add(p, { name: it.name, amt: v, kind: 'ded', note: 'from this paycheck' }); });
+        }
+      });
+      out.forEach(l => l.sort((a, b) => b.amt - a.amt));
+      return out;
+    }
+    let calSel = null; // day shown in the detail list
     function paintCal() {
       const { y, m } = calMonth, first = Date.UTC(y, m, 1), last = Date.UTC(y, m + 1, 0);
       $('calTitle').textContent = `${FULL_MONTHS[m]} ${y}`;
@@ -2347,16 +2398,36 @@
       let h = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => `<div class="dow">${d}</div>`).join('');
       let pays = 0, paySum = 0, nanSum = 0, nanN = 0;
       const payset = new Set(periodsBetween(start, start + 42 * DAY));
+      const bills = calBills(start, start + 41 * DAY); let billSum = 0, billN = 0;
+      const dayInfo = {};
       for (let i = 0; i < 42; i++) {
         const t = start + i * DAY, iso = toISO(t), inM = t >= first && t <= last;
         let ev = '';
         if (payset.has(iso)) { const p = num('paycheck', iso); ev += `<div class="ev pay" style="--pc:${payColor(iso)}">Payday ${money(p) || ''}</div>`; if (inM) { pays++; paySum += p; } }
         const n = nannyOn(iso);
         if (n && n.amt) { ev += `<div class="ev nan" style="--pc:${payColor(n.from)}">Nanny ${money(n.amt)}<small>from ${fmtDate(n.from)} check${n.fr > 1 ? ` (${money(n.total)} ÷ ${n.fr})` : ''}</small></div>`; if (inM) { nanSum += n.amt; nanN++; } }
-        h += `<div class="cal-day ${inM ? '' : 'out'} ${iso === today ? 'today' : ''}"><span class="dn">${new Date(t).getUTCDate()}</span>${ev}</div>`;
+        const bl = bills.get(iso) || [];
+        if (inM) bl.forEach(x => { if (!/unplanned/.test(x.kind)) { billSum += x.amt; billN++; } });
+        if (bl.length) {
+          const room = ev ? 1 : 2, shown = bl.length > room + 1 ? bl.slice(0, room) : bl;
+          ev += shown.map(x => `<div class="bl ${x.kind}" title="${esc(x.name)} ${money(x.amt)}${x.note ? ' · ' + x.note : ''}"><span>${esc(x.name)}</span><b>${money(x.amt)}</b></div>`).join('');
+          if (shown.length < bl.length) { const rest = bl.slice(shown.length); ev += `<div class="bl more">+${rest.length} more · ${money(Math.round(rest.reduce((a, x) => a + x.amt, 0) * 100) / 100)}</div>`; }
+        }
+        dayInfo[iso] = { pay: payset.has(iso) ? num('paycheck', iso) : null, nan: n && n.amt ? n : null, bills: bl };
+        h += `<div class="cal-day ${inM ? '' : 'out'} ${iso === today ? 'today' : ''} ${iso === calSel ? 'sel' : ''}" data-day="${iso}"><span class="dn">${new Date(t).getUTCDate()}</span>${ev}</div>`;
       }
       $('calGrid').innerHTML = h;
-      $('calSum').innerHTML = `<span>${FULL_MONTHS[m]}: <b>${pays} paycheck${pays === 1 ? '' : 's'}</b>${pays >= 3 ? ' ★ 3-paycheck month' : ''}</span><span>Paychecks total <b>${money(Math.round(paySum * 100) / 100) || '$0'}</b></span><span>Nanny (${nanN} Friday${nanN === 1 ? '' : 's'}) <b>${money(Math.round(nanSum * 100) / 100) || '$0'}</b></span>`;
+      // detail list for the picked day (defaults to today / first of month)
+      if (!calSel || !dayInfo[calSel] || calSel.slice(0, 7) !== `${y}-${String(m + 1).padStart(2, '0')}`) calSel = today.slice(0, 7) === `${y}-${String(m + 1).padStart(2, '0')}` ? today : toISO(first);
+      const di = dayInfo[calSel];
+      $('calGrid').querySelector(`[data-day="${calSel}"]`)?.classList.add('sel');
+      const lines = [];
+      if (di.pay != null) lines.push(`<div class="dl pay" style="--pc:${payColor(calSel)}"><span>Payday</span><b>${money(di.pay) || '$0'}</b></div>`);
+      if (di.nan) lines.push(`<div class="dl nan" style="--pc:${payColor(di.nan.from)}"><span>Nanny (from ${fmtDate(di.nan.from)} check)</span><b>${money(di.nan.amt)}</b></div>`);
+      di.bills.forEach(x => lines.push(`<div class="dl ${x.kind}"><span>${esc(x.name)}${x.note ? ` <small>${x.note}</small>` : ''}</span><b>${money(x.amt)}</b></div>`));
+      const dd = new Date(fromISO(calSel));
+      $('calDetail').innerHTML = `<div class="dt">${dd.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' })}${di.bills.length ? ` · bills ${money(Math.round(di.bills.reduce((a, x) => a + x.amt, 0) * 100) / 100)}` : ''}</div>${lines.length ? lines.join('') : '<div class="dl none">Nothing due this day.</div>'}`;
+      $('calSum').innerHTML = `<span>${FULL_MONTHS[m]}: <b>${pays} paycheck${pays === 1 ? '' : 's'}</b>${pays >= 3 ? ' ★ 3-paycheck month' : ''}</span><span>Paychecks total <b>${money(Math.round(paySum * 100) / 100) || '$0'}</b></span><span>Nanny (${nanN} Friday${nanN === 1 ? '' : 's'}) <b>${money(Math.round(nanSum * 100) / 100) || '$0'}</b></span><span>Bills (${billN}) <b>${money(Math.round(billSum * 100) / 100) || '$0'}</b></span>`;
     }
     const FULL_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     $('calBtn').addEventListener('click', () => { if (!data) return; const d = new Date(); calMonth = { y: d.getFullYear(), m: d.getMonth() }; paintCal(); $('calDlg').showModal(); });
@@ -2364,6 +2435,7 @@
     $('calNext').addEventListener('click', () => { const d = new Date(Date.UTC(calMonth.y, calMonth.m + 1, 1)); calMonth = { y: d.getUTCFullYear(), m: d.getUTCMonth() }; paintCal(); });
     $('calToday').addEventListener('click', () => { const d = new Date(); calMonth = { y: d.getFullYear(), m: d.getMonth() }; paintCal(); });
     $('calClose').addEventListener('click', () => $('calDlg').close());
+    $('calGrid').addEventListener('click', (e) => { const d = e.target.closest('[data-day]'); if (!d) return; calSel = d.dataset.day; if (d.classList.contains('out')) { const dt = new Date(fromISO(calSel)); calMonth = { y: dt.getUTCFullYear(), m: dt.getUTCMonth() }; } paintCal(); });
     $('calStrip').addEventListener('click', (e) => { const b = e.target.closest('[data-cm]'); if (!b) return; const [yy, mm] = b.dataset.cm.split('-').map(Number); calMonth = { y: yy, m: mm }; paintCal(); });
 
     // ── moves history ──
