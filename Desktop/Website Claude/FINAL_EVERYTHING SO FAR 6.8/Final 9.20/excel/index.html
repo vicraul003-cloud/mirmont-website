@@ -195,6 +195,7 @@
     .sug-pop .sg-row b { font-size: 0.92rem; }
     .sug-pop .sg-row small { display: block; color: #c8c0b0; font-size: 0.78rem; line-height: 1.35; }
     .sug-pop .sg-row .fx { color: #7fd18a; font-weight: 700; }
+    .sug-pop .cp-acts button[data-sga=undo]:not(:disabled) { border-color: var(--gold); color: var(--gold); }
     .sug-pop .sg-row button { flex: none; background: #3b82c4; border-color: #3b82c4; padding: 0.35rem 0.8rem; font-weight: 600; }
     #sheetWrap .sheet tr.sum-rem td.short[data-rem] { cursor: pointer; }
     .cover-pop .cp-note { margin-right: auto; align-self: center; font-size: 0.85rem; color: #c8c0b0; }
@@ -1668,13 +1669,14 @@
     function openSugPop(iso, anchor) {
       closeSugPop();
       const pop = document.createElement('div'); pop.id = 'sugPop'; pop.className = 'cover-pop sug-pop';
+      let applied = 0; // moves made from this popup (each one can be undone)
       const paint = () => {
         const r = remOf(iso), list = moveSuggestions(iso);
         pop.innerHTML = `<div class="cp-title">${r < 0 ? `<b>${money(-r)}</b> short on ${fmtDate(iso)} — suggestions` : `<b>${fmtDate(iso)}</b> is balanced now ✓`}
           <small class="cp-sub">Bills move whole to a paycheck that stays positive and is on or before the due date · for Religion and Holidays' &amp; Bday Gifts another check's overage covers it instead</small></div>
           <div class="sg-list">${r >= 0 ? '' : list.length ? list.map((x, i) => x.contrib ? `<div class="sg-row"><div><b>Use ${fmtDate(x.to)}'s overage</b><small>${money(x.amt)} of ${fmtDate(x.to)}'s +${money(x.room)} goes toward ${fmtDate(iso)}${x.over ? ' (earlier paycheck)' : ` (contribution — ${esc(x.name)} amounts stay the same)`} · ${fmtDate(x.to)} keeps ${money(Math.round((x.room - x.amt) * 100) / 100) || '$0'}${x.fixes ? ' · <span class="fx">fixes it</span>' : ''}</small></div><button type="button" data-sg="${i}">Use</button></div>` : `<div class="sg-row"><div><b>${esc(x.name)}</b><small>Move ${money(x.amt)}${x.amt < x.v ? ` of ${money(x.v)}` : ''} → ${fmtDate(x.to)}${x.to.slice(0, 4) !== iso.slice(0, 4) ? " '" + x.to.slice(2, 4) : ''}${x.due ? ` · due ${fmtDate(x.due)}` : ''} · ${fmtDate(x.to)} keeps ${money(Math.round((x.room - x.amt) * 100) / 100) || '$0'}${x.fixes ? ' · <span class="fx">fixes it</span>' : ''}</small></div><button type="button" data-sg="${i}">Move</button></div>`).join('')
             : '<div class="cp-none">No moves found that keep the other paychecks positive and the bills on time. Try covering it from Adjustments instead.</div>'}</div>
-          <div class="cp-acts"><button type="button" data-sga="close">Close</button></div>`;
+          <div class="cp-acts"><button type="button" data-sga="undo" ${applied ? '' : 'disabled'} title="Undo the last Move / Use made here">↶ Undo${applied > 1 ? ` (${applied})` : ''}</button><button type="button" data-sga="close">Close</button></div>`;
         pop._list = list;
       };
       paint();
@@ -1687,6 +1689,7 @@
       pop.addEventListener('click', (e) => {
         const b = e.target.closest('button'); if (!b) return;
         if (b.dataset.sga === 'close') { closeSugPop(); return; }
+        if (b.dataset.sga === 'undo') { if (!applied || b.disabled) return; undo(); applied--; paint(); flashMsg('Undid the last suggestion'); return; }
         const x = pop._list && pop._list[+b.dataset.sg]; if (!x) return;
         if (x.contrib) {
           const adj = adjItemFor(); if (!adj) return;
@@ -1699,7 +1702,7 @@
           setOnlyThis(adj.id, x.from, Math.round((cur - x.amt) * 100) / 100);
           data.coveredBy[k] = map;
           (data.moves = data.moves || []).push({ at: new Date().toISOString(), id: adj.id, name: x.over ? 'Overage' : 'Overage (' + x.name + ')', from: x.to, to: x.from, amt: x.amt, kind: 'cover' });
-          redraw(); paint();
+          redraw(); applied++; paint();
           flashMsg(`${money(x.amt)} of ${fmtDate(x.to)}'s overage now covers ${fmtDate(x.from)} (Adjustments ← ${fmtDate(x.to)})`);
           return;
         }
@@ -1707,7 +1710,7 @@
         setOnlyThis(x.id, x.from, Math.round((x.v - x.amt) * 100) / 100);
         setOnlyThis(x.id, x.to, Math.round((tv + x.amt) * 100) / 100);
         (data.moves = data.moves || []).push({ at: new Date().toISOString(), id: x.id, name: x.name, from: x.from, to: x.to, amt: x.amt });
-        redraw(); paint();
+        redraw(); applied++; paint();
         flashMsg(`Moved ${money(x.amt)} of ${x.name}: ${fmtDate(x.from)} → ${fmtDate(x.to)} (see Menu → Moves history)`);
       });
     }
@@ -2181,7 +2184,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: Suggestions offer earlier paychecks overage', at: '2026-10-14T20:45:00Z' };
+    const PAGE_VERSION = { msg: 'Budget: Undo inside the Suggestions popup', at: '2026-10-14T20:48:00Z' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); // shown in the viewer's own time zone
       $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }); }
