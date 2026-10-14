@@ -1568,6 +1568,7 @@
       askCover(it.id, iso, n, null, td);
     });
     // ── Suggestions: click a red Remainder box → expense moves that fix it without making another check short or a bill late ──
+    const splittable = (it) => /religion|holiday|b-?day|birthday|gift/i.test(it.name || '');
     function remOf(iso) { return Math.round(computePeriod(iso).remainder * 100) / 100; }
     function moveSuggestions(iso) {
       const short = -remOf(iso); if (!(short > 0.005)) return [];
@@ -1582,7 +1583,9 @@
         if (!w && !it.due) { cands = []; for (let i = -3; i <= 3; i++) if (i) cands.push(toISO(fromISO(iso) + i * step)); } // no due date: nearby checks
         cands.filter(t => t !== iso && t >= nowP && t >= floor).forEach(t => {
           const room = remOf(t); if (!(room > 0.005)) return;
-          const amt = Math.round(Math.min(v, short, room) * 100) / 100; if (!(amt > 0.005)) return;
+          // bills move whole; only contributions (Religion, Holidays' & Bday Gifts) can be split
+          const amt = splittable(it) ? Math.round(Math.min(v, short, room) * 100) / 100 : (room >= v - 0.005 ? v : 0);
+          if (!(amt > 0.005)) return;
           out.push({ id: it.id, name: it.name, from: iso, to: t, amt, v, room, due: w ? w.due : null, fixes: amt >= short - 0.005 });
         });
       }));
@@ -1596,7 +1599,7 @@
       const paint = () => {
         const r = remOf(iso), list = moveSuggestions(iso);
         pop.innerHTML = `<div class="cp-title">${r < 0 ? `<b>${money(-r)}</b> short on ${fmtDate(iso)} — suggestions` : `<b>${fmtDate(iso)}</b> is balanced now ✓`}
-          <small class="cp-sub">Moves an expense to another paycheck that stays positive, paid on or before its due date</small></div>
+          <small class="cp-sub">Bills move whole to a paycheck that stays positive and is on or before the due date · Religion and Holidays' &amp; Bday Gifts can be split</small></div>
           <div class="sg-list">${r >= 0 ? '' : list.length ? list.map((x, i) => `<div class="sg-row"><div><b>${esc(x.name)}</b><small>Move ${money(x.amt)}${x.amt < x.v ? ` of ${money(x.v)}` : ''} → ${fmtDate(x.to)}${x.to.slice(0, 4) !== iso.slice(0, 4) ? " '" + x.to.slice(2, 4) : ''}${x.due ? ` · due ${fmtDate(x.due)}` : ''} · ${fmtDate(x.to)} keeps ${money(Math.round((x.room - x.amt) * 100) / 100) || '$0'}${x.fixes ? ' · <span class="fx">fixes it</span>' : ''}</small></div><button type="button" data-sg="${i}">Move</button></div>`).join('')
             : '<div class="cp-none">No moves found that keep the other paychecks positive and the bills on time. Try covering it from Adjustments instead.</div>'}</div>
           <div class="cp-acts"><button type="button" data-sga="close">Close</button></div>`;
@@ -2089,7 +2092,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: Auto Refresh button for new updates', at: '2026-10-14T19:57:00Z' };
+    const PAGE_VERSION = { msg: 'Budget: Suggestions move bills whole (gifts and religion can split)', at: '2026-10-14T20:00:00Z' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); // shown in the viewer's own time zone
       $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }); }
