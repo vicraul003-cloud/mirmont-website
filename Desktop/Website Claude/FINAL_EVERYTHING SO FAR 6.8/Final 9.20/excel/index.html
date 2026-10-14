@@ -1633,7 +1633,14 @@
           // bills move whole; only contributions (Religion, Holidays' & Bday Gifts) can be split
           const amt = splittable(it) ? Math.round(Math.min(v, short, room) * 100) / 100 : (room >= v - 0.005 ? v : 0);
           if (!(amt > 0.005)) return;
-          out.push({ id: it.id, name: it.name, from: iso, to: t, amt, v, room, due: w ? w.due : null, fixes: amt >= short - 0.005 });
+          const contrib = splittable(it);
+          if (contrib) { // contributions: the other check's overage covers this check (through Adjustments) — the contribution rows stay as they are
+            const adj = adjItemFor(); if (!adj) return;
+            const prev = lkList(data.coveredBy && data.coveredBy[adj.id + '|' + iso]);
+            if (prev.length && !(prev.length === 1 && prev[0] === t)) return; // that check's Adjustments is already covered by a different paycheck
+            if (out.some(o => o.contrib && o.to === t)) return; // one offer per paycheck
+          }
+          out.push({ id: it.id, name: it.name, from: iso, to: t, amt, v, room, due: w ? w.due : null, fixes: amt >= short - 0.005, contrib });
         });
       }));
       out.sort((a, b) => (b.fixes - a.fixes) || (b.amt - a.amt) || a.to.localeCompare(b.to));
@@ -1646,8 +1653,8 @@
       const paint = () => {
         const r = remOf(iso), list = moveSuggestions(iso);
         pop.innerHTML = `<div class="cp-title">${r < 0 ? `<b>${money(-r)}</b> short on ${fmtDate(iso)} — suggestions` : `<b>${fmtDate(iso)}</b> is balanced now ✓`}
-          <small class="cp-sub">Bills move whole to a paycheck that stays positive and is on or before the due date · Religion and Holidays' &amp; Bday Gifts can be split</small></div>
-          <div class="sg-list">${r >= 0 ? '' : list.length ? list.map((x, i) => `<div class="sg-row"><div><b>${esc(x.name)}</b><small>Move ${money(x.amt)}${x.amt < x.v ? ` of ${money(x.v)}` : ''} → ${fmtDate(x.to)}${x.to.slice(0, 4) !== iso.slice(0, 4) ? " '" + x.to.slice(2, 4) : ''}${x.due ? ` · due ${fmtDate(x.due)}` : ''} · ${fmtDate(x.to)} keeps ${money(Math.round((x.room - x.amt) * 100) / 100) || '$0'}${x.fixes ? ' · <span class="fx">fixes it</span>' : ''}</small></div><button type="button" data-sg="${i}">Move</button></div>`).join('')
+          <small class="cp-sub">Bills move whole to a paycheck that stays positive and is on or before the due date · for Religion and Holidays' &amp; Bday Gifts another check's overage covers it instead</small></div>
+          <div class="sg-list">${r >= 0 ? '' : list.length ? list.map((x, i) => x.contrib ? `<div class="sg-row"><div><b>Use ${fmtDate(x.to)}'s overage</b><small>${money(x.amt)} of ${fmtDate(x.to)}'s +${money(x.room)} goes toward ${fmtDate(iso)} (contribution — ${esc(x.name)} amounts stay the same) · ${fmtDate(x.to)} keeps ${money(Math.round((x.room - x.amt) * 100) / 100) || '$0'}${x.fixes ? ' · <span class="fx">fixes it</span>' : ''}</small></div><button type="button" data-sg="${i}">Use</button></div>` : `<div class="sg-row"><div><b>${esc(x.name)}</b><small>Move ${money(x.amt)}${x.amt < x.v ? ` of ${money(x.v)}` : ''} → ${fmtDate(x.to)}${x.to.slice(0, 4) !== iso.slice(0, 4) ? " '" + x.to.slice(2, 4) : ''}${x.due ? ` · due ${fmtDate(x.due)}` : ''} · ${fmtDate(x.to)} keeps ${money(Math.round((x.room - x.amt) * 100) / 100) || '$0'}${x.fixes ? ' · <span class="fx">fixes it</span>' : ''}</small></div><button type="button" data-sg="${i}">Move</button></div>`).join('')
             : '<div class="cp-none">No moves found that keep the other paychecks positive and the bills on time. Try covering it from Adjustments instead.</div>'}</div>
           <div class="cp-acts"><button type="button" data-sga="close">Close</button></div>`;
         pop._list = list;
@@ -1663,6 +1670,16 @@
         const b = e.target.closest('button'); if (!b) return;
         if (b.dataset.sga === 'close') { closeSugPop(); return; }
         const x = pop._list && pop._list[+b.dataset.sg]; if (!x) return;
+        if (x.contrib) {
+          const adj = adjItemFor(); if (!adj) return;
+          const k = adj.id + '|' + x.from, cur = (data.values[adj.id] || {})[x.from] || 0;
+          setOnlyThis(adj.id, x.from, Math.round((cur - x.amt) * 100) / 100);
+          (data.coveredBy = data.coveredBy || {})[k] = x.to;
+          (data.moves = data.moves || []).push({ at: new Date().toISOString(), id: adj.id, name: 'Overage (' + x.name + ')', from: x.to, to: x.from, amt: x.amt, kind: 'cover' });
+          redraw(); paint();
+          flashMsg(`${money(x.amt)} of ${fmtDate(x.to)}'s overage now covers ${fmtDate(x.from)} (Adjustments ← ${fmtDate(x.to)})`);
+          return;
+        }
         const tv = cellValue(x.id, x.to).v || 0;
         setOnlyThis(x.id, x.from, Math.round((x.v - x.amt) * 100) / 100);
         setOnlyThis(x.id, x.to, Math.round((tv + x.amt) * 100) / 100);
@@ -2141,7 +2158,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: record of each Suggestions move', at: '2026-10-14T20:22:00Z' };
+    const PAGE_VERSION = { msg: 'Budget: contributions use another check overage instead of moving', at: '2026-10-14T20:25:00Z' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); // shown in the viewer's own time zone
       $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }); }
