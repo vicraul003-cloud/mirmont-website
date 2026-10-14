@@ -28,6 +28,10 @@
     /* ── top bar ── */
     .topbar { background: var(--navy-dark); color: #f8f5ef; display: flex; align-items: center; gap: 1rem; padding: 0.8rem 1.25rem; position: sticky; top: 0; z-index: 30; }
     .topbar img { height: 38px; display: block; }
+    .refresh-btn { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+    .refresh-btn.inline { position: static; transform: none; margin-right: auto; }
+    .refresh-btn.spin svg { animation: rf-spin 0.8s linear infinite; }
+    @keyframes rf-spin { to { transform: rotate(360deg); } }
     .topbar h1 { font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: 1.6rem; letter-spacing: 0.01em; margin-right: auto; }
     .save-state { font-size: 0.72rem; letter-spacing: 0.06em; color: #c8c0b0; display: flex; align-items: center; gap: 0.4rem; white-space: nowrap; }
     .save-state::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #6fbf73; }
@@ -155,6 +159,7 @@
     .cover-pop .cp-nav { display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; margin-bottom: 0.4rem; }
     .cover-pop .cp-nav button { padding: 0.2rem 0.55rem; font-size: 0.74rem; }
     .cover-pop .cp-nav .cp-range { font-size: 0.7rem; color: #c8c0b0; white-space: nowrap; }
+    .cover-pop .cp-note { margin-right: auto; align-self: center; font-size: 0.68rem; color: #c8c0b0; }
     .cover-pop .cp-acts { display: flex; justify-content: flex-end; gap: 0.35rem; margin-top: 0.55rem; }
     .cover-pop .cp-acts button { padding: 0.25rem 0.7rem; font-size: 0.74rem; }
     .link-bar { position: fixed; top: 74px; left: 50%; transform: translateX(-50%); z-index: 70; display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; max-width: calc(100vw - 32px); background: #1f4f7a; color: #fff; border-radius: 10px; padding: 0.55rem 0.8rem 0.55rem 1rem; box-shadow: 0 10px 28px rgba(0,0,0,0.3); font-size: 0.85rem; }
@@ -363,6 +368,7 @@
       .topbar { padding: 0.6rem 16px; gap: 0.6rem; }
       .topbar img { height: 30px; }
       .topbar h1 { font-size: 1.3rem; }
+      .refresh-btn { position: static; transform: none; }
       .save-state span { display: none; }
       .undo-btn span:not(#themeIcon) { display: none; }
       .undo-btn { padding: 0.35rem 0.5rem; }
@@ -523,6 +529,7 @@
   <header class="topbar">
     <a href="/"><img src="/FullLogo_Transparent.png" alt="Mirmont Construction" /></a>
     <h1>Budget</h1>
+    <button type="button" class="undo-btn refresh-btn" id="refreshBtn" title="Refresh the page (saves first)"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.34 5.66" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M20 4v7h-7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Refresh</span></button>
     <span class="info-wrap"><div class="info-pop" id="infoPop" role="status" hidden><div class="ip-label">Latest update · <span id="infoDate"></span></div><div class="ip-msg" id="infoMsg"></div></div><button type="button" class="undo-btn info-btn" id="infoBtn" title="Show/hide latest update" aria-expanded="false" aria-controls="infoPop">i</button></span>
     <button type="button" class="undo-btn theme-btn" id="themeBtn" title="Switch between light and dark"><span id="themeIcon">🌙</span><span id="themeText">Dark</span></button>
     <button type="button" class="undo-btn" id="undoBtn" title="Undo last change (⌘Z)" disabled>
@@ -1268,7 +1275,12 @@
       const sameLater = Object.keys(vals).filter(d => d > iso); // every later box that has its own amount
 
       // Adjustments line: always just this box, then ask which paycheck pairs with it
-      if (/adjust/i.test(it.name || '')) { setOnlyThis(id, iso, n); redraw(); done(); askCover(id, iso, n); return; }
+      if (/adjust/i.test(it.name || '')) {
+        const prior = adjSnap(id, iso);
+        setOnlyThis(id, iso, n); redraw(); done();
+        if (n !== null && n !== 0) askCover(id, iso, n, prior);
+        return;
+      }
       // Clearing a box, or a one-off line with nothing later to update: just save it.
       if (n === null || (!repeats && sameLater.length === 0) || before === n) {
         setValue(id, iso, n); redraw(); done(); askCover(id, iso, n); return;
@@ -1462,11 +1474,28 @@
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') clearSelection(); });
 
     // ── Adjustments line: after typing an amount, ask which paycheck it pairs with ──
-    function closeCover() { const x = $('coverPop'); if (x) x.remove(); }
-    function askCover(id, iso, n) {
+    // Adjustments amounts only stick once a paycheck is picked; closing the picker without one puts the box back
+    let coverPending = null; // { id, iso, prior }
+    function adjSnap(id, iso) { const k = id + '|' + iso; return { v: (data.values[id] || {})[iso], link: data.links && data.links[k], cov: data.coveredBy && data.coveredBy[k] }; }
+    function revertAdj(p) {
+      const k = p.id + '|' + p.iso;
+      setValue(p.id, p.iso, p.prior.v === undefined ? null : p.prior.v, true);
+      if (p.prior.link !== undefined) (data.links = data.links || {})[k] = p.prior.link; else if (data.links) delete data.links[k];
+      if (p.prior.cov !== undefined) (data.coveredBy = data.coveredBy || {})[k] = p.prior.cov; else if (data.coveredBy) delete data.coveredBy[k];
+      redraw();
+      const td = document.querySelector(`#sheetWrap td.cell[data-cid="${p.id}"][data-cd="${p.iso}"]`);
+      if (td) td.animate([{ boxShadow: 'inset 0 0 0 2px #d93025' }, { boxShadow: 'inset 0 0 0 2px transparent' }], 900);
+    }
+    function closeCover(picked) {
+      const x = $('coverPop'); if (x) x.remove();
+      const p = coverPending; coverPending = null;
+      if (p && !picked) revertAdj(p);
+    }
+    function askCover(id, iso, n, prior) {
       const it = itemInfo(id);
       if (!it || !/adjust/i.test(it.name || '') || n == null || n === 0) return;
-      closeCover();
+      closeCover(true);
+      coverPending = { id, iso, prior: prior || { v: undefined } };
       const step = (data.periodDays || 14) * DAY, give = n > 0, N = 9;
       let start = give ? 1 : -N; // offset (in paychecks) of the first date shown
       const pageDates = () => { const out = []; for (let i = start, c = 0; c < N; i++) { if (i === 0) continue; out.push(toISO(fromISO(iso) + i * step)); c++; } return out; };
@@ -1477,7 +1506,7 @@
       pop.innerHTML = `<div class="cp-title">${give ? `<b>${money(n)}</b> set aside on ${fmtDate(iso)} — which paycheck is it for?` : `<b>${money(Math.abs(n))}</b> short on ${fmtDate(iso)} — which paycheck is covering it?`}</div>
         <div class="cp-nav"><button type="button" data-cpa="earlier">‹ Earlier</button><span class="cp-range"></span><button type="button" data-cpa="later">Later ›</button></div>
         <div class="cp-dates"></div>
-        <div class="cp-acts">${give ? '<button type="button" data-cpa="sheet">Pick on the sheet…</button>' : ''}<button type="button" data-cpa="skip">Skip</button></div>`;
+        <div class="cp-acts"><span class="cp-note">Pick a paycheck to keep this amount</span>${give ? '<button type="button" data-cpa="sheet">Pick on the sheet…</button>' : ''}</div>`;
       const paint = () => {
         const ds = pageDates();
         pop.querySelector('.cp-dates').innerHTML = ds.map(d => `<button type="button" data-cp="${d}" class="${cur.includes(d) ? 'on' : ''}">${fmtDate(d)}${d.slice(0, 4) !== yr ? " '" + d.slice(2, 4) : ''}</button>`).join('');
@@ -1493,7 +1522,6 @@
       pop.addEventListener('mousedown', (e) => e.stopPropagation());
       pop.addEventListener('click', (e) => {
         const b = e.target.closest('button'); if (!b) return;
-        if (b.dataset.cpa === 'skip') { closeCover(); return; }
         if (b.dataset.cpa === 'earlier' || b.dataset.cpa === 'later') {
           const dir = b.dataset.cpa === 'earlier' ? -1 : 1;
           if (dir < 0) { start -= N; if (start < 0 && start + N > 0) start--; } // skip over this paycheck itself
@@ -1501,8 +1529,8 @@
           if (start === 0) start = 1;
           paint(); return;
         }
-        if (b.dataset.cpa === 'sheet') { closeCover(); startLinkPick([id + '|' + iso]); return; }
-        const d = b.dataset.cp; closeCover();
+        if (b.dataset.cpa === 'sheet') { const p = coverPending; coverPending = null; closeCover(true); startLinkPick([id + '|' + iso], p); return; }
+        const d = b.dataset.cp; if (!d) return; closeCover(true);
         data.links = data.links || {};
         if (give) setLink([id + '|' + iso], [d]);
         else { data.coveredBy = data.coveredBy || {}; data.coveredBy[id + '|' + iso] = d; redraw(); }
@@ -1513,10 +1541,10 @@
 
     // ── "Covers paycheck…": pick mode — click the box(es) of the paycheck(s) this money is for ──
     let linkPick = null; // { keys, picked: Set of dates }
-    function startLinkPick(keys) {
+    function startLinkPick(keys, pending) {
       if (!keys.length) return;
       const k0 = keys[0], neg0 = keys.length === 1 && (cellValue(k0.split('|')[0], k0.split('|')[1]).v || 0) < 0;
-      linkPick = { keys, picked: new Set(keys.length === 1 ? lkList(neg0 ? data.coveredBy && data.coveredBy[k0] : data.links && data.links[k0]) : []) };
+      linkPick = { keys, pending, picked: new Set(keys.length === 1 ? lkList(neg0 ? data.coveredBy && data.coveredBy[k0] : data.links && data.links[k0]) : []) };
       let bar = $('linkBar');
       if (!bar) { bar = document.createElement('div'); bar.id = 'linkBar'; bar.className = 'link-bar'; document.body.appendChild(bar); }
       document.documentElement.classList.add('link-picking');
@@ -1528,6 +1556,7 @@
       document.documentElement.classList.remove('link-picking');
       const bar = $('linkBar'); if (bar) bar.remove();
       document.querySelectorAll('#sheetWrap .lk-col, #sheetWrap .lk-src').forEach(x => x.classList.remove('lk-col', 'lk-src'));
+      if (lp.pending && (!save || !lp.picked.size)) { revertAdj(lp.pending); return; }
       if (save) setLink(lp.keys, [...lp.picked]);
     }
     function paintLinkPick() {
@@ -1629,8 +1658,11 @@
           clip = { v: cur, from: k };
           try { navigator.clipboard && navigator.clipboard.writeText(String(cur)); } catch {}
         } else if (act === 'paste' && clip) {
+          const priors = targets.map(t => { const [id, d] = t.split('|'); return [id, d, adjSnap(id, d)]; });
           targets.forEach(t => { const [id, d] = t.split('|'); setOnlyThis(id, d, clip.v); });
           redraw();
+          const adjT = priors.filter(([id]) => /adjust/i.test((itemInfo(id) || {}).name || ''));
+          if (adjT.length && clip.v) { const [id, d, pr] = adjT[0]; setTimeout(() => askCover(id, d, clip.v, pr), 0); }
         } else if (act === 'zero') {
           targets.forEach(t => { const [id, d] = t.split('|'); setOnlyThis(id, d, 0); });
           redraw();
@@ -1658,9 +1690,12 @@
       if (v == null || Number.isNaN(v)) return;
       e.preventDefault();
       const targets = sel.size ? cellKeysSorted(sel) : [fk];
+      const priors = targets.map(t => { const [id, d] = t.split('|'); return [id, d, adjSnap(id, d)]; });
       targets.forEach(t => { const [id, d] = t.split('|'); setOnlyThis(id, d, v); });
       clip = { v, from: null };
       clearSelection(); redraw();
+      const adjT = priors.filter(([id]) => /adjust/i.test((itemInfo(id) || {}).name || ''));
+      if (adjT.length && v) { const [id, d, pr] = adjT[0]; setTimeout(() => askCover(id, d, v, pr), 0); }
       if (fk) { const [id, d] = fk.split('|'); const n = document.querySelector(`.cell input[data-id="${id}"][data-d="${d}"]`); if (n) n.focus(); }
     });
     document.addEventListener('keydown', (e) => {
@@ -1782,6 +1817,23 @@
 
     $('undoBtn').addEventListener('click', undo);
     $('redoBtn').addEventListener('click', redo);
+    // keep Refresh in the exact middle, unless the buttons on either side would run into it
+    function placeRefresh() {
+      const b = $('refreshBtn'); if (!b) return;
+      b.classList.remove('inline');
+      const r = b.getBoundingClientRect(), h1 = document.querySelector('.topbar h1').getBoundingClientRect();
+      const right = document.querySelector('.topbar .info-wrap').getBoundingClientRect();
+      if (r.left < h1.right + 12 || r.right > right.left - 12) b.classList.add('inline');
+    }
+    placeRefresh(); window.addEventListener('resize', placeRefresh);
+    $('infoBtn').addEventListener('click', () => setTimeout(placeRefresh, 0));
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(placeRefresh);
+    $('refreshBtn').addEventListener('click', async () => {
+      const b = $('refreshBtn'); b.classList.add('spin'); b.disabled = true;
+      try { if (typeof closeCover === 'function' && $('coverPop')) closeCover(); } catch {}
+      try { saveLocal(); if (mode !== 'local' && (saveTimer || saving || pendingSave)) { clearTimeout(saveTimer); saveTimer = null; await saveNow(); for (let i = 0; i < 40 && (saving || pendingSave); i++) await new Promise(r => setTimeout(r, 100)); } } catch {}
+      location.reload();
+    });
 
     // ── Matrix rain background ──
     const matrix = (() => {
@@ -1839,7 +1891,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: paycheck picker can page to earlier/later checks', at: '2026-10-14T18:48:00Z' };
+    const PAGE_VERSION = { msg: 'Budget: Adjustments must pick a paycheck + Refresh', at: '2026-10-14T18:53:00Z' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); // shown in the viewer's own time zone
       $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }); }
