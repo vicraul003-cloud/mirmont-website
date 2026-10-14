@@ -1799,9 +1799,10 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: Difference row shows amount over link tag, centered', at: '2026-10-14T14:35:00-04:00' };
+    const PAGE_VERSION = { msg: 'Budget: update time shown in your local time zone', at: '2026-10-14T18:24:00Z' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
-    { const at = new Date(PAGE_VERSION.at); $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/New_York' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }); }
+    { const at = new Date(PAGE_VERSION.at); // shown in the viewer's own time zone
+      $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }); }
     $('infoPop').title = PAGE_VERSION.msg;
     // stays shown until the "i" is clicked again (remembered on this device)
     const setInfo = (open) => { $('infoPop').hidden = !open; $('infoBtn').setAttribute('aria-expanded', String(open)); try { localStorage.setItem('mirmont-info', open ? '1' : '0'); } catch {} };
