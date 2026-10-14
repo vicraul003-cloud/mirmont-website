@@ -47,6 +47,12 @@
     .menu.open .menu-list { display: block; }
     .menu-list button { display: block; width: 100%; text-align: left; background: none; border: 0; padding: 0.55rem 0.7rem; border-radius: 5px; cursor: pointer; font-size: 0.85rem; }
     .menu-list button:hover { background: var(--page); }
+    .rs-list { display: grid; gap: 0.3rem; max-height: 300px; overflow: auto; font-size: 0.88rem; }
+    .rs-list button { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; width: 100%; text-align: left; background: transparent; color: var(--ink); border: 1px solid var(--line); border-radius: 7px; padding: 0.5rem 0.7rem; cursor: pointer; font-size: 0.88rem; }
+    .rs-list button small { color: var(--muted); font-size: 0.74rem; }
+    .rs-list button:hover { border-color: var(--gold); }
+    .rs-list button.on { border-color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); background: rgba(201,160,90,0.1); }
+    .rs-pick { font-size: 0.85rem; line-height: 1.45; padding: 0.55rem 0.7rem; border-radius: 7px; background: rgba(201,160,90,0.12); color: var(--ink); }
     .menu-list a { display: block; padding: 0.55rem 0.7rem; color: var(--ink); text-decoration: none; font-size: 0.85rem; border-radius: 5px; }
     .menu-list a:hover { background: var(--page); }
 
@@ -556,6 +562,7 @@
         <button type="button" id="mAddSection">Add a section</button>
         <button type="button" id="mExport">Download backup (.json)</button>
         <button type="button" id="mExportXlsx">Download as Excel (.xlsx)</button>
+        <button type="button" id="mRestore">Restore a backup…</button>
         <button type="button" id="mImport">Import data file…</button>
         <a href="/">← Back to website</a>
       </div>
@@ -614,6 +621,17 @@
         <button type="button" class="btn primary" id="applyFuture"></button>
       </div>
       <div class="actions"><button type="button" class="btn" id="applyCancel">Cancel</button></div>
+    </form>
+  </dialog>
+
+  <!-- Restore a daily backup -->
+  <dialog id="restoreDlg">
+    <form method="dialog">
+      <h3>Restore a backup</h3>
+      <p style="font-size:0.85rem;line-height:1.45;color:var(--muted);margin-top:-0.4rem">The site saves a copy of your budget each day and keeps it for 90 days. Pick one to see it, then restore. Your current budget is saved as a copy first, and Undo works too.</p>
+      <div class="rs-list" id="rsList">Loading…</div>
+      <div class="rs-pick" id="rsPick" hidden></div>
+      <div class="actions"><button type="button" class="btn" id="rsClose">Close</button><button type="button" class="btn primary" id="rsGo" disabled>Restore this copy</button></div>
     </form>
   </dialog>
 
@@ -1055,13 +1073,14 @@
       clearTimeout(saveTimer);
       saveTimer = setTimeout(saveNow, 700);
     }
+    let restoring = false; // next save is a restore: server keeps the current copy first
     async function saveNow() {
       if (saving) { pendingSave = true; return; }
       saving = true;
       try {
-        const res = await fetch(API, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rev, data }) });
+        const res = await fetch(API, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(restoring ? { rev, data, restoring: true } : { rev, data }) });
         const body = await res.json().catch(() => ({}));
-        if (res.ok) { rev = body.rev; saveLocal(); setState('ok', 'Saved'); banner(''); }
+        if (res.ok) { rev = body.rev; restoring = false; saveLocal(); setState('ok', 'Saved'); banner(''); }
         else if (res.status === 409) {
           data = body.data; rev = body.rev; saveLocal(); resetUndo(); render();
           setState('ok', 'Saved');
@@ -1967,7 +1986,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: cover options start at the Oct 15 2026 paycheck', at: '2026-10-14T19:36:00Z' };
+    const PAGE_VERSION = { msg: 'Budget: Restore a backup option in the Menu', at: '2026-10-14T19:47:00Z' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); // shown in the viewer's own time zone
       $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }); }
@@ -2058,6 +2077,52 @@
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
       a.download = `budget-backup-${toISO(todayUTC())}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
       $('menu').classList.remove('open');
+    });
+    // ── restore a daily backup kept on the server ──
+    let rsChosen = null;
+    const rsLabel = (name) => {
+      const m = name.match(/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2})-(\d{2}))?(-before-restore)?$/);
+      if (!m) return { t: name, sub: '' };
+      const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], m[4] ? +m[4] : 12, m[5] ? +m[5] : 0));
+      const day = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', timeZone: m[4] ? undefined : 'UTC' });
+      return { t: day + (m[4] ? ' · ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : ''), sub: m[6] ? 'copy saved before a restore' : 'end-of-day copy' };
+    };
+    $('mRestore').addEventListener('click', async () => {
+      $('menu').classList.remove('open');
+      rsChosen = null; $('rsGo').disabled = true; $('rsPick').hidden = true;
+      $('rsList').textContent = 'Loading…';
+      $('restoreDlg').showModal();
+      if (mode === 'local') { $('rsList').textContent = 'Online backups need the online storage (BUDGET_KV). Use "Import data file…" with a downloaded backup instead.'; return; }
+      try {
+        const res = await fetch(API + '?backups=1', { cache: 'no-store' });
+        const body = await res.json();
+        const list = (body.backups || []);
+        $('rsList').innerHTML = list.length ? list.map(n => { const l = rsLabel(n); return `<button type="button" data-rs="${esc(n)}"><span>${esc(l.t)}</span><small>${esc(l.sub)}</small></button>`; }).join('') : 'No backups yet — one is made the first time you change something each day.';
+      } catch { $('rsList').textContent = 'Could not load the list of backups. Check your connection and try again.'; }
+    });
+    $('rsList').addEventListener('click', async (e) => {
+      const b = e.target.closest('button[data-rs]'); if (!b) return;
+      $('rsList').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+      $('rsPick').hidden = false; $('rsPick').textContent = 'Loading that copy…'; $('rsGo').disabled = true;
+      try {
+        const res = await fetch(API + '?backup=' + encodeURIComponent(b.dataset.rs), { cache: 'no-store' });
+        const snap = await res.json();
+        if (!snap || !snap.data || !Array.isArray(snap.data.sections)) throw 0;
+        rsChosen = snap;
+        const lines = snap.data.sections.reduce((n, x) => n + x.items.length, 0);
+        const when = snap.updatedAt ? new Date(snap.updatedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }) : '';
+        $('rsPick').innerHTML = `Last change in this copy: <b>${esc(when)}</b><br>${snap.data.sections.length} sections · ${lines} lines`;
+        $('rsGo').disabled = false;
+      } catch { $('rsPick').textContent = 'That copy could not be opened.'; }
+    });
+    $('rsClose').addEventListener('click', () => $('restoreDlg').close());
+    $('rsGo').addEventListener('click', () => {
+      if (!rsChosen) return;
+      if (!confirm('Replace your current budget with this backup? Your current budget will be kept as a separate copy, and you can also press Undo.')) return;
+      data = JSON.parse(JSON.stringify(rsChosen.data)); migrate(data); sortedCache.clear();
+      restoring = true; scheduleSave(); render();
+      $('restoreDlg').close();
+      banner('Backup restored. Press Undo if you want your previous version back.');
     });
     $('mImport').addEventListener('click', () => { $('menu').classList.remove('open'); $('fileInput').click(); });
     $('mAddSection').addEventListener('click', () => { $('menu').classList.remove('open'); if (data) openSection(null); });
