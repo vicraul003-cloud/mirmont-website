@@ -160,6 +160,7 @@
     .cover-pop .cp-nav button { padding: 0.25rem 0.688rem; font-size: 0.925rem; }
     .cover-pop .cp-nav .cp-range { font-size: 0.875rem; color: #c8c0b0; white-space: nowrap; }
     #sheetWrap .sheet td.cell.adj-pending { box-shadow: inset 0 0 0 2px #f0a24a !important; }
+    #sheetWrap .sheet tr.diff-row td.ro.short { cursor: pointer; }
     #sheetWrap .sheet td.cell.adj-pending input { color: #f0a24a; font-style: italic; }
     .cover-pop .cp-dates button small { display: block; font-size: 0.8rem; color: #7fd18a; font-weight: 600; margin-top: 1.25px; }
     .cover-pop .cp-dates button.on small { color: #fff; }
@@ -956,7 +957,7 @@
             const lkOut = outs.length ? `<span class="lk lk-cov" title="This check covers: ${outs.map(o => `${esc(o.name)} ${money(Math.abs(o.v))} short on ${fmtDate(o.d)}`).join('; ')}">→ ${outs.map(o => fmtDate(o.d)).join(', ')}</span>` : '';
             const lkIn = inc.length ? `<span class="lk lk-to" data-lk="${inc.map(x => x.from).join(',')}">← ${inc.map(x => fmtDate(x.from)).join(', ')}</span>` : '';
             const inTip = inc.length ? ' · Covered by: ' + inc.map(x => `${esc(x.name)} ${money(x.v) || '$0'} from ${fmtDate(x.from)}`).join('; ') : '';
-            return `<td class="${cls(c)} ${d < 0 ? 'short' : 'over'} ro${lkIn || lkOut ? ' lk-cell' : ''}" data-cid="=diff" data-cd="${c.iso}" title="Read only · ⌘/Ctrl+click or Shift+click to add up${inTip}"><div class="calc">${d < 0 ? '−' : '+'}${money(Math.abs(d)) || '$0'}</div>${lkIn || lkOut ? `<div class="lk-line">${lkIn}${lkOut}</div>` : ''}</td>`;
+            return `<td class="${cls(c)} ${d < 0 ? 'short' : 'over'} ro${lkIn || lkOut ? ' lk-cell' : ''}" data-cid="=diff" data-cd="${c.iso}" title="${d < 0 ? 'Click to cover this shortage from a paycheck that is over · ' : ''}Read only · ⌘/Ctrl+click or Shift+click to add up${inTip}"><div class="calc">${d < 0 ? '−' : '+'}${money(Math.abs(d)) || '$0'}</div>${lkIn || lkOut ? `<div class="lk-line">${lkIn}${lkOut}</div>` : ''}</td>`;
           }).join('')}</tr>`;
         }
       });
@@ -1508,7 +1509,29 @@
       const p = coverPending; coverPending = null;
       if (p && !picked) cancelAdj(p);
     }
-    function askCover(id, iso, n, prior) {
+    // click a red (short) Difference box → same popup as typing the shortage into Adjustments
+    function adjItemFor() {
+      const ph = data.sections.find(x => x.fromPaycheck);
+      const inSec = (sec) => sec && sec.items.find(it => /adjust/i.test(it.name || ''));
+      return inSec(ph) || data.sections.map(inSec).find(Boolean) || null;
+    }
+    document.addEventListener('click', (e) => {
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;
+      const td = e.target.closest && e.target.closest('#sheetWrap tr.diff-row td.ro.short');
+      if (!td || (typeof linkPick !== 'undefined' && linkPick)) return;
+      const it = adjItemFor();
+      if (!it) { alert('Add a line named "Adjustments" first.'); return; }
+      const iso = td.dataset.cd, d = roVals['=diff|' + iso];
+      if (!(d < 0)) return;
+      const cur = cellValue(it.id, iso).v || 0;
+      const n = Math.round((cur + d) * 100) / 100; // Adjustments amount that brings this check to $0
+      clearSelection();
+      const inp = document.querySelector(`.cell input[data-id="${it.id}"][data-d="${iso}"]`);
+      if (inp) { inp.value = acct(n); const c = inp.closest('td'); if (c) c.classList.add('adj-pending'); }
+      td.classList.add('adj-pending');
+      askCover(it.id, iso, n, null, td);
+    });
+    function askCover(id, iso, n, prior, anchor) {
       const it = itemInfo(id);
       if (!it || !/adjust/i.test(it.name || '') || n == null || n === 0) return;
       closeCover(true);
@@ -1558,7 +1581,7 @@
       };
       paint();
       document.body.appendChild(pop);
-      const td = document.querySelector(`#sheetWrap td.cell[data-cid="${id}"][data-cd="${iso}"]`);
+      const td = anchor || document.querySelector(`#sheetWrap td.cell[data-cid="${id}"][data-cd="${iso}"]`);
       const r = td ? td.getBoundingClientRect() : { left: innerWidth / 2 - 188, bottom: 120, top: 120 }, pr = pop.getBoundingClientRect();
       pop.style.left = Math.max(8, Math.min(r.left, innerWidth - pr.width - 8)) + 'px';
       pop.style.top = (r.bottom + pr.height + 8 < innerHeight ? r.bottom + 4 : Math.max(8, r.top - pr.height - 4)) + 'px';
@@ -1942,7 +1965,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: bigger paycheck picker popup', at: '2026-10-14T19:17:00Z' };
+    const PAGE_VERSION = { msg: 'Budget: click a red Difference box to cover it', at: '2026-10-14T19:19:00Z' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); // shown in the viewer's own time zone
       $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }); }
