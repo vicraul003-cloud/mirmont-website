@@ -1546,8 +1546,10 @@
       if (!give) {
         // only checks with enough over to cover the whole shortage (so they don't go short themselves)
         const need = Math.abs(n), kOld = id + '|' + iso, oldV = (data.values[id] || {})[iso], oldBy = lkList(data.coveredBy && data.coveredBy[kOld]);
-        for (let i = -78; i < 0; i++) { // only paychecks BEFORE the short one
+        const floor = data.trackStart || '2026-10-15'; // tracking started with the Oct 15, 2026 paycheck
+        for (let i = -78; i < 0; i++) { // only paychecks BEFORE the short one, from Oct 15 '26 on
           const d = toISO(fromISO(iso) + i * step);
+          if (d < floor) continue;
           let o = overOf(d);
           if (oldV < 0 && oldBy.includes(d)) o += -oldV / oldBy.length; // this box's current cover is already taken out of d
           o = Math.round(o * 100) / 100;
@@ -1560,7 +1562,7 @@
         : lkList(data.coveredBy && data.coveredBy[id + '|' + iso]);
       const yr = iso.slice(0, 4);
       const pop = document.createElement('div'); pop.id = 'coverPop'; pop.className = 'cover-pop';
-      pop.innerHTML = `<div class="cp-title">${give ? `<b>${money(n)}</b> set aside on ${fmtDate(iso)} — which paycheck is it for?` : `<b>${money(Math.abs(n))}</b> short on ${fmtDate(iso)} — which paycheck is covering it?<small class="cp-sub">Only earlier checks over by ${money(Math.abs(n))} or more are shown</small>`}</div>
+      pop.innerHTML = `<div class="cp-title">${give ? `<b>${money(n)}</b> set aside on ${fmtDate(iso)} — which paycheck is it for?` : `<b>${money(Math.abs(n))}</b> short on ${fmtDate(iso)} — which paycheck is covering it?<small class="cp-sub">Only earlier checks (from Oct 15 '26) over by ${money(Math.abs(n))} or more are shown</small>`}</div>
         <div class="cp-nav"><button type="button" data-cpa="earlier">‹ Earlier</button><span class="cp-range"></span><button type="button" data-cpa="later">Later ›</button></div>
         <div class="cp-dates"></div>
         <div class="cp-acts"><span class="cp-note">Pick a paycheck to keep this amount</span>${give ? '<button type="button" data-cpa="sheet">Pick on the sheet…</button>' : ''}</div>`;
@@ -1965,7 +1967,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: shortages can only be covered by earlier paychecks', at: '2026-10-14T19:25:00Z' };
+    const PAGE_VERSION = { msg: 'Budget: cover options start at the Oct 15 2026 paycheck', at: '2026-10-14T19:36:00Z' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); // shown in the viewer's own time zone
       $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }); }
