@@ -262,6 +262,9 @@
     /* tags under an amount box: sit below the number and wrap inside the box (the row grows to fit) */
     .sheet td.cell .lk-wrap { text-align: right; padding: 0 3px 3px; line-height: 1.15; }
     .sheet td.cell .lk-wrap .lk { position: static; display: inline-block; white-space: normal; max-width: 100%; text-align: left; word-break: normal; overflow-wrap: anywhere; }
+    .sheet td.cell .lk-wrap .lk:has(.lk-grid) { display: inline-flex; align-items: flex-start; gap: 4px; padding: 2px 5px; }
+    .sheet td.cell .lk-grid { display: grid; grid-template-columns: repeat(3, auto); column-gap: 7px; row-gap: 1px; text-align: left; }
+    .sheet td.cell .lk-grid span { white-space: nowrap; }
     .sheet td.cell.lk-partner { box-shadow: inset 0 0 0 2px #3b82c4 !important; }
     .ctx-menu .sep { height: 1px; background: var(--line); margin: 0.25rem 0.3rem; }
 
@@ -1071,8 +1074,8 @@
         const covTo = covShow ? Object.entries(data.coveredBy || {}).filter(([k, by]) => k.startsWith(id + '|') && lkList(by).includes(c.iso)).map(([k]) => k.split('|')[1]).filter(d => (cellValue(id, d).v || 0) < 0).sort() : [];
         if (covShow) tip = ` title="${money(covShow)} from this check covers ${covTo.map(fmtDate).join(' + ')}${v ? ` (plus ${money(v)} typed here)` : ''}"`;
         else if (cov && !tip) tip = ` title="This check also covers ${money(cov)} of shortages (counted in this column's Total)"`;
-        const covTag = covTo.length ? `<span class="lk lk-from${adjCls}" data-lk="${covTo.join(',')}">→ ${covTo.map(fmtDate).join(', ')}</span>` : '';
-        const lk = covTag && !lkT.length && !inc.length ? covTag : !lkT.length && inc.length ? `<span class="lk lk-to${adjCls}" data-lk="${inc.join(',')}" title="Covered by the ${inc.map(fmtDate).join(' + ')} check${inc.length > 1 ? 's' : ''}">← ${inc.map(fmtDate).join(', ')}</span>` : lkT.length ? `<span class="lk lk-from${adjCls}" data-lk="${lkT.join(',')}" title="${esc((itemInfo(id) || {}).name)}: ${money(v) || '$0'} from the ${fmtDate(c.iso)} check covers the ${lkT.map(fmtDate).join(' + ')} check${lkT.length > 1 ? 's' : ''}">→ ${lkT.map(fmtDate).join(', ')}</span>` : '';
+        const covTag = covTo.length ? `<span class="lk lk-from${adjCls}" data-lk="${covTo.join(',')}">${lkBody('→', covTo)}</span>` : '';
+        const lk = covTag && !lkT.length && !inc.length ? covTag : !lkT.length && inc.length ? `<span class="lk lk-to${adjCls}" data-lk="${inc.join(',')}" title="Covered by the ${inc.map(fmtDate).join(' + ')} check${inc.length > 1 ? 's' : ''}">${lkBody('←', inc)}</span>` : lkT.length ? `<span class="lk lk-from${adjCls}" data-lk="${lkT.join(',')}" title="${esc((itemInfo(id) || {}).name)}: ${money(v) || '$0'} from the ${fmtDate(c.iso)} check covers the ${lkT.map(fmtDate).join(' + ')} check${lkT.length > 1 ? 's' : ''}">${lkBody('→', lkT)}</span>` : '';
         return `<td class="${cls(c)}${bal}${lk ? ' lk-cell' : ''}" data-cid="${id}" data-cd="${c.iso}"${tip}>${grip}${hint}<input class="${k}" data-id="${id}" data-d="${c.iso}" value="${esc(val)}" data-raw="${esc(raw)}" placeholder="${esc(ph)}" inputmode="decimal" autocomplete="off" aria-label="${esc((itemInfo(id) || {}).name)} ${c.iso}" />${(lk || mvTag) ? `<div class="lk-wrap">${lk || mvTag}</div>` : ''}</td>`;
       };
       const calcCell = (c, v) => `<td class="${cls(c)}"><div class="calc ${v < 0 ? 'neg' : ''}">${money(v)}</div></td>`;
@@ -1402,6 +1405,8 @@
       if (data.links) delete data.links[id + '|' + iso];
       if (data.coveredBy) delete data.coveredBy[id + '|' + iso];
     }
+    // tag text: one date inline; several dates in a 3-column grid
+    const lkBody = (arrow, isos) => isos.length <= 1 ? `${arrow} ${isos.map(fmtDate).join('')}` : `<span class="lk-ar">${arrow}</span><span class="lk-grid">${isos.map(d => `<span>${fmtDate(d)}</span>`).join('')}</span>`;
     const lkList = (v) => Array.isArray(v) ? v : (v && typeof v === 'object') ? Object.keys(v).sort() : (v ? [v] : []);
     function setLink(keys, to) { // to: array of pay dates, or null to remove
       data.links = data.links || {};
@@ -2248,7 +2253,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: Calendar shows bills on their due dates', at: '2026-10-14T21:16:00Z' };
+    const PAGE_VERSION = { msg: 'Budget: multi-date tags in 3 columns', at: '2026-10-14T21:17:00Z' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); // shown in the viewer's own time zone
       $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }); }
