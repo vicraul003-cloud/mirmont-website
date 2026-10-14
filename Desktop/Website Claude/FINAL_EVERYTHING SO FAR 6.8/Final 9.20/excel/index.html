@@ -552,6 +552,28 @@
     html.matrix:not(.dark) .sheet tr.sum-rem td.col-name, html.matrix:not(.dark) .sheet tr.sum-rem td.col-due, html.matrix:not(.dark) .sheet tr.sum-rem td.col-budget { background-color: rgb(235, 227, 247); }
     html.matrix.dark .sheet tr.sum-rem td.col-name, html.matrix.dark .sheet tr.sum-rem td.col-due, html.matrix.dark .sheet tr.sum-rem td.col-budget { background-color: rgb(43, 37, 64); }
 
+    /* paycheck picker: 50% bigger */
+    @media (min-width: 701px) {
+      #coverPop { position: fixed; z-index: 65; width: 562.5px; max-width: calc(100vw - 16px); box-sizing: border-box; background: var(--navy-dark); color: #fff; border-radius: 18.75px; padding: 1.312rem 1.407rem; box-shadow: 0 22.5px 60px rgba(0,0,0,0.35); font-size: 1.5rem; border: 1.875px solid rgba(201,160,90,0.5); }
+      #coverPop .cp-title { margin-bottom: 0.938rem; line-height: 1.35; }
+      #coverPop .cp-title b { color: #dbb97a; }
+      #coverPop .cp-dates { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.562rem; }
+      #coverPop button { background: transparent; color: #fff; border: 1.875px solid rgba(255,255,255,0.35); border-radius: 11.25px; padding: 0.657rem 0.375rem; font-size: 1.462rem; cursor: pointer; }
+      #coverPop .cp-dates button:hover { background: #3b82c4; border-color: #3b82c4; }
+      #coverPop .cp-dates button.on { background: #3b82c4; border-color: #3b82c4; font-weight: 700; }
+      #coverPop .cp-nav { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.75rem; }
+      #coverPop .cp-nav button { padding: 0.375rem 1.032rem; font-size: 1.388rem; }
+      #coverPop .cp-nav .cp-range { font-size: 1.312rem; color: #c8c0b0; white-space: nowrap; }
+      #coverPop .cp-dates button small { display: block; font-size: 1.2rem; color: #7fd18a; font-weight: 600; margin-top: 1.875px; }
+      #coverPop .cp-dates button.on small { color: #fff; }
+      #coverPop .cp-none { grid-column: 1 / -1; color: #c8c0b0; font-size: 1.407rem; padding: 0.75rem 0; text-align: center; }
+      #coverPop button:disabled { opacity: 0.35; cursor: default; }
+      #coverPop .cp-sub { display: block; color: #c8c0b0; font-size: 1.275rem; margin-top: 3.75px; }
+      #coverPop .cp-note { margin-right: auto; align-self: center; font-size: 1.275rem; color: #c8c0b0; }
+      #coverPop .cp-acts { display: flex; justify-content: flex-end; gap: 0.657rem; margin-top: 1.032rem; }
+      #coverPop .cp-acts button { padding: 0.468rem 1.312rem; font-size: 1.388rem; }
+    }
+
   </style>
 </head>
 <body>
@@ -1683,7 +1705,7 @@
       paint();
       document.body.appendChild(pop);
       const td = anchor || document.querySelector(`#sheetWrap td.cell[data-cid="${id}"][data-cd="${iso}"]`);
-      const r = td ? td.getBoundingClientRect() : { left: innerWidth / 2 - 188, bottom: 120, top: 120 }, pr = pop.getBoundingClientRect();
+      const r = td ? td.getBoundingClientRect() : { left: innerWidth / 2 - 281, bottom: 120, top: 120 }, pr = pop.getBoundingClientRect();
       pop.style.left = Math.max(8, Math.min(r.left, innerWidth - pr.width - 8)) + 'px';
       pop.style.top = (r.bottom + pr.height + 8 < innerHeight ? r.bottom + 4 : Math.max(8, r.top - pr.height - 4)) + 'px';
       pop.dataset.t = Date.now();
@@ -2092,7 +2114,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: Suggestions move bills whole (gifts and religion can split)', at: '2026-10-14T20:00:00Z' };
+    const PAGE_VERSION = { msg: 'Budget: paycheck picker 50% bigger', at: '2026-10-14T20:10:00Z' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); // shown in the viewer's own time zone
       $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }); }
