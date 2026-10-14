@@ -29,6 +29,14 @@
     .topbar { background: var(--navy-dark); color: #f8f5ef; display: flex; align-items: center; gap: 1rem; padding: 0.8rem 1.25rem; position: sticky; top: 0; z-index: 30; }
     .topbar img { height: 38px; display: block; }
     .refresh-btn { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+    .refresh-btn { left: calc(50% - 70px); }
+    .auto-btn { position: absolute; left: calc(50% + 62px); top: 50%; transform: translate(-50%, -50%); white-space: nowrap; }
+    .auto-btn .ab-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.35); flex: none; }
+    .auto-btn.on { border-color: #7fd18a; color: #7fd18a; }
+    .auto-btn.on .ab-dot { background: #7fd18a; animation: ab-pulse 1.4s ease-in-out infinite; }
+    .auto-btn.found { border-color: var(--gold); color: var(--gold); }
+    @keyframes ab-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+    .refresh-btn.inline + .auto-btn, .auto-btn.inline { position: static; transform: none; margin-right: auto; }
     .refresh-btn.inline { position: static; transform: none; margin-right: auto; }
     .refresh-btn.spin svg { animation: rf-spin 0.8s linear infinite; }
     @keyframes rf-spin { to { transform: rotate(360deg); } }
@@ -390,7 +398,7 @@
       .topbar { padding: 0.6rem 16px; gap: 0.6rem; }
       .topbar img { height: 30px; }
       .topbar h1 { font-size: 1.3rem; }
-      .refresh-btn { position: static; transform: none; }
+      .refresh-btn, .auto-btn { position: static; transform: none; }
       .save-state span { display: none; }
       .undo-btn span:not(#themeIcon) { display: none; }
       .undo-btn { padding: 0.35rem 0.5rem; }
@@ -552,6 +560,7 @@
     <a href="/"><img src="/FullLogo_Transparent.png" alt="Mirmont Construction" /></a>
     <h1>Budget</h1>
     <button type="button" class="undo-btn refresh-btn" id="refreshBtn" title="Refresh the page (saves first)"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.34 5.66" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M20 4v7h-7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Refresh</span></button>
+    <button type="button" class="undo-btn auto-btn" id="autoBtn" title="Watch for a newly pushed update and refresh once when it arrives" aria-pressed="false"><span class="ab-dot" aria-hidden="true"></span><span id="autoText">Auto Refresh</span></button>
     <span class="info-wrap"><div class="info-pop" id="infoPop" role="status" hidden><div class="ip-label">Latest update · <span id="infoDate"></span></div><div class="ip-msg" id="infoMsg"></div></div><button type="button" class="undo-btn info-btn" id="infoBtn" title="Show/hide latest update" aria-expanded="false" aria-controls="infoPop">i</button></span>
     <button type="button" class="undo-btn theme-btn" id="themeBtn" title="Switch between light and dark"><span id="themeIcon">🌙</span><span id="themeText">Dark</span></button>
     <button type="button" class="undo-btn" id="undoBtn" title="Undo last change (⌘Z)" disabled>
@@ -1982,15 +1991,41 @@
     $('redoBtn').addEventListener('click', redo);
     // keep Refresh in the exact middle, unless the buttons on either side would run into it
     function placeRefresh() {
-      const b = $('refreshBtn'); if (!b) return;
-      b.classList.remove('inline');
-      const r = b.getBoundingClientRect(), h1 = document.querySelector('.topbar h1').getBoundingClientRect();
+      const b = $('refreshBtn'), a = $('autoBtn'); if (!b) return;
+      b.classList.remove('inline'); if (a) a.classList.remove('inline');
+      const r = b.getBoundingClientRect(), ra = a ? a.getBoundingClientRect() : r, h1 = document.querySelector('.topbar h1').getBoundingClientRect();
       const right = document.querySelector('.topbar .info-wrap').getBoundingClientRect();
-      if (r.left < h1.right + 12 || r.right > right.left - 12) b.classList.add('inline');
+      if (r.left < h1.right + 12 || ra.right > right.left - 12) { b.classList.add('inline'); if (a) a.classList.add('inline'); b.style.marginRight = '0'; } else b.style.marginRight = '';
     }
     placeRefresh(); window.addEventListener('resize', placeRefresh);
     $('infoBtn').addEventListener('click', () => setTimeout(placeRefresh, 0));
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(placeRefresh);
+    // ── Auto Refresh: quietly check for a newly pushed version; reload once when it lands, then stop ──
+    let autoTimer = null;
+    const autoBusy = () => { const a = document.activeElement; return (a && a.matches && a.matches('.cell input, dialog input, dialog select')) || $('coverPop') || $('sugPop') || $('linkBar') || document.querySelector('dialog[open]') || applyPending; };
+    async function autoCheck() {
+      try {
+        const res = await fetch('/excel/?v=' + Date.now(), { cache: 'no-store', credentials: 'same-origin' });
+        if (!res.ok) return;
+        const m = (await res.text()).match(/const PAGE_VERSION = \{ msg: '((?:[^'\\]|\\.)*)', at: '([^']+)' \}/);
+        if (!m || m[2] === PAGE_VERSION.at) return;
+        stopAuto(); const b = $('autoBtn'); b.classList.add('found'); $('autoText').textContent = 'Updating…';
+        const go = async () => {
+          if (autoBusy()) { setTimeout(go, 1500); return; } // wait until you finish typing / close popups
+          try { saveLocal(); if (mode !== 'local' && (saveTimer || saving || pendingSave)) { clearTimeout(saveTimer); saveTimer = null; await saveNow(); for (let i = 0; i < 40 && (saving || pendingSave); i++) await new Promise(r => setTimeout(r, 100)); } } catch {}
+          location.reload();
+        };
+        go();
+      } catch {}
+    }
+    function stopAuto() { clearInterval(autoTimer); autoTimer = null; const b = $('autoBtn'); b.classList.remove('on'); b.setAttribute('aria-pressed', 'false'); $('autoText').textContent = 'Auto Refresh'; }
+    $('autoBtn').addEventListener('click', () => {
+      const b = $('autoBtn');
+      if (autoTimer) { stopAuto(); return; }
+      b.classList.add('on'); b.setAttribute('aria-pressed', 'true'); $('autoText').textContent = 'Watching…';
+      b.title = 'Checking every 20 seconds for a new update — click to stop';
+      autoCheck(); autoTimer = setInterval(autoCheck, 20000);
+    });
     $('refreshBtn').addEventListener('click', async () => {
       const b = $('refreshBtn'); b.classList.add('spin'); b.disabled = true;
       try { if (typeof closeCover === 'function' && $('coverPop')) closeCover(); } catch {}
@@ -2054,7 +2089,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: Suggestions on red Remainder boxes', at: '2026-10-14T19:51:00Z' };
+    const PAGE_VERSION = { msg: 'Budget: Auto Refresh button for new updates', at: '2026-10-14T19:57:00Z' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); // shown in the viewer's own time zone
       $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }); }
