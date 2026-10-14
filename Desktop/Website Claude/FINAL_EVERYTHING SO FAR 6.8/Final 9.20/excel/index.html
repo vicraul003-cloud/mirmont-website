@@ -485,6 +485,16 @@
       .info-pop .ip-msg, .info-pop .ip-label { white-space: normal; }
     }
 
+    /* frozen Remainder row: stays right under the date header while scrolling up/down */
+    .sheet tr.sum-rem td { position: sticky; top: var(--hd-h, 62px); z-index: 6; box-shadow: 0 2px 0 var(--line-strong); }
+    .sheet tr.sum-rem td.col-name, .sheet tr.sum-rem td.col-due, .sheet tr.sum-rem td.col-budget { z-index: 7; }
+    html.matrix:not(.dark) .sheet tr.sum-rem td.cell.over, html.matrix:not(.dark) .sheet tr.sum-rem td.cell.over.past, html.matrix:not(.dark) .sheet tr.sum-rem td.cell.over.now { background: rgb(220, 241, 220) !important; }
+    html.matrix:not(.dark) .sheet tr.sum-rem td.cell.short, html.matrix:not(.dark) .sheet tr.sum-rem td.cell.short.past, html.matrix:not(.dark) .sheet tr.sum-rem td.cell.short.now { background: rgb(248, 215, 213) !important; }
+    html.matrix.dark .sheet tr.sum-rem td.cell.over, html.matrix.dark .sheet tr.sum-rem td.cell.over.past, html.matrix.dark .sheet tr.sum-rem td.cell.over.now { background: rgb(24, 51, 34) !important; }
+    html.matrix.dark .sheet tr.sum-rem td.cell.short, html.matrix.dark .sheet tr.sum-rem td.cell.short.past, html.matrix.dark .sheet tr.sum-rem td.cell.short.now { background: rgb(61, 29, 31) !important; }
+    html.matrix:not(.dark) .sheet tr.sum-rem td.col-name, html.matrix:not(.dark) .sheet tr.sum-rem td.col-due, html.matrix:not(.dark) .sheet tr.sum-rem td.col-budget { background-color: rgb(235, 227, 247); }
+    html.matrix.dark .sheet tr.sum-rem td.col-name, html.matrix.dark .sheet tr.sum-rem td.col-due, html.matrix.dark .sheet tr.sum-rem td.col-budget { background-color: rgb(43, 37, 64); }
+
   </style>
 </head>
 <body>
@@ -1412,7 +1422,9 @@
       paintLinkPick();
     }, true);
     document.addEventListener('click', (e) => { if (linkPick && e.target.closest && e.target.closest('#sheetWrap table')) { e.preventDefault(); e.stopPropagation(); } }, true);
-    { const _render = render; render = function () { const r = _render.apply(this, arguments); if (linkPick) paintLinkPick(); return r; }; }
+    { const _render = render; render = function () { const r = _render.apply(this, arguments); setHeadH(); if (linkPick) paintLinkPick(); return r; }; }
+    function setHeadH() { const w = $('sheetWrap'), th = w && w.querySelector('thead'); if (th) w.style.setProperty('--hd-h', th.getBoundingClientRect().height + 'px'); }
+    setHeadH(); window.addEventListener('resize', setHeadH); if (document.fonts && document.fonts.ready) document.fonts.ready.then(setHeadH);
     document.addEventListener('keydown', (e) => {
       if (!linkPick) return;
       if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); endLinkPick(false); }
@@ -1679,7 +1691,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: Covers paycheck picks boxes on the sheet', at: '2026-10-12T23:05:00-04:00' };
+    const PAGE_VERSION = { msg: 'Budget: freeze Remainder row under the date header', at: '2026-10-14T12:20:00-04:00' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/New_York' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }); }
     $('infoPop').title = PAGE_VERSION.msg;
