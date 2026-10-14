@@ -236,6 +236,9 @@
     #sheetWrap .sheet td.cell.lk-col, #sheetWrap .sheet tr.dates th.lk-col { background-image: linear-gradient(rgba(59, 130, 196, 0.25), rgba(59, 130, 196, 0.25)) !important; }
     #sheetWrap .sheet tr.dates th.lk-col { box-shadow: inset 0 -3px 0 #3b82c4; }
     #sheetWrap .sheet td.cell.lk-src { box-shadow: inset 0 0 0 2px #e0a030 !important; }
+    /* tags under an amount box: sit below the number and wrap inside the box (the row grows to fit) */
+    .sheet td.cell .lk-wrap { text-align: right; padding: 0 3px 3px; line-height: 1.15; }
+    .sheet td.cell .lk-wrap .lk { position: static; display: inline-block; white-space: normal; max-width: 100%; text-align: left; word-break: normal; overflow-wrap: anywhere; }
     .sheet td.cell.lk-partner { box-shadow: inset 0 0 0 2px #3b82c4 !important; }
     .ctx-menu .sep { height: 1px; background: var(--line); margin: 0.25rem 0.3rem; }
 
@@ -1046,7 +1049,7 @@
         else if (cov && !tip) tip = ` title="This check also covers ${money(cov)} of shortages (counted in this column's Total)"`;
         const covTag = covTo.length ? `<span class="lk lk-from${adjCls}" data-lk="${covTo.join(',')}">→ ${covTo.map(fmtDate).join(', ')}</span>` : '';
         const lk = covTag && !lkT.length && !inc.length ? covTag : !lkT.length && inc.length ? `<span class="lk lk-to${adjCls}" data-lk="${inc.join(',')}" title="Covered by the ${inc.map(fmtDate).join(' + ')} check${inc.length > 1 ? 's' : ''}">← ${inc.map(fmtDate).join(', ')}</span>` : lkT.length ? `<span class="lk lk-from${adjCls}" data-lk="${lkT.join(',')}" title="${esc((itemInfo(id) || {}).name)}: ${money(v) || '$0'} from the ${fmtDate(c.iso)} check covers the ${lkT.map(fmtDate).join(' + ')} check${lkT.length > 1 ? 's' : ''}">→ ${lkT.map(fmtDate).join(', ')}</span>` : '';
-        return `<td class="${cls(c)}${bal}${lk ? ' lk-cell' : ''}" data-cid="${id}" data-cd="${c.iso}"${tip}>${grip}${hint}${lk || mvTag}<input class="${k}" data-id="${id}" data-d="${c.iso}" value="${esc(val)}" data-raw="${esc(raw)}" placeholder="${esc(ph)}" inputmode="decimal" autocomplete="off" aria-label="${esc((itemInfo(id) || {}).name)} ${c.iso}" /></td>`;
+        return `<td class="${cls(c)}${bal}${lk ? ' lk-cell' : ''}" data-cid="${id}" data-cd="${c.iso}"${tip}>${grip}${hint}<input class="${k}" data-id="${id}" data-d="${c.iso}" value="${esc(val)}" data-raw="${esc(raw)}" placeholder="${esc(ph)}" inputmode="decimal" autocomplete="off" aria-label="${esc((itemInfo(id) || {}).name)} ${c.iso}" />${(lk || mvTag) ? `<div class="lk-wrap">${lk || mvTag}</div>` : ''}</td>`;
       };
       const calcCell = (c, v) => `<td class="${cls(c)}"><div class="calc ${v < 0 ? 'neg' : ''}">${money(v)}</div></td>`;
       const span = cols.length;
@@ -2221,7 +2224,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: Calendar keeps the same size every month', at: '2026-10-14T21:09:00Z' };
+    const PAGE_VERSION = { msg: 'Budget: link tags wrap inside their box', at: '2026-10-14T21:12:00Z' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); // shown in the viewer's own time zone
       $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }); }
