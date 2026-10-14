@@ -1264,6 +1264,8 @@
       const vals = data.values[id] || {};
       const sameLater = Object.keys(vals).filter(d => d > iso); // every later box that has its own amount
 
+      // Adjustments line: always just this box, then ask which paycheck pairs with it
+      if (/adjust/i.test(it.name || '')) { setOnlyThis(id, iso, n); redraw(); done(); askCover(id, iso, n); return; }
       // Clearing a box, or a one-off line with nothing later to update: just save it.
       if (n === null || (!repeats && sameLater.length === 0) || before === n) {
         setValue(id, iso, n); redraw(); done(); askCover(id, iso, n); return;
@@ -1820,7 +1822,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: add Redo button', at: '2026-10-14T18:42:00Z' };
+    const PAGE_VERSION = { msg: 'Budget: Adjustments skips Apply prompt, goes straight to paycheck picker', at: '2026-10-14T18:46:00Z' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); // shown in the viewer's own time zone
       $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }); }
