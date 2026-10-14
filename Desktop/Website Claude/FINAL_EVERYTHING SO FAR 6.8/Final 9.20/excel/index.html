@@ -101,8 +101,11 @@
     .sugg { position: absolute; top: 2px; right: 2px; width: 13px; height: 13px; border-radius: 50%; border: 0; background: #ece7db; color: var(--gold-ink); font-size: 0.55rem; font-weight: 700; line-height: 13px; padding: 0; cursor: pointer; z-index: 3; opacity: 0.55; }
     .sheet td.cell:hover .sugg { opacity: 1; }
     .sugg:hover { background: var(--gold); color: #fff; }
-    .sugg-pop { position: absolute; top: 16px; right: 2px; z-index: 20; background: var(--navy-dark); color: #fff; border-radius: 6px; padding: 0.45rem 0.6rem; font-size: 0.72rem; line-height: 1.4; white-space: nowrap; box-shadow: 0 6px 18px rgba(0,0,0,0.25); text-align: left; pointer-events: none; }
+    .sugg-pop { position: absolute; top: 16px; right: 2px; z-index: 20; background: var(--navy-dark); color: #fff; border-radius: 6px; padding: 0.45rem 0.6rem; font-size: 0.72rem; line-height: 1.4; white-space: nowrap; box-shadow: 0 6px 18px rgba(0,0,0,0.25); text-align: left; pointer-events: auto; cursor: default; }
     .sugg-pop b { color: var(--gold-light, #dbb97a); font-size: 0.85rem; }
+    .sugg-pop .sp-acts { display: flex; gap: 0.35rem; margin-top: 0.4rem; }
+    .sugg-pop .sp-acts button { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,0.45); border-radius: 5px; padding: 0.2rem 0.5rem; font-size: 0.68rem; cursor: pointer; }
+    .sugg-pop .sp-acts button:hover { border-color: var(--gold); color: var(--gold); }
     .sugg-pop small { display: block; color: #c8c0b0; font-size: 0.66rem; }
 
     /* ── bill not fully planned before its due date ── */
@@ -551,6 +554,7 @@
       </label>
       <label class="check"><input type="checkbox" id="fSub" /> Indent under the line above (part of that expense)</label>
       <label class="check"><input type="checkbox" id="fShared" /> Include in "Send to Shared"</label>
+      <label class="check"><input type="checkbox" id="fNoHelp" /> Ignore the "?" due-date helper for this line</label>
       <div class="actions">
         <div class="left">
           <button type="button" class="btn icon" id="fUp" title="Move up">↑</button>
@@ -1278,7 +1282,8 @@
     // A bill is paid by the checks that arrive after the previous due date and on/before its own due date.
     function billWindow(id, iso) {
       const it = itemInfo(id);
-      if (!it || !it.budget || data.special[id]) return null;
+      if (!it || !it.budget || data.special[id] || it.noHelp) return null;
+      const ign = (due) => !!(data.ignoreDue && data.ignoreDue[id + '|' + due]);
       const r = dueRule(it);
       if (r) {
         const ok = (mi) => (((mi - r.anchor) % r.F) + r.F) % r.F === 0;
@@ -1286,7 +1291,7 @@
         for (let k = 0; k < 30; k++, mi++) { if (ok(mi) && dueOn(mi, r.day) >= iso) break; }
         const due = dueOn(mi, r.day), prev = dueOn(mi - r.F, r.day);
         const checks = periodsBetween(fromISO(prev) + DAY, fromISO(due) + DAY);
-        if (!checks.length) return null;
+        if (!checks.length || ign(due)) return null;
         const payer = checks[checks.length - 1];                // last check before the bill is due
         const cross = payer.slice(0, 7) !== due.slice(0, 7);   // paid in the month before it's due
         const A = Math.round(it.budget * r.F * 100) / 100;
@@ -1297,6 +1302,7 @@
       if (!checks.length) return null;
       const d = new Date(fromISO(iso));
       const due = toISO(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0));
+      if (ign(due)) return null;
       return { it, A: it.budget, checks, eligible: checks, payer: null, cross: false, due, label: `for ${MONTHS[d.getUTCMonth()]}` };
     }
     function suggestion(id, iso) {
@@ -1354,7 +1360,7 @@
       const td = e.target.closest && e.target.closest('#sheetWrap td.cell[data-cid]');
       const multi = e.metaKey || e.ctrlKey;
       if (!td) { if (!(e.target.closest && e.target.closest('#selSum'))) clearSelection(); return; }
-      if (e.target.closest('.grip, .sugg')) return;
+      if (e.target.closest('.grip, .sugg, .sugg-pop')) return;
       if (multi) {
         e.preventDefault();
         if (!sel.size && selAnchor && selAnchor !== keyOf(td)) sel.add(selAnchor); // include the box you were in
@@ -1569,6 +1575,16 @@
     // ── suggested amount: click shows it, double-click enters it ──
     function closeSugg() { document.querySelectorAll('.sugg-pop').forEach(el => el.remove()); }
     document.addEventListener('click', (e) => {
+      const ig = e.target.closest && e.target.closest('.sugg-pop [data-ign]');
+      if (ig) {
+        e.preventDefault(); e.stopPropagation(); closeSugg();
+        const id = ig.dataset.sid;
+        if (ig.dataset.ign === 'one') { data.ignoreDue = data.ignoreDue || {}; data.ignoreDue[id + '|' + ig.dataset.due] = true; }
+        else { const it = itemInfo(id); if (it) it.noHelp = true; }
+        sortedCache && sortedCache.clear && sortedCache.clear();
+        redraw(); return;
+      }
+      if (e.target.closest && e.target.closest('.sugg-pop')) { e.stopPropagation(); return; }
       const b = e.target.closest && e.target.closest('.sugg');
       if (!b) { closeSugg(); return; }
       e.preventDefault(); e.stopPropagation();
@@ -1577,7 +1593,8 @@
       const sg = suggestion(b.dataset.sid, b.dataset.sd); if (!sg) return;
       const pop = document.createElement('div'); pop.className = 'sugg-pop';
       const nm = esc(itemInfo(b.dataset.sid).name);
-      pop.innerHTML = `Suggested <b>${money(sg.amt)}</b><small>${nm} ${sg.label}: ${money(sg.A)} · planned ${money(sg.have) || '$0'} · short ${money(sg.short)}</small>${sg.cross ? '<small style="color:#ff8a80">Due next month, before its first paycheck — pay it from this check</small>' : ''}<small>Double-click ? to use it</small>`;
+      pop.innerHTML = `Suggested <b>${money(sg.amt)}</b><small>${nm} ${sg.label}: ${money(sg.A)} · planned ${money(sg.have) || '$0'} · short ${money(sg.short)}</small>${sg.cross ? '<small style="color:#ff8a80">Due next month, before its first paycheck — pay it from this check</small>' : ''}<small>Double-click ? to use it</small>
+        <div class="sp-acts"><button type="button" data-ign="one" data-sid="${b.dataset.sid}" data-due="${sg.due}" title="Stop the ? / orange warning for this ${sg.label.replace(/^due /, 'due date ')} only">Ignore this one</button><button type="button" data-ign="line" data-sid="${b.dataset.sid}" title="Turn the ? helper off for every date on this line (turn it back on by clicking the line's name)">Ignore for this line</button></div>`;
       b.parentElement.appendChild(pop);
     }, true);
     document.addEventListener('dblclick', (e) => {
@@ -1691,7 +1708,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: freeze Remainder row under the date header', at: '2026-10-14T12:20:00-04:00' };
+    const PAGE_VERSION = { msg: 'Budget: Ignore option on the ? helper', at: '2026-10-14T12:30:00-04:00' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/New_York' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }); }
     $('infoPop').title = PAGE_VERSION.msg;
@@ -1808,8 +1825,8 @@
       const it = f ? f.it : { name: '', note: '', budget: null, repeat: 'off', shared: false };
       $('itemDlgTitle').textContent = id ? 'Edit line' : 'New line';
       $('fName').value = it.name; $('fNote').value = it.note || ''; $('fBudget').value = it.budget == null ? '' : plain(it.budget); $('fDue').value = it.due == null ? '' : it.due;
-      $('fRepeat').value = it.repeat || 'off'; $('fShared').checked = !!it.shared; $('fSub').checked = !!it.sub;
-      ['fNote', 'fDue', 'fBudget', 'fShared', 'fSub', 'fUp', 'fDown'].forEach(k => $(k).closest('label, button').style.display = '');
+      $('fRepeat').value = it.repeat || 'off'; $('fShared').checked = !!it.shared; $('fSub').checked = !!it.sub; $('fNoHelp').checked = !!it.noHelp;
+      ['fNote', 'fDue', 'fBudget', 'fShared', 'fSub', 'fNoHelp', 'fUp', 'fDown'].forEach(k => $(k).closest('label, button').style.display = '');
       $('fSection').innerHTML = data.sections.map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');
       $('fSection').value = editing.sectionId; $('fSecWrap').style.display = '';
       $('fDelete').style.display = id ? '' : 'none';
@@ -1821,7 +1838,7 @@
       const sp = data.special[key];
       $('itemDlgTitle').textContent = 'Edit line';
       $('fName').value = sp.name; $('fRepeat').value = sp.repeat || 'off';
-      ['fNote', 'fDue', 'fBudget', 'fShared', 'fSub', 'fSection'].forEach(k => $(k).closest('label').style.display = 'none');
+      ['fNote', 'fDue', 'fBudget', 'fShared', 'fSub', 'fNoHelp', 'fSection'].forEach(k => $(k).closest('label').style.display = 'none');
       ['fUp', 'fDown', 'fDelete'].forEach(k => $(k).style.display = 'none');
       $('itemDlg').showModal(); $('fName').focus();
     }
@@ -1833,7 +1850,7 @@
       } else {
         const b = parseAmt($('fBudget').value);
         const dueRaw = $('fDue').value.trim().replace(/^(\d{1,2})(st|nd|rd|th)$/i, '$1');
-        const vals = { name, due: dueRaw, note: $('fNote').value.trim(), budget: Number.isNaN(b) ? null : b, repeat: $('fRepeat').value, shared: $('fShared').checked, sub: $('fSub').checked };
+        const vals = { name, due: dueRaw, note: $('fNote').value.trim(), budget: Number.isNaN(b) ? null : b, repeat: $('fRepeat').value, shared: $('fShared').checked, sub: $('fSub').checked, noHelp: $('fNoHelp').checked };
         const target = data.sections.find(s => s.id === $('fSection').value) || data.sections.find(s => s.id === editing.sectionId);
         let askBudget = null;
         if (editing.id) {
