@@ -55,6 +55,30 @@
     .menu.open .menu-list { display: block; }
     .menu-list button { display: block; width: 100%; text-align: left; background: none; border: 0; padding: 0.55rem 0.7rem; border-radius: 5px; cursor: pointer; font-size: 0.85rem; }
     .menu-list button:hover { background: var(--page); }
+    .cal-dlg { width: min(980px, calc(100vw - 32px)); }
+    .cal-head { display: flex; align-items: center; gap: 0.5rem; }
+    .cal-head h3 { margin: 0 0.3rem; min-width: 11rem; text-align: center; font-size: 1.35rem; }
+    .cal-head .spacer { flex: 1; }
+    .cal-strip { display: grid; grid-template-columns: repeat(12, 1fr); gap: 0.3rem; }
+    .cal-strip button { border: 1px solid var(--line); background: transparent; color: var(--ink); border-radius: 7px; padding: 0.3rem 0.1rem; font-size: 0.74rem; cursor: pointer; line-height: 1.25; }
+    .cal-strip button b { display: block; font-size: 0.8rem; }
+    .cal-strip button.three { background: rgba(201,160,90,0.22); border-color: var(--gold); }
+    .cal-strip button.on { box-shadow: inset 0 0 0 2px #3b82c4; }
+    .cal-legend { display: flex; flex-wrap: wrap; gap: 1rem; font-size: 0.78rem; color: var(--muted); }
+    .cal-legend .lg { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 5px; }
+    .lg.pay { background: #2e7d32; } .lg.nan { background: #7b5cd6; } .lg.three { background: rgba(201,160,90,0.5); border: 1px solid var(--gold); }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .cal-grid .dow { text-align: center; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 2px 0; }
+    .cal-day { min-height: 84px; border: 1px solid var(--line); border-radius: 7px; padding: 4px 5px; font-size: 0.78rem; display: flex; flex-direction: column; gap: 3px; background: var(--card); }
+    .cal-day.out { opacity: 0.35; }
+    .cal-day.today { box-shadow: inset 0 0 0 2px var(--gold); }
+    .cal-day .dn { font-weight: 700; font-size: 0.85rem; }
+    .cal-day .ev { border-radius: 5px; padding: 2px 5px; color: #fff; font-weight: 600; font-size: 0.74rem; line-height: 1.25; }
+    .cal-day .ev small { display: block; font-weight: 400; opacity: 0.85; font-size: 0.66rem; }
+    .cal-day .ev.pay { background: #2e7d32; } .cal-day .ev.nan { background: #7b5cd6; }
+    .cal-sum { display: flex; flex-wrap: wrap; gap: 0.5rem 1.4rem; font-size: 0.86rem; padding: 0.5rem 0.7rem; border-radius: 8px; background: rgba(201,160,90,0.1); }
+    .cal-sum b { font-variant-numeric: tabular-nums; }
+    @media (max-width: 700px) { .cal-strip { grid-template-columns: repeat(6, 1fr); } .cal-day { min-height: 64px; font-size: 0.7rem; } .cal-day .ev small { display: none; } }
     .mv-list { display: grid; gap: 0.35rem; max-height: 360px; overflow: auto; }
     .mv-row { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; border: 1px solid var(--line); border-radius: 7px; padding: 0.5rem 0.7rem; font-size: 0.9rem; }
     .mv-row small { display: block; color: var(--muted); font-size: 0.78rem; margin-top: 2px; }
@@ -592,6 +616,7 @@
     <h1>Budget</h1>
     <button type="button" class="undo-btn refresh-btn" id="refreshBtn" title="Refresh the page (saves first)"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.34 5.66" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M20 4v7h-7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Refresh</span></button>
     <button type="button" class="undo-btn auto-btn" id="autoBtn" title="Watch for a newly pushed update and refresh once when it arrives" aria-pressed="false"><span class="ab-dot" aria-hidden="true"></span><span id="autoText">Auto Refresh</span></button>
+    <button type="button" class="undo-btn" id="calBtn" title="Calendar of paydays and Nanny Fridays"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3.5 10h17M8 3v4M16 3v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Calendar</span></button>
     <span class="info-wrap"><div class="info-pop" id="infoPop" role="status" hidden><div class="ip-label">Latest update · <span id="infoDate"></span></div><div class="ip-msg" id="infoMsg"></div></div><button type="button" class="undo-btn info-btn" id="infoBtn" title="Show/hide latest update" aria-expanded="false" aria-controls="infoPop">i</button></span>
     <button type="button" class="undo-btn theme-btn" id="themeBtn" title="Switch between light and dark"><span id="themeIcon">🌙</span><span id="themeText">Dark</span></button>
     <button type="button" class="undo-btn" id="undoBtn" title="Undo last change (⌘Z)" disabled>
@@ -670,6 +695,17 @@
         <button type="button" class="btn primary" id="applyFuture"></button>
       </div>
       <div class="actions"><button type="button" class="btn" id="applyCancel">Cancel</button></div>
+    </form>
+  </dialog>
+
+  <!-- Calendar: paydays and Nanny Fridays -->
+  <dialog id="calDlg" class="cal-dlg">
+    <form method="dialog">
+      <div class="cal-head"><button type="button" class="btn icon" id="calPrev" title="Previous month">◀</button><h3 id="calTitle"></h3><button type="button" class="btn icon" id="calNext" title="Next month">▶</button><span class="spacer"></span><button type="button" class="btn" id="calToday">This month</button><button type="button" class="btn" id="calClose">Close</button></div>
+      <div class="cal-strip" id="calStrip"></div>
+      <div class="cal-legend"><span><i class="lg pay"></i>Payday (amount)</span><span><i class="lg nan"></i>Pay Nanny (Friday)</span><span><i class="lg three"></i>Month with 3 paychecks</span></div>
+      <div class="cal-grid" id="calGrid"></div>
+      <div class="cal-sum" id="calSum"></div>
     </form>
   </dialog>
 
@@ -2089,7 +2125,7 @@
       const b = $('refreshBtn'), a = $('autoBtn'); if (!b) return;
       b.classList.remove('inline'); if (a) a.classList.remove('inline');
       const r = b.getBoundingClientRect(), ra = a ? a.getBoundingClientRect() : r, h1 = document.querySelector('.topbar h1').getBoundingClientRect();
-      const right = document.querySelector('.topbar .info-wrap').getBoundingClientRect();
+      const right = ($('calBtn') || document.querySelector('.topbar .info-wrap')).getBoundingClientRect();
       if (r.left < h1.right + 12 || ra.right > right.left - 12) { b.classList.add('inline'); if (a) a.classList.add('inline'); b.style.marginRight = '0'; } else b.style.marginRight = '';
     }
     placeRefresh(); window.addEventListener('resize', placeRefresh);
@@ -2184,7 +2220,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: Undo inside the Suggestions popup', at: '2026-10-14T20:48:00Z' };
+    const PAGE_VERSION = { msg: 'Budget: Calendar of paydays and Nanny Fridays', at: '2026-10-14T21:00:00Z' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); // shown in the viewer's own time zone
       $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }); }
@@ -2276,6 +2312,54 @@
       a.download = `budget-backup-${toISO(todayUTC())}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
       $('menu').classList.remove('open');
     });
+    // ── Calendar: paydays + Nanny every Friday (amount = that paycheck's Nanny amount split over its Fridays) ──
+    let calMonth = null;
+    function nannyItem() {
+      const all = data.sections.flatMap(s => s.items).filter(it => /^\s*nanny\b/i.test(it.name || '') && !/bus|payment/i.test(it.name || ''));
+      return all.find(it => /week/i.test(it.due || '')) || all[0] || null;
+    }
+    function payPeriodOf(iso) { // the paycheck date whose 2 weeks contain this day
+      const step = (data.periodDays || 14) * DAY, a = fromISO(data.anchor);
+      return toISO(a + Math.floor((fromISO(iso) - a) / step) * step);
+    }
+    function nannyOn(iso) { // Fridays only
+      const it = nannyItem(); if (!it || new Date(fromISO(iso)).getUTCDay() !== 5) return null;
+      const p = payPeriodOf(iso), amt = cellValue(it.id, p).v || 0;
+      const step = (data.periodDays || 14) * DAY; let fr = 0;
+      for (let t = fromISO(p); t < fromISO(p) + step; t += DAY) if (new Date(t).getUTCDay() === 5) fr++;
+      return { amt: Math.round(amt / (fr || 1) * 100) / 100, from: p, total: amt, fr, name: it.name };
+    }
+    function paintCal() {
+      const { y, m } = calMonth, first = Date.UTC(y, m, 1), last = Date.UTC(y, m + 1, 0);
+      $('calTitle').textContent = `${FULL_MONTHS[m]} ${y}`;
+      // 12-month strip: how many paychecks each month gets
+      const strip = []; const base = new Date(); 
+      for (let i = -1; i <= 10; i++) { const d = new Date(Date.UTC(base.getFullYear(), base.getMonth() + i, 1)); const yy = d.getUTCFullYear(), mm = d.getUTCMonth(); const n = periodsBetween(Date.UTC(yy, mm, 1), Date.UTC(yy, mm + 1, 1)).length; strip.push(`<button type="button" data-cm="${yy}-${mm}" class="${n >= 3 ? 'three' : ''} ${yy === y && mm === m ? 'on' : ''}" title="${n} paychecks"><b>${MONTHS[mm]}${yy !== base.getFullYear() ? " '" + String(yy).slice(2) : ''}</b>${n} checks</button>`); }
+      $('calStrip').innerHTML = strip.join('');
+      const today = toISO(todayUTC()), start = first - new Date(first).getUTCDay() * DAY;
+      let h = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => `<div class="dow">${d}</div>`).join('');
+      let pays = 0, paySum = 0, nanSum = 0, nanN = 0;
+      const payset = new Set(periodsBetween(start, start + 42 * DAY));
+      for (let i = 0; i < 42; i++) {
+        const t = start + i * DAY, iso = toISO(t), inM = t >= first && t <= last;
+        if (i >= 35 && t > last) break;
+        let ev = '';
+        if (payset.has(iso)) { const p = num('paycheck', iso); ev += `<div class="ev pay">Payday ${money(p) || ''}</div>`; if (inM) { pays++; paySum += p; } }
+        const n = nannyOn(iso);
+        if (n && n.amt) { ev += `<div class="ev nan">Nanny ${money(n.amt)}<small>from ${fmtDate(n.from)} check${n.fr > 1 ? ` (${money(n.total)} ÷ ${n.fr})` : ''}</small></div>`; if (inM) { nanSum += n.amt; nanN++; } }
+        h += `<div class="cal-day ${inM ? '' : 'out'} ${iso === today ? 'today' : ''}"><span class="dn">${new Date(t).getUTCDate()}</span>${ev}</div>`;
+      }
+      $('calGrid').innerHTML = h;
+      $('calSum').innerHTML = `<span>${FULL_MONTHS[m]}: <b>${pays} paycheck${pays === 1 ? '' : 's'}</b>${pays >= 3 ? ' ★ 3-paycheck month' : ''}</span><span>Paychecks total <b>${money(Math.round(paySum * 100) / 100) || '$0'}</b></span><span>Nanny (${nanN} Friday${nanN === 1 ? '' : 's'}) <b>${money(Math.round(nanSum * 100) / 100) || '$0'}</b></span>`;
+    }
+    const FULL_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    $('calBtn').addEventListener('click', () => { if (!data) return; const d = new Date(); calMonth = { y: d.getFullYear(), m: d.getMonth() }; paintCal(); $('calDlg').showModal(); });
+    $('calPrev').addEventListener('click', () => { const d = new Date(Date.UTC(calMonth.y, calMonth.m - 1, 1)); calMonth = { y: d.getUTCFullYear(), m: d.getUTCMonth() }; paintCal(); });
+    $('calNext').addEventListener('click', () => { const d = new Date(Date.UTC(calMonth.y, calMonth.m + 1, 1)); calMonth = { y: d.getUTCFullYear(), m: d.getUTCMonth() }; paintCal(); });
+    $('calToday').addEventListener('click', () => { const d = new Date(); calMonth = { y: d.getFullYear(), m: d.getMonth() }; paintCal(); });
+    $('calClose').addEventListener('click', () => $('calDlg').close());
+    $('calStrip').addEventListener('click', (e) => { const b = e.target.closest('[data-cm]'); if (!b) return; const [yy, mm] = b.dataset.cm.split('-').map(Number); calMonth = { y: yy, m: mm }; paintCal(); });
+
     // ── moves history ──
     function paintMoves() {
       const list = (data.moves || []).map((m, i) => ({ ...m, i })).reverse();
