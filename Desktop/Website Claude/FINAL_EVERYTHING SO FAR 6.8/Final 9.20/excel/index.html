@@ -66,7 +66,7 @@
     .cal-strip button.on { box-shadow: inset 0 0 0 2px #3b82c4; }
     .cal-legend { display: flex; flex-wrap: wrap; gap: 1rem; font-size: 0.78rem; color: var(--muted); }
     .cal-legend .lg { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 5px; }
-    .lg.pay { background: #2e7d32; } .lg.nan { background: #7b5cd6; } .lg.three { background: rgba(201,160,90,0.5); border: 1px solid var(--gold); }
+    .lg.pay { background: linear-gradient(90deg, #2e7d32 33%, #1f6fb2 33% 66%, #b5621b 66%); } .lg.nan { background: rgba(46,125,50,0.25); border-left: 4px solid #2e7d32; } .lg.three { background: rgba(201,160,90,0.5); border: 1px solid var(--gold); }
     .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
     .cal-grid .dow { text-align: center; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 2px 0; }
     .cal-day { min-height: 84px; border: 1px solid var(--line); border-radius: 7px; padding: 4px 5px; font-size: 0.78rem; display: flex; flex-direction: column; gap: 3px; background: var(--card); }
@@ -75,7 +75,8 @@
     .cal-day .dn { font-weight: 700; font-size: 0.85rem; }
     .cal-day .ev { border-radius: 5px; padding: 2px 5px; color: #fff; font-weight: 600; font-size: 0.74rem; line-height: 1.25; }
     .cal-day .ev small { display: block; font-weight: 400; opacity: 0.85; font-size: 0.66rem; }
-    .cal-day .ev.pay { background: #2e7d32; } .cal-day .ev.nan { background: #7b5cd6; }
+    .cal-day .ev.pay { background: var(--pc, #2e7d32); }
+    .cal-day .ev.nan { background: color-mix(in srgb, var(--pc, #7b5cd6) 22%, transparent); color: var(--ink); border-left: 4px solid var(--pc, #7b5cd6); }
     .cal-sum { display: flex; flex-wrap: wrap; gap: 0.5rem 1.4rem; font-size: 0.86rem; padding: 0.5rem 0.7rem; border-radius: 8px; background: rgba(201,160,90,0.1); }
     .cal-sum b { font-variant-numeric: tabular-nums; }
     @media (max-width: 700px) { .cal-strip { grid-template-columns: repeat(6, 1fr); } .cal-day { min-height: 64px; font-size: 0.7rem; } .cal-day .ev small { display: none; } }
@@ -703,7 +704,7 @@
     <form method="dialog">
       <div class="cal-head"><button type="button" class="btn icon" id="calPrev" title="Previous month">◀</button><h3 id="calTitle"></h3><button type="button" class="btn icon" id="calNext" title="Next month">▶</button><span class="spacer"></span><button type="button" class="btn" id="calToday">This month</button><button type="button" class="btn" id="calClose">Close</button></div>
       <div class="cal-strip" id="calStrip"></div>
-      <div class="cal-legend"><span><i class="lg pay"></i>Payday (amount)</span><span><i class="lg nan"></i>Pay Nanny (Friday)</span><span><i class="lg three"></i>Month with 3 paychecks</span></div>
+      <div class="cal-legend"><span><i class="lg pay"></i>Payday (solid) — each paycheck has its own color</span><span><i class="lg nan"></i>Pay Nanny (Friday) — same color as the paycheck it comes from</span><span><i class="lg three"></i>Month with 3 paychecks</span></div>
       <div class="cal-grid" id="calGrid"></div>
       <div class="cal-sum" id="calSum"></div>
     </form>
@@ -2220,7 +2221,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: Calendar of paydays and Nanny Fridays', at: '2026-10-14T21:00:00Z' };
+    const PAGE_VERSION = { msg: 'Budget: Calendar colors match each paycheck to its Nanny Fridays', at: '2026-10-14T21:04:00Z' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); // shown in the viewer's own time zone
       $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }); }
@@ -2329,6 +2330,9 @@
       for (let t = fromISO(p); t < fromISO(p) + step; t += DAY) if (new Date(t).getUTCDay() === 5) fr++;
       return { amt: Math.round(amt / (fr || 1) * 100) / 100, from: p, total: amt, fr, name: it.name };
     }
+    // each paycheck gets its own color; the Nanny Fridays it pays use the same color
+    const PAY_COLORS = ['#2e7d32', '#1f6fb2', '#b5621b', '#8e3fa8', '#0f8a83', '#b02e5a'];
+    function payColor(iso) { const step = (data.periodDays || 14) * DAY; const k = Math.round((fromISO(iso) - fromISO(data.anchor)) / step); return PAY_COLORS[((k % PAY_COLORS.length) + PAY_COLORS.length) % PAY_COLORS.length]; }
     function paintCal() {
       const { y, m } = calMonth, first = Date.UTC(y, m, 1), last = Date.UTC(y, m + 1, 0);
       $('calTitle').textContent = `${FULL_MONTHS[m]} ${y}`;
@@ -2344,9 +2348,9 @@
         const t = start + i * DAY, iso = toISO(t), inM = t >= first && t <= last;
         if (i >= 35 && t > last) break;
         let ev = '';
-        if (payset.has(iso)) { const p = num('paycheck', iso); ev += `<div class="ev pay">Payday ${money(p) || ''}</div>`; if (inM) { pays++; paySum += p; } }
+        if (payset.has(iso)) { const p = num('paycheck', iso); ev += `<div class="ev pay" style="--pc:${payColor(iso)}">Payday ${money(p) || ''}</div>`; if (inM) { pays++; paySum += p; } }
         const n = nannyOn(iso);
-        if (n && n.amt) { ev += `<div class="ev nan">Nanny ${money(n.amt)}<small>from ${fmtDate(n.from)} check${n.fr > 1 ? ` (${money(n.total)} ÷ ${n.fr})` : ''}</small></div>`; if (inM) { nanSum += n.amt; nanN++; } }
+        if (n && n.amt) { ev += `<div class="ev nan" style="--pc:${payColor(n.from)}">Nanny ${money(n.amt)}<small>from ${fmtDate(n.from)} check${n.fr > 1 ? ` (${money(n.total)} ÷ ${n.fr})` : ''}</small></div>`; if (inM) { nanSum += n.amt; nanN++; } }
         h += `<div class="cal-day ${inM ? '' : 'out'} ${iso === today ? 'today' : ''}"><span class="dn">${new Date(t).getUTCDate()}</span>${ev}</div>`;
       }
       $('calGrid').innerHTML = h;
