@@ -55,7 +55,7 @@
     .menu.open .menu-list { display: block; }
     .menu-list button { display: block; width: 100%; text-align: left; background: none; border: 0; padding: 0.55rem 0.7rem; border-radius: 5px; cursor: pointer; font-size: 0.85rem; }
     .menu-list button:hover { background: var(--page); }
-    .cal-dlg { width: min(980px, calc(100vw - 32px)); }
+    .cal-dlg { width: min(980px, calc(100vw - 32px)); margin-top: 24px; } /* fixed top + always 6 weeks → buttons never move between months */
     .cal-head { display: flex; align-items: center; gap: 0.5rem; }
     .cal-head h3 { margin: 0 0.3rem; min-width: 11rem; text-align: center; font-size: 1.35rem; }
     .cal-head .spacer { flex: 1; }
@@ -69,7 +69,7 @@
     .lg.pay { background: linear-gradient(90deg, #2e7d32 33%, #1f6fb2 33% 66%, #b5621b 66%); } .lg.nan { background: rgba(46,125,50,0.25); border-left: 4px solid #2e7d32; } .lg.three { background: rgba(201,160,90,0.5); border: 1px solid var(--gold); }
     .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
     .cal-grid .dow { text-align: center; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 2px 0; }
-    .cal-day { min-height: 84px; border: 1px solid var(--line); border-radius: 7px; padding: 4px 5px; font-size: 0.78rem; display: flex; flex-direction: column; gap: 3px; background: var(--card); }
+    .cal-day { height: 88px; overflow: hidden; border: 1px solid var(--line); border-radius: 7px; padding: 4px 5px; font-size: 0.78rem; display: flex; flex-direction: column; gap: 3px; background: var(--card); }
     .cal-day.out { opacity: 0.35; }
     .cal-day.today { box-shadow: inset 0 0 0 2px var(--gold); }
     .cal-day .dn { font-weight: 700; font-size: 0.85rem; }
@@ -79,7 +79,7 @@
     .cal-day .ev.nan { background: color-mix(in srgb, var(--pc, #7b5cd6) 22%, transparent); color: var(--ink); border-left: 4px solid var(--pc, #7b5cd6); }
     .cal-sum { display: flex; flex-wrap: wrap; gap: 0.5rem 1.4rem; font-size: 0.86rem; padding: 0.5rem 0.7rem; border-radius: 8px; background: rgba(201,160,90,0.1); }
     .cal-sum b { font-variant-numeric: tabular-nums; }
-    @media (max-width: 700px) { .cal-strip { grid-template-columns: repeat(6, 1fr); } .cal-day { min-height: 64px; font-size: 0.7rem; } .cal-day .ev small { display: none; } }
+    @media (max-width: 700px) { .cal-strip { grid-template-columns: repeat(6, 1fr); } .cal-day { height: 64px; font-size: 0.7rem; } .cal-day .ev small { display: none; } }
     .mv-list { display: grid; gap: 0.35rem; max-height: 360px; overflow: auto; }
     .mv-row { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; border: 1px solid var(--line); border-radius: 7px; padding: 0.5rem 0.7rem; font-size: 0.9rem; }
     .mv-row small { display: block; color: var(--muted); font-size: 0.78rem; margin-top: 2px; }
@@ -2221,7 +2221,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: Calendar colors match each paycheck to its Nanny Fridays', at: '2026-10-14T21:04:00Z' };
+    const PAGE_VERSION = { msg: 'Budget: Calendar keeps the same size every month', at: '2026-10-14T21:09:00Z' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); // shown in the viewer's own time zone
       $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }); }
@@ -2346,7 +2346,6 @@
       const payset = new Set(periodsBetween(start, start + 42 * DAY));
       for (let i = 0; i < 42; i++) {
         const t = start + i * DAY, iso = toISO(t), inM = t >= first && t <= last;
-        if (i >= 35 && t > last) break;
         let ev = '';
         if (payset.has(iso)) { const p = num('paycheck', iso); ev += `<div class="ev pay" style="--pc:${payColor(iso)}">Payday ${money(p) || ''}</div>`; if (inM) { pays++; paySum += p; } }
         const n = nannyOn(iso);
