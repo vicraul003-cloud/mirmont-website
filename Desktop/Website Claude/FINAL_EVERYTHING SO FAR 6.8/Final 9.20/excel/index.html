@@ -1101,7 +1101,15 @@
       }
       if (data && (data.links || data.coveredBy)) { // tidy links left on boxes that are now empty or $0
         let changed = false;
-        Object.keys(data.links || {}).forEach(k => { const [id, d] = k.split('|'); const v = cellValue(id, d).v; if (v == null || v === 0) { delete data.links[k]; changed = true; } });
+        Object.keys(data.links || {}).forEach(k => {
+          const [id, d] = k.split('|'); const v = cellValue(id, d).v;
+          if (v == null || v === 0) { delete data.links[k]; changed = true; }
+          else if (v < 0) { // old-style link on a short box: it means "covered by" that check
+            data.coveredBy = data.coveredBy || {};
+            const merged = [...new Set([...lkList(data.coveredBy[k]), ...lkList(data.links[k])])].sort();
+            data.coveredBy[k] = merged.length === 1 ? merged[0] : merged; delete data.links[k]; changed = true;
+          }
+        });
         Object.keys(data.coveredBy || {}).forEach(k => { const [id, d] = k.split('|'); const v = cellValue(id, d).v; if (v == null || v >= 0) { delete data.coveredBy[k]; changed = true; } });
         if (changed) scheduleSaveQuiet();
       }
@@ -1195,7 +1203,14 @@
     const lkList = (v) => Array.isArray(v) ? v : (v ? [v] : []);
     function setLink(keys, to) { // to: array of pay dates, or null to remove
       data.links = data.links || {};
-      keys.forEach(k => { if (k[0] === '=' || k.startsWith('paycheck|')) return; const t = (to || []).filter(d => d !== k.split('|')[1]).sort(); if (t.length) data.links[k] = t.length === 1 ? t[0] : t; else delete data.links[k]; });
+      keys.forEach(k => {
+        if (k[0] === '=' || k.startsWith('paycheck|')) return;
+        const [id, d0] = k.split('|'); const t = (to || []).filter(d => d !== d0).sort();
+        const neg = (cellValue(id, d0).v || 0) < 0; // a negative (short) box is COVERED BY the picked check
+        const map = neg ? (data.coveredBy = data.coveredBy || {}) : data.links;
+        delete (neg ? data.links : (data.coveredBy || {}))[k];
+        if (t.length) map[k] = t.length === 1 ? t[0] : t; else delete map[k];
+      });
       redraw();
     }
     const fmtDate = (iso) => { const d = new Date(fromISO(iso)); return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`; };
@@ -1456,7 +1471,8 @@
     let linkPick = null; // { keys, picked: Set of dates }
     function startLinkPick(keys) {
       if (!keys.length) return;
-      linkPick = { keys, picked: new Set(keys.length === 1 ? lkList(data.links && data.links[keys[0]]) : []) };
+      const k0 = keys[0], neg0 = keys.length === 1 && (cellValue(k0.split('|')[0], k0.split('|')[1]).v || 0) < 0;
+      linkPick = { keys, picked: new Set(keys.length === 1 ? lkList(neg0 ? data.coveredBy && data.coveredBy[k0] : data.links && data.links[k0]) : []) };
       let bar = $('linkBar');
       if (!bar) { bar = document.createElement('div'); bar.id = 'linkBar'; bar.className = 'link-bar'; document.body.appendChild(bar); }
       document.documentElement.classList.add('link-picking');
@@ -1477,8 +1493,9 @@
       linkPick.picked.forEach(d => document.querySelectorAll(`#sheetWrap td.cell[data-cd="${d}"], #sheetWrap th.c${d}`).forEach(x => x.classList.add('lk-col')));
       const from = linkPick.keys.map(k => k.split('|')[1]).sort()[0];
       const pk = [...linkPick.picked].sort();
-      $('linkBar').innerHTML = `<span><b>Covers paycheck:</b> click the box of the paycheck this ${fmtDate(from)} money is for (1 or 2 — click again to unpick)</span>
-        <span class="lb-picked">${pk.length ? '→ ' + pk.map(fmtDate).join(', ') : 'none picked yet'}</span>
+      const negP = linkPick.keys.length === 1 && (cellValue(linkPick.keys[0].split('|')[0], from).v || 0) < 0;
+      $('linkBar').innerHTML = `<span>${negP ? `<b>Covered by paycheck:</b> click the box of the paycheck covering this ${fmtDate(from)} shortage` : `<b>Covers paycheck:</b> click the box of the paycheck this ${fmtDate(from)} money is for`} (1 or 2 — click again to unpick)</span>
+        <span class="lb-picked">${pk.length ? (negP ? '← ' : '→ ') + pk.map(fmtDate).join(', ') : 'none picked yet'}</span>
         <button type="button" class="lb-done" data-lb="done">Done</button>
         <button type="button" class="lb-cancel" data-lb="cancel">Cancel</button>`;
     }
@@ -1540,10 +1557,11 @@
         ${(() => {
           const ed = targets.filter(t => t[0] !== '=' && !t.startsWith('paycheck|'));
           if (!ed.length) return '';
-          const curLink = ed.length === 1 ? lkList(data.links && data.links[ed[0]]) : [];
+          const neg1 = ed.length === 1 && (cellValue(ed[0].split('|')[0], ed[0].split('|')[1]).v || 0) < 0;
+          const curLink = ed.length === 1 ? lkList(neg1 ? data.coveredBy && data.coveredBy[ed[0]] : data.links && data.links[ed[0]]) : [];
           return `<div class="sep"></div>
-            <button type="button" data-ctx="covers">Covers paycheck… <span>${curLink.length ? '→ ' + curLink.map(fmtDate).join(', ') : 'click boxes to pick'}</span></button>
-            ${ed.some(t => data.links && data.links[t]) ? '<button type="button" data-ctx="unlink">Remove link</button>' : ''}`;
+            <button type="button" data-ctx="covers">${neg1 ? 'Covered by paycheck…' : 'Covers paycheck…'} <span>${curLink.length ? (neg1 ? '← ' : '→ ') + curLink.map(fmtDate).join(', ') : 'click boxes to pick'}</span></button>
+            ${ed.some(t => (data.links && data.links[t]) || (data.coveredBy && data.coveredBy[t])) ? '<button type="button" data-ctx="unlink">Remove link</button>' : ''}`;
         })()}
         <div class="sep"></div>
         <button type="button" data-ctx="zero" class="danger" ${canEdit ? '' : 'disabled title="Read-only box"'}>Delete — set to $0${many}</button>`;
@@ -1776,7 +1794,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: clear paycheck links on empty boxes', at: '2026-10-14T14:00:00-04:00' };
+    const PAGE_VERSION = { msg: 'Budget: one link tag per pair (short boxes show Covered by)', at: '2026-10-14T14:25:00-04:00' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/New_York' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }); }
     $('infoPop').title = PAGE_VERSION.msg;
