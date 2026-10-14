@@ -1708,7 +1708,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: Ignore option on the ? helper', at: '2026-10-14T12:30:00-04:00' };
+    const PAGE_VERSION = { msg: 'Budget: Covers paycheck picking, frozen Remainder row, Ignore on ? helper', at: '2026-10-14T12:46:00-04:00' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/New_York' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }); }
     $('infoPop').title = PAGE_VERSION.msg;
