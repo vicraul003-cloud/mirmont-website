@@ -964,7 +964,8 @@
 
       const inputCell = (id, c) => {
         const { v, carried } = cellValue(id, c.iso);
-        const val = carried || v == null ? '' : acct(v);
+        const covShow = id !== 'paycheck' && /adjust/i.test((itemInfo(id) || {}).name || '') ? coverAmt(id, c.iso) : 0; // amount this check gives to cover shortages
+        const val = covShow ? acct(Math.round(((carried ? 0 : v || 0) + covShow) * 100) / 100) : carried || v == null ? '' : acct(v);
         const ph = carried && v != null ? acct(v) : '';
         const raw = carried || v == null ? '' : plain(v);
         const k = v === 0 && !carried ? 'zero' : (v < 0 ? 'neg' : '');
@@ -995,8 +996,11 @@
         const mvIn = (data.moves || []).filter(m => m.id === id && m.to === c.iso), mvOut = (data.moves || []).filter(m => m.id === id && m.from === c.iso);
         const mvTag = (mvIn.length || mvOut.length) && !(data.links && data.links[id + '|' + c.iso]) ? `<span class="lk lk-mv" title="${esc([...mvIn.map(m => `Moved in ${money(m.amt)} from ${fmtDate(m.from)} (${new Date(m.at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`), ...mvOut.map(m => `Moved out ${money(m.amt)} to ${fmtDate(m.to)} (${new Date(m.at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`)].join(' · '))}">${mvIn.length ? '⇠ ' + mvIn.map(m => fmtDate(m.from)).join(', ') : ''}${mvIn.length && mvOut.length ? ' ' : ''}${mvOut.length ? '⇢ ' + mvOut.map(m => fmtDate(m.to)).join(', ') : ''}</span>` : '';
         const cov = id !== 'paycheck' ? coverAmt(id, c.iso) : 0;
-        if (cov && !tip) tip = ` title="This check also covers ${money(cov)} of shortages (counted in this column's Total)"`;
-        const lk = !lkT.length && inc.length ? `<span class="lk lk-to${adjCls}" data-lk="${inc.join(',')}" title="Covered by the ${inc.map(fmtDate).join(' + ')} check${inc.length > 1 ? 's' : ''}">← ${inc.map(fmtDate).join(', ')}</span>` : lkT.length ? `<span class="lk lk-from${adjCls}" data-lk="${lkT.join(',')}" title="${esc((itemInfo(id) || {}).name)}: ${money(v) || '$0'} from the ${fmtDate(c.iso)} check covers the ${lkT.map(fmtDate).join(' + ')} check${lkT.length > 1 ? 's' : ''}">→ ${lkT.map(fmtDate).join(', ')}</span>` : '';
+        const covTo = covShow ? Object.entries(data.coveredBy || {}).filter(([k, by]) => k.startsWith(id + '|') && lkList(by).includes(c.iso)).map(([k]) => k.split('|')[1]).filter(d => (cellValue(id, d).v || 0) < 0).sort() : [];
+        if (covShow) tip = ` title="${money(covShow)} from this check covers ${covTo.map(fmtDate).join(' + ')}${v ? ` (plus ${money(v)} typed here)` : ''}"`;
+        else if (cov && !tip) tip = ` title="This check also covers ${money(cov)} of shortages (counted in this column's Total)"`;
+        const covTag = covTo.length ? `<span class="lk lk-from${adjCls}" data-lk="${covTo.join(',')}">→ ${covTo.map(fmtDate).join(', ')}</span>` : '';
+        const lk = covTag && !lkT.length && !inc.length ? covTag : !lkT.length && inc.length ? `<span class="lk lk-to${adjCls}" data-lk="${inc.join(',')}" title="Covered by the ${inc.map(fmtDate).join(' + ')} check${inc.length > 1 ? 's' : ''}">← ${inc.map(fmtDate).join(', ')}</span>` : lkT.length ? `<span class="lk lk-from${adjCls}" data-lk="${lkT.join(',')}" title="${esc((itemInfo(id) || {}).name)}: ${money(v) || '$0'} from the ${fmtDate(c.iso)} check covers the ${lkT.map(fmtDate).join(' + ')} check${lkT.length > 1 ? 's' : ''}">→ ${lkT.map(fmtDate).join(', ')}</span>` : '';
         return `<td class="${cls(c)}${bal}${lk ? ' lk-cell' : ''}" data-cid="${id}" data-cd="${c.iso}"${tip}>${grip}${hint}${lk || mvTag}<input class="${k}" data-id="${id}" data-d="${c.iso}" value="${esc(val)}" data-raw="${esc(raw)}" placeholder="${esc(ph)}" inputmode="decimal" autocomplete="off" aria-label="${esc((itemInfo(id) || {}).name)} ${c.iso}" /></td>`;
       };
       const calcCell = (c, v) => `<td class="${cls(c)}"><div class="calc ${v < 0 ? 'neg' : ''}">${money(v)}</div></td>`;
@@ -2158,7 +2162,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: contributions use another check overage instead of moving', at: '2026-10-14T20:25:00Z' };
+    const PAGE_VERSION = { msg: 'Budget: covering check shows the positive amount in Adjustments', at: '2026-10-14T20:37:00Z' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); // shown in the viewer's own time zone
       $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }); }
