@@ -526,6 +526,10 @@
       <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M9 14 4 9l5-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
       <span>Undo</span>
     </button>
+    <button type="button" class="undo-btn" id="redoBtn" title="Redo (⇧⌘Z)" disabled>
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M15 14l5-5-5-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      <span>Redo</span>
+    </button>
     <div class="save-state" id="saveState" data-s="ok"><span id="saveText">Loading…</span></div>
     <div class="menu" id="menu">
       <button class="menu-btn" id="menuBtn" aria-haspopup="true">Menu ▾</button>
@@ -720,12 +724,24 @@
     }
     const num = (id, iso) => cellValue(id, iso).v || 0;
 
+    // a negative (short) Adjustments box "covered by" another check moves that amount onto the covering check
+    function coverAmt(id, iso) {
+      const cb = data.coveredBy; if (!cb) return 0;
+      let t = 0;
+      for (const k in cb) {
+        if (!k.startsWith(id + '|')) continue;
+        const by = lkList(cb[k]); if (!by.includes(iso)) continue;
+        const v = cellValue(id, k.slice(id.length + 1)).v;
+        if (v != null && v < 0) t += -v / by.length;
+      }
+      return Math.round(t * 100) / 100;
+    }
     function computePeriod(iso) {
       const r = { sections: {} , fromPay: 0, shared: 0 };
       for (const s of data.sections) {
         let t = 0;
         for (const it of s.items) {
-          const v = num(it.id, iso); t += v;
+          const v = num(it.id, iso) + coverAmt(it.id, iso); t += v;
           if (it.shared) r.shared += v;
         }
         r.sections[s.id] = t;
@@ -882,6 +898,8 @@
         const lkT = v != null && v !== 0 ? lkList(data.links && data.links[id + '|' + c.iso]) : [];
         const inc = v != null && v < 0 ? lkList(data.coveredBy && data.coveredBy[id + '|' + c.iso]) : [];
         const adjCls = /adjust/i.test((itemInfo(id) || {}).name || '') ? ' lk-adj' : '';
+        const cov = id !== 'paycheck' ? coverAmt(id, c.iso) : 0;
+        if (cov && !tip) tip = ` title="This check also covers ${money(cov)} of shortages (counted in this column's Total)"`;
         const lk = !lkT.length && inc.length ? `<span class="lk lk-to${adjCls}" data-lk="${inc.join(',')}" title="Covered by the ${inc.map(fmtDate).join(' + ')} check${inc.length > 1 ? 's' : ''}">← ${inc.map(fmtDate).join(', ')}</span>` : lkT.length ? `<span class="lk lk-from${adjCls}" data-lk="${lkT.join(',')}" title="${esc((itemInfo(id) || {}).name)}: ${money(v) || '$0'} from the ${fmtDate(c.iso)} check covers the ${lkT.map(fmtDate).join(' + ')} check${lkT.length > 1 ? 's' : ''}">→ ${lkT.map(fmtDate).join(', ')}</span>` : '';
         return `<td class="${cls(c)}${bal}${lk ? ' lk-cell' : ''}" data-cid="${id}" data-cd="${c.iso}"${tip}>${grip}${hint}${lk}<input class="${k}" data-id="${id}" data-d="${c.iso}" value="${esc(val)}" data-raw="${esc(raw)}" placeholder="${esc(ph)}" inputmode="decimal" autocomplete="off" aria-label="${esc((itemInfo(id) || {}).name)} ${c.iso}" /></td>`;
       };
@@ -990,7 +1008,8 @@
     // ── undo / redo: snapshot of the budget before each saved change ──
     let undoStack = [], redoStack = [], lastSnap = null, undoing = false;
     function resetUndo() { undoStack = []; redoStack = []; lastSnap = data ? JSON.stringify(data) : null; updateUndoBtn(); }
-    function updateUndoBtn() { const b = $('undoBtn'); if (!b) return; b.disabled = !undoStack.length; b.title = undoStack.length ? `Undo last change (⌘Z) — ${undoStack.length} step${undoStack.length > 1 ? 's' : ''} available` : 'Nothing to undo'; }
+    function updateUndoBtn() { const rb = $('redoBtn'); if (rb) { rb.disabled = !redoStack.length; rb.title = redoStack.length ? `Redo (⇧⌘Z) — ${redoStack.length} step${redoStack.length > 1 ? 's' : ''} available` : 'Nothing to redo'; }
+      const b = $('undoBtn'); if (!b) return; b.disabled = !undoStack.length; b.title = undoStack.length ? `Undo last change (⌘Z) — ${undoStack.length} step${undoStack.length > 1 ? 's' : ''} available` : 'Nothing to undo'; }
     function recordUndo() {
       if (undoing || !data) return;
       const now = JSON.stringify(data);
@@ -1005,7 +1024,8 @@
       updateUndoBtn();
     }
     function undo() { if (!undoStack.length) return; redoStack.push(lastSnap); restoreSnap(undoStack.pop()); flashUndo('Undone'); }
-    function redo() { if (!redoStack.length) return; undoStack.push(lastSnap); restoreSnap(redoStack.pop()); flashUndo('Redone'); }
+    function redo() { if (!redoStack.length) return; undoStack.push(lastSnap); restoreSnap(redoStack.pop()); flashBtn('redoBtn', 'Redone', 'Redo'); }
+    function flashBtn(id, t, back) { const b = $(id); if (!b) return; const sp = b.querySelector('span'); sp.textContent = t; clearTimeout(flashBtn[id]); flashBtn[id] = setTimeout(() => sp.textContent = back, 900); }
     function flashUndo(t) { const b = $('undoBtn'); if (!b) return; const sp = b.querySelector('span'); sp.textContent = t; clearTimeout(flashUndo.t); flashUndo.t = setTimeout(() => sp.textContent = 'Undo', 900); }
 
     function scheduleSaveQuiet() { saveLocal(); if (mode !== 'local') { clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 700); } }
@@ -1742,6 +1762,7 @@
     }
 
     $('undoBtn').addEventListener('click', undo);
+    $('redoBtn').addEventListener('click', redo);
 
     // ── Matrix rain background ──
     const matrix = (() => {
@@ -1799,7 +1820,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: update time shown in your local time zone', at: '2026-10-14T18:24:00Z' };
+    const PAGE_VERSION = { msg: 'Budget: add Redo button', at: '2026-10-14T18:42:00Z' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); // shown in the viewer's own time zone
       $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }); }
