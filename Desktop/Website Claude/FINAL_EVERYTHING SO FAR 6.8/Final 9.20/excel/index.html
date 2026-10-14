@@ -159,6 +159,8 @@
     .cover-pop .cp-nav { display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; margin-bottom: 0.4rem; }
     .cover-pop .cp-nav button { padding: 0.2rem 0.55rem; font-size: 0.74rem; }
     .cover-pop .cp-nav .cp-range { font-size: 0.7rem; color: #c8c0b0; white-space: nowrap; }
+    #sheetWrap .sheet td.cell.adj-pending { box-shadow: inset 0 0 0 2px #f0a24a !important; }
+    #sheetWrap .sheet td.cell.adj-pending input { color: #f0a24a; font-style: italic; }
     .cover-pop .cp-note { margin-right: auto; align-self: center; font-size: 0.68rem; color: #c8c0b0; }
     .cover-pop .cp-acts { display: flex; justify-content: flex-end; gap: 0.35rem; margin-top: 0.55rem; }
     .cover-pop .cp-acts button { padding: 0.25rem 0.7rem; font-size: 0.74rem; }
@@ -1276,9 +1278,12 @@
 
       // Adjustments line: always just this box, then ask which paycheck pairs with it
       if (/adjust/i.test(it.name || '')) {
-        const prior = adjSnap(id, iso);
-        setOnlyThis(id, iso, n); redraw(); done();
-        if (n !== null && n !== 0) askCover(id, iso, n, prior);
+        if (n === null || n === 0) { setOnlyThis(id, iso, n); redraw(); done(); return; }
+        // nothing changes until a paycheck is picked in the popup
+        if (coverPending && coverPending.id === id && coverPending.iso === iso && coverPending.n === n) return; // same entry, popup already open
+        const td = input.closest('td'); if (td) td.classList.add('adj-pending');
+        input.value = acct(n); input.blur();
+        askCover(id, iso, n, null);
         return;
       }
       // Clearing a box, or a one-off line with nothing later to update: just save it.
@@ -1486,16 +1491,23 @@
       const td = document.querySelector(`#sheetWrap td.cell[data-cid="${p.id}"][data-cd="${p.iso}"]`);
       if (td) td.animate([{ boxShadow: 'inset 0 0 0 2px #d93025' }, { boxShadow: 'inset 0 0 0 2px transparent' }], 900);
     }
+    function cancelAdj(p) { // put the box back the way it was
+      if (p.applied) { revertAdj(p); return; }
+      const sl = $('sheetWrap') ? $('sheetWrap').scrollLeft : 0; render(); if ($('sheetWrap')) $('sheetWrap').scrollLeft = sl;
+      const td = document.querySelector(`#sheetWrap td.cell[data-cid="${p.id}"][data-cd="${p.iso}"]`);
+      if (td) td.animate([{ boxShadow: 'inset 0 0 0 2px #d93025' }, { boxShadow: 'inset 0 0 0 2px transparent' }], 900);
+    }
+    function applyAdj(p) { if (p && !p.applied) { setOnlyThis(p.id, p.iso, p.n); p.applied = true; } }
     function closeCover(picked) {
       const x = $('coverPop'); if (x) x.remove();
       const p = coverPending; coverPending = null;
-      if (p && !picked) revertAdj(p);
+      if (p && !picked) cancelAdj(p);
     }
     function askCover(id, iso, n, prior) {
       const it = itemInfo(id);
       if (!it || !/adjust/i.test(it.name || '') || n == null || n === 0) return;
       closeCover(true);
-      coverPending = { id, iso, prior: prior || { v: undefined } };
+      coverPending = { id, iso, n, prior: prior || { v: undefined }, applied: !!prior }; // prior given = value already put in (paste)
       const step = (data.periodDays || 14) * DAY, give = n > 0, N = 9;
       let start = give ? 1 : -N; // offset (in paychecks) of the first date shown
       const pageDates = () => { const out = []; for (let i = start, c = 0; c < N; i++) { if (i === 0) continue; out.push(toISO(fromISO(iso) + i * step)); c++; } return out; };
@@ -1530,7 +1542,8 @@
           paint(); return;
         }
         if (b.dataset.cpa === 'sheet') { const p = coverPending; coverPending = null; closeCover(true); startLinkPick([id + '|' + iso], p); return; }
-        const d = b.dataset.cp; if (!d) return; closeCover(true);
+        const d = b.dataset.cp; if (!d) return;
+        applyAdj(coverPending); closeCover(true);
         data.links = data.links || {};
         if (give) setLink([id + '|' + iso], [d]);
         else { data.coveredBy = data.coveredBy || {}; data.coveredBy[id + '|' + iso] = d; redraw(); }
@@ -1556,7 +1569,8 @@
       document.documentElement.classList.remove('link-picking');
       const bar = $('linkBar'); if (bar) bar.remove();
       document.querySelectorAll('#sheetWrap .lk-col, #sheetWrap .lk-src').forEach(x => x.classList.remove('lk-col', 'lk-src'));
-      if (lp.pending && (!save || !lp.picked.size)) { revertAdj(lp.pending); return; }
+      if (lp.pending && (!save || !lp.picked.size)) { cancelAdj(lp.pending); return; }
+      if (save && lp.pending) applyAdj(lp.pending);
       if (save) setLink(lp.keys, [...lp.picked]);
     }
     function paintLinkPick() {
@@ -1891,7 +1905,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: Adjustments must pick a paycheck + Refresh', at: '2026-10-14T18:53:00Z' };
+    const PAGE_VERSION = { msg: 'Budget: Adjustments amount applies only after a paycheck is picked', at: '2026-10-14T18:57:00Z' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); // shown in the viewer's own time zone
       $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }); }
