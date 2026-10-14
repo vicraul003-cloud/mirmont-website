@@ -733,9 +733,10 @@
       return r;
     }
 
-    function setValue(id, iso, n) {
+    function setValue(id, iso, n, keepLinks) {
       data.values[id] = data.values[id] || {};
       if (n === null) delete data.values[id][iso]; else data.values[id][iso] = n;
+      if (!keepLinks && (n === null || n === 0)) dropLinks(id, iso);
       sortedCache.delete(id);
     }
 
@@ -1172,6 +1173,16 @@
       });
       return out.sort((a, b) => a.from.localeCompare(b.from));
     }
+    // box emptied / set to $0: forget its "covers" link (and, on Adjustments, links pointing at it) so a new date can be picked
+    function dropLinks(id, iso) {
+      if (!data.links) return;
+      delete data.links[id + '|' + iso];
+      if (/adjust/i.test((itemInfo(id) || {}).name || '')) Object.keys(data.links).forEach(k => {
+        if (!k.startsWith(id + '|')) return;
+        const l = lkList(data.links[k]).filter(d => d !== iso);
+        if (!l.length) delete data.links[k]; else data.links[k] = l.length === 1 ? l[0] : l;
+      });
+    }
     const lkList = (v) => Array.isArray(v) ? v : (v ? [v] : []);
     function setLink(keys, to) { // to: array of pay dates, or null to remove
       data.links = data.links || {};
@@ -1259,7 +1270,7 @@
       for (const [d, old] of snap) {
         const now = cellValue(id, d);
         if (!now.carried) { if ((data.values[id] || {})[d] !== undefined) break; else continue; }
-        if (now.v !== old.v) { setValue(id, d, old.v == null ? 0 : old.v); break; }
+        if (now.v !== old.v) { setValue(id, d, old.v == null ? 0 : old.v, true); break; }
       }
     }
 
@@ -1755,7 +1766,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: Adjustments asks which paycheck covers it', at: '2026-10-14T13:05:00-04:00' };
+    const PAGE_VERSION = { msg: 'Budget: clearing a box removes its paycheck link', at: '2026-10-14T13:55:00-04:00' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/New_York' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }); }
     $('infoPop').title = PAGE_VERSION.msg;
