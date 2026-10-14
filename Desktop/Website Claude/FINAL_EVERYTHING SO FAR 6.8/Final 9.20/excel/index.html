@@ -141,6 +141,7 @@
     .sheet tr.diff-row td.cell .lk { left: 3px; right: auto; max-width: calc(100% - 6px); overflow: hidden; text-overflow: ellipsis; }
     .sheet tr.diff-row td.cell .lk-to + .lk-cov { left: auto; right: 3px; max-width: 48%; }
     .sheet td.cell .lk.lk-cov { background: #2e7d32; }
+    .sheet td.cell .lk.lk-adj { background: #d93025; }
     .cover-pop { position: fixed; z-index: 65; width: 300px; background: var(--navy-dark); color: #fff; border-radius: 10px; padding: 0.7rem 0.75rem; box-shadow: 0 12px 32px rgba(0,0,0,0.35); font-size: 0.8rem; border: 1px solid rgba(201,160,90,0.5); }
     .cover-pop .cp-title { margin-bottom: 0.5rem; line-height: 1.35; }
     .cover-pop .cp-title b { color: #dbb97a; }
@@ -877,7 +878,8 @@
         const hint = needs ? `<button type="button" class="sugg" tabindex="-1" data-sid="${id}" data-sd="${c.iso}" title="Suggested ${money(sg.amt)} so ${money(sg.A)} ${sg.label} is covered. Double-click to use it.">?</button>` : '';
         const lkT = v != null && v !== 0 ? lkList(data.links && data.links[id + '|' + c.iso]) : [];
         const inc = v != null && v < 0 ? lkList(data.coveredBy && data.coveredBy[id + '|' + c.iso]) : [];
-        const lk = !lkT.length && inc.length ? `<span class="lk lk-to" data-lk="${inc.join(',')}" title="Covered by the ${inc.map(fmtDate).join(' + ')} check${inc.length > 1 ? 's' : ''}">← ${inc.map(fmtDate).join(', ')}</span>` : lkT.length ? `<span class="lk lk-from" data-lk="${lkT.join(',')}" title="${esc((itemInfo(id) || {}).name)}: ${money(v) || '$0'} from the ${fmtDate(c.iso)} check covers the ${lkT.map(fmtDate).join(' + ')} check${lkT.length > 1 ? 's' : ''}">→ ${lkT.map(fmtDate).join(', ')}</span>` : '';
+        const adjCls = /adjust/i.test((itemInfo(id) || {}).name || '') ? ' lk-adj' : '';
+        const lk = !lkT.length && inc.length ? `<span class="lk lk-to${adjCls}" data-lk="${inc.join(',')}" title="Covered by the ${inc.map(fmtDate).join(' + ')} check${inc.length > 1 ? 's' : ''}">← ${inc.map(fmtDate).join(', ')}</span>` : lkT.length ? `<span class="lk lk-from${adjCls}" data-lk="${lkT.join(',')}" title="${esc((itemInfo(id) || {}).name)}: ${money(v) || '$0'} from the ${fmtDate(c.iso)} check covers the ${lkT.map(fmtDate).join(' + ')} check${lkT.length > 1 ? 's' : ''}">→ ${lkT.map(fmtDate).join(', ')}</span>` : '';
         return `<td class="${cls(c)}${bal}${lk ? ' lk-cell' : ''}" data-cid="${id}" data-cd="${c.iso}"${tip}>${grip}${hint}${lk}<input class="${k}" data-id="${id}" data-d="${c.iso}" value="${esc(val)}" data-raw="${esc(raw)}" placeholder="${esc(ph)}" inputmode="decimal" autocomplete="off" aria-label="${esc((itemInfo(id) || {}).name)} ${c.iso}" /></td>`;
       };
       const calcCell = (c, v) => `<td class="${cls(c)}"><div class="calc ${v < 0 ? 'neg' : ''}">${money(v)}</div></td>`;
@@ -1794,7 +1796,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: one link tag per pair (short boxes show Covered by)', at: '2026-10-14T14:25:00-04:00' };
+    const PAGE_VERSION = { msg: 'Budget: red link tags on the Adjustments line', at: '2026-10-14T14:30:00-04:00' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/New_York' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }); }
     $('infoPop').title = PAGE_VERSION.msg;
