@@ -55,6 +55,9 @@
     .menu-btn { white-space: nowrap; background: transparent; border: 1px solid rgba(201,160,90,0.4); color: #f8f5ef; border-radius: 6px; padding: 0.4rem 0.7rem; cursor: pointer; font-size: 0.78rem; }
     .menu-btn:hover { border-color: var(--gold); color: var(--gold); }
     .menu { position: relative; }
+    .chip.inf { background: rgba(120,130,150,0.18); color: #8a93a6; border: 1px dashed #8a93a6; }
+    tr.info-row td.cell input { color: #8a93a6; font-style: italic; } tr.info-row td.col-name .nm { font-style: italic; }
+    tr.info-row td.cell { background-image: repeating-linear-gradient(135deg, transparent 0 8px, rgba(138,147,166,0.08) 8px 16px); }
     .lock-btn { border-color: rgba(123,216,143,0.55); } .lock-btn.open { background: #b5621b; border-color: #f0c27a; color: #fff; font-weight: 600; }
     body.is-locked #sheetWrap .cell input { cursor: default; caret-color: transparent; }
     body.is-locked #sheetWrap .grip, body.is-locked #sheetWrap tr.add-row, body.is-locked #sheetWrap .add-line { display: none; }
@@ -738,6 +741,7 @@
       <label class="check"><input type="checkbox" id="fSub" /> Indent under the line above (part of that expense)</label>
       <label class="check"><input type="checkbox" id="fShared" /> Include in "Send to Shared"</label>
       <label class="check"><input type="checkbox" id="fNoHelp" /> Ignore the "?" due-date helper for this line</label>
+      <label class="check"><input type="checkbox" id="fInfo" /> Info only — paid from another account, not counted in any total</label>
       <div class="actions">
         <div class="left">
           <button type="button" class="btn icon" id="fUp" title="Move up">↑</button>
@@ -964,6 +968,7 @@
       for (const s of data.sections) {
         let t = 0;
         for (const it of s.items) {
+          if (it.info) continue; // info-only (paid from another account): shown, never counted
           const v = num(it.id, iso) + coverAmt(it.id, iso); t += v;
           if (it.shared) r.shared += v;
         }
@@ -1150,11 +1155,12 @@
         let budgetTotal = 0;
         const secClosed = collapsedSecs.has(s.id);
         s.items.forEach(it => {
-          budgetTotal += it.budget || 0;
+          if (!it.info) budgetTotal += it.budget || 0;
           if (secClosed) return;
           const chips = (it.repeat === 'every' ? '<span class="chip rep" title="Repeats every paycheck">↻ check</span>' : it.repeat === 'monthly' ? '<span class="chip rep" title="Repeats once a month">↻ month</span>' : it.repeat === 'quarterly' ? '<span class="chip rep" title="Repeats every 3 months">↻ 3 mo</span>' : it.repeat === 'semiannual' ? '<span class="chip rep" title="Repeats every 6 months">↻ 6 mo</span>' : it.repeat === 'yearly' ? '<span class="chip rep" title="Repeats once a year">↻ yearly</span>' : '')
-            + (it.shared ? '<span class="chip shr" title="Included in Send to Shared">shared</span>' : '');
-          h += `<tr><td class="col-name"><button class="name-btn${it.sub ? ' sub' : ''}" data-item="${it.id}" title="${esc(it.name)}${it.note ? ' — ' + esc(it.note) : ''}"><span class="txt"><span class="nm">${esc(it.name)}</span>${it.note ? `<span class="nt">${esc(it.note)}</span>` : ''}</span>${chips}</button></td>
+            + (it.shared ? '<span class="chip shr" title="Included in Send to Shared">shared</span>' : '')
+            + (it.info ? '<span class="chip inf" title="Paid from another account — shown for reference, not counted in any total">not counted</span>' : '');
+          h += `<tr${it.info ? ' class="info-row"' : ''}><td class="col-name"><button class="name-btn${it.sub ? ' sub' : ''}" data-item="${it.id}" title="${esc(it.name)}${it.note ? ' — ' + esc(it.note) : ''}"><span class="txt"><span class="nm">${esc(it.name)}</span>${it.note ? `<span class="nt">${esc(it.note)}</span>` : ''}</span>${chips}</button></td>
             <td class="col-due">${dueHtml(it.due)}</td><td class="col-budget"><div class="budget-val">${money(it.budget)}</div></td>${cols.map(c => inputCell(it.id, c)).join('')}</tr>`;
         });
         if (s.id === payHeadId && !secClosed) { const dp = data.special.deposit;
@@ -1302,6 +1308,20 @@
       if (!d || !Array.isArray(d.sections)) return false;
       d.migrations = d.migrations || {};
       let changed = false;
+      if (!d.migrations.mirmontCheck) { // info-only line under Nanny: paid from the business account, never counted
+        d.migrations.mirmontCheck = true; changed = true;
+        const exists = d.sections.some(s => s.items.some(it => /mirmont monthly check/i.test(it.name || '')));
+        if (!exists) {
+          let sec = null, at = -1;
+          d.sections.forEach(s => s.items.forEach((it, i) => { if (at < 0 && /^\s*nanny\b/i.test(it.name || '') && !/bus|payment/i.test(it.name || '')) { sec = s; at = i; } }));
+          if (!sec) { sec = d.sections.find(s => s.fromPaycheck) || d.sections[0]; at = -1; }
+          const id = 'mmc' + Date.now().toString(36);
+          sec.items.splice(at + 1, 0, { id, name: 'MirMont Monthly Check', note: 'Business account · not counted', budget: 400, repeat: 'monthly', shared: false, sub: true, info: true, noHelp: true });
+          const step = (d.periodDays || 14) * 864e5, a = Date.parse(d.anchor + 'T00:00:00Z'), start = Date.parse('2026-10-01T00:00:00Z');
+          const first = new Date(a + Math.ceil((start - a) / step) * step).toISOString().slice(0, 10);
+          d.values = d.values || {}; d.values[id] = { [first]: 400 };
+        }
+      }
       if (!d.migrations.indentGirl) {
         // Diapers, wipes, dance class, stem cell sit under the girl/baby expenses line
         d.sections.forEach(s => s.items.forEach(it => { if (['r63', 'r64', 'r65', 'r66'].includes(it.id)) it.sub = true; }));
@@ -1603,7 +1623,7 @@
     // A bill is paid by the checks that arrive after the previous due date and on/before its own due date.
     function billWindow(id, iso) {
       const it = itemInfo(id);
-      if (!it || !it.budget || data.special[id] || it.noHelp) return null;
+      if (!it || !it.budget || data.special[id] || it.noHelp || it.info) return null;
       const ign = (due) => !!(data.ignoreDue && data.ignoreDue[id + '|' + due]);
       const r = dueRule(it);
       if (r) {
@@ -1771,7 +1791,7 @@
       const step = (data.periodDays || 14) * DAY, nowP = currentPeriod(), floor = data.trackStart || '2026-10-15';
       const out = [];
       data.sections.filter(s => s.fromPaycheck).forEach(sec => sec.items.forEach(it => {
-        if (/adjust/i.test(it.name || '')) return;
+        if (/adjust/i.test(it.name || '') || it.info) return;
         const v = cellValue(it.id, iso).v; if (!(v > 0)) return;
         // which checks may pay this bill: those after the previous due date and on/before this one's due date
         const w = billWindow(it.id, iso) || dueWindowRaw(it, iso); // due date always counts here, even if the "?" helper is off for this line
@@ -2355,7 +2375,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: Nanny $350 on first Friday of the month', at: '2026-10-15T01:19:03Z' };
+    const PAGE_VERSION = { msg: 'Budget: add MirMont Monthly Check (not counted)', at: '2026-10-15T01:25:14Z' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); // shown in the viewer's own time zone
       $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }); }
@@ -2418,7 +2438,7 @@
       data.sections.forEach(s => {
         let bt = 0;
         s.items.forEach(it => {
-          bt += it.budget || 0;
+          if (!it.info) bt += it.budget || 0;
           const due = /^\d{1,2}$/.test(String(it.due || '')) ? ordinal(+it.due) : (it.due || '');
           rows.push([s.name, (it.sub ? '   ↳ ' : '') + it.name + (it.note ? ' (' + it.note + ')' : ''), due, num(it.budget), ...ps.map(p => num(cellValue(it.id, p).v))]);
         });
@@ -2484,7 +2504,7 @@
       const sec = data.sections.find(x => x.fromPaycheck); if (!sec) return out;
       const nan = nannyItem();
       sec.items.forEach(it => {
-        if ((nan && it.id === nan.id) || /adjust/i.test(it.name || '')) return;
+        if ((nan && it.id === nan.id) || /adjust/i.test(it.name || '') || it.info) return;
         const r = dueRule(it);
         if (r) {
           const ok = (mi) => (((mi - r.anchor) % r.F) + r.F) % r.F === 0;
@@ -2716,8 +2736,8 @@
       const it = f ? f.it : { name: '', note: '', budget: null, repeat: 'off', shared: false };
       $('itemDlgTitle').textContent = id ? 'Edit line' : 'New line';
       $('fName').value = it.name; $('fNote').value = it.note || ''; $('fBudget').value = it.budget == null ? '' : plain(it.budget); $('fDue').value = it.due == null ? '' : it.due;
-      $('fRepeat').value = it.repeat || 'off'; $('fShared').checked = !!it.shared; $('fSub').checked = !!it.sub; $('fNoHelp').checked = !!it.noHelp;
-      ['fNote', 'fDue', 'fBudget', 'fShared', 'fSub', 'fNoHelp', 'fUp', 'fDown'].forEach(k => $(k).closest('label, button').style.display = '');
+      $('fRepeat').value = it.repeat || 'off'; $('fShared').checked = !!it.shared; $('fSub').checked = !!it.sub; $('fNoHelp').checked = !!it.noHelp; $('fInfo').checked = !!it.info;
+      ['fNote', 'fDue', 'fBudget', 'fShared', 'fSub', 'fNoHelp', 'fInfo', 'fUp', 'fDown'].forEach(k => $(k).closest('label, button').style.display = '');
       $('fSection').innerHTML = data.sections.map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');
       $('fSection').value = editing.sectionId; $('fSecWrap').style.display = '';
       $('fDelete').style.display = id ? '' : 'none';
@@ -2729,7 +2749,7 @@
       const sp = data.special[key];
       $('itemDlgTitle').textContent = 'Edit line';
       $('fName').value = sp.name; $('fRepeat').value = sp.repeat || 'off';
-      ['fNote', 'fDue', 'fBudget', 'fShared', 'fSub', 'fNoHelp', 'fSection'].forEach(k => $(k).closest('label').style.display = 'none');
+      ['fNote', 'fDue', 'fBudget', 'fShared', 'fSub', 'fNoHelp', 'fInfo', 'fSection'].forEach(k => $(k).closest('label').style.display = 'none');
       ['fUp', 'fDown', 'fDelete'].forEach(k => $(k).style.display = 'none');
       $('itemDlg').showModal(); $('fName').focus();
     }
@@ -2741,7 +2761,7 @@
       } else {
         const b = parseAmt($('fBudget').value);
         const dueRaw = $('fDue').value.trim().replace(/^(\d{1,2})(st|nd|rd|th)$/i, '$1');
-        const vals = { name, due: dueRaw, note: $('fNote').value.trim(), budget: Number.isNaN(b) ? null : b, repeat: $('fRepeat').value, shared: $('fShared').checked, sub: $('fSub').checked, noHelp: $('fNoHelp').checked };
+        const vals = { name, due: dueRaw, note: $('fNote').value.trim(), budget: Number.isNaN(b) ? null : b, repeat: $('fRepeat').value, shared: $('fShared').checked, sub: $('fSub').checked, noHelp: $('fNoHelp').checked, info: $('fInfo').checked };
         const target = data.sections.find(s => s.id === $('fSection').value) || data.sections.find(s => s.id === editing.sectionId);
         let askBudget = null;
         if (editing.id) {
