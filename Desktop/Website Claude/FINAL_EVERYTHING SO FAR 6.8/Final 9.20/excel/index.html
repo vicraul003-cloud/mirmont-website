@@ -59,7 +59,8 @@
     tr.info-row td.cell input { color: #8a93a6; font-style: italic; } tr.info-row td.col-name .nm { font-style: italic; }
     tr.info-row td.cell { background-image: repeating-linear-gradient(135deg, transparent 0 8px, rgba(138,147,166,0.08) 8px 16px); }
     .lock-btn { border-color: rgba(123,216,143,0.55); } .lock-btn.open { background: #b5621b; border-color: #f0c27a; color: #fff; font-weight: 600; }
-    body.is-locked #sheetWrap .cell input { cursor: default; caret-color: transparent; }
+    body.is-locked #sheetWrap .cell input { cursor: pointer; caret-color: transparent; pointer-events: none; }
+    body.is-locked #sheetWrap td.cell[data-cid] { cursor: pointer; }
     body.is-locked #sheetWrap .grip, body.is-locked #sheetWrap tr.add-row, body.is-locked #sheetWrap .add-line { display: none; }
     body.is-locked #undoBtn, body.is-locked #redoBtn, body.is-locked #mAddSection, body.is-locked #mRestore, body.is-locked #mImport { opacity: 0.4; }
     .menu-list { display: none; position: absolute; left: 0; z-index: 40; top: calc(100% + 6px); background: #fff; color: var(--ink); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.18); min-width: 220px; padding: 0.35rem; }
@@ -832,11 +833,15 @@
     let data = null;      // the budget document
     // ── Lock: the sheet always opens locked (view + add-up only); the padlock right of Menu unlocks it for this visit ──
     let locked = true;
-    const LOCK_EDIT = '#sheetWrap [data-item], #sheetWrap [data-special], #sheetWrap [data-sec], #sheetWrap [data-add], #sheetWrap td[data-rem].short, #sheetWrap tr.diff-row td.short, .sugg, .sugg-pop [data-ign], #undoBtn, #redoBtn, #mAddSection, #mRestore, #mImport, [data-act="import"], [data-act="blank"], .grip, #sugPop [data-sg], #coverPop [data-cp]';
+    const LOCK_EDIT = '#sheetWrap [data-item], #sheetWrap [data-special], #sheetWrap [data-sec], #sheetWrap [data-add], #sheetWrap td[data-rem].short, .sugg, .sugg-pop [data-ign], #undoBtn, #redoBtn, #mAddSection, #mRestore, #mImport, [data-act="import"], [data-act="blank"], .grip, #sugPop [data-sg], #coverPop [data-cp]';
     let lockNoteT = 0;
     const lockNote = () => { if (Date.now() - lockNoteT < 600) return; lockNoteT = Date.now(); if (typeof flashMsg === 'function') flashMsg('🔒 Sheet is locked — click Locked (top right) to edit'); };
     const lockStop = (e) => { e.preventDefault(); e.stopImmediatePropagation(); lockNote(); };
-    ['click', 'dblclick'].forEach(ev => window.addEventListener(ev, (e) => { if (locked && e.target.closest && e.target.closest(LOCK_EDIT)) lockStop(e); }, true));
+    ['click', 'dblclick'].forEach(ev => window.addEventListener(ev, (e) => {
+      if (!locked || !e.target.closest) return;
+      if (e.target.closest('#sheetWrap td.cell[data-cid]') && !e.target.closest('.grip, .sugg')) { e.preventDefault(); e.stopImmediatePropagation(); return; } // locked boxes: click only selects for the sum
+      if (e.target.closest(LOCK_EDIT)) lockStop(e);
+    }, true));
     window.addEventListener('contextmenu', (e) => { if (locked && e.target.closest && e.target.closest('#sheetWrap')) { e.stopImmediatePropagation(); lockNote(); } }, true);
     window.addEventListener('dragstart', (e) => { if (locked && e.target.closest && e.target.closest('#sheetWrap')) lockStop(e); }, true);
     window.addEventListener('drop', (e) => { if (locked) lockStop(e); }, true);
@@ -1709,12 +1714,12 @@
     document.addEventListener('mousedown', (e) => {
       if (e.button !== 0 || (e.ctrlKey && !e.metaKey && /Mac/.test(navigator.platform))) return; // right-click (or Mac ctrl-click) opens the menu instead
       const td = e.target.closest && e.target.closest('#sheetWrap td.cell[data-cid]');
-      const multi = e.metaKey || e.ctrlKey;
+      const multi = e.metaKey || e.ctrlKey || (locked && !e.shiftKey); // locked: a plain click adds/removes the box from the sum
       if (!td) { if (!(e.target.closest && e.target.closest('#selSum'))) clearSelection(); return; }
       if (e.target.closest('.grip, .sugg, .sugg-pop')) return;
       if (multi) {
         e.preventDefault();
-        if (!sel.size && selAnchor && selAnchor !== keyOf(td)) sel.add(selAnchor); // include the box you were in
+        if (!locked && !sel.size && selAnchor && selAnchor !== keyOf(td)) sel.add(selAnchor); // include the box you were in
         const k = keyOf(td); sel.has(k) ? sel.delete(k) : sel.add(k);
         selAnchor = k; paintSelection();
       } else if (e.shiftKey && selAnchor) {
@@ -2376,7 +2381,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: Nanny $750 weekly, $350 first Friday', at: '2026-10-15T01:35:06Z' };
+    const PAGE_VERSION = { msg: 'Budget: locked click adds boxes to the sum', at: '2026-10-15T01:46:09Z' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); // shown in the viewer's own time zone
       $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }); }
