@@ -2376,7 +2376,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: MirMont Monthly Check on calendar', at: '2026-10-15T01:27:45Z' };
+    const PAGE_VERSION = { msg: 'Budget: Nanny $750 weekly, $350 first Friday', at: '2026-10-15T01:35:06Z' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); // shown in the viewer's own time zone
       $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }); }
@@ -2479,21 +2479,19 @@
       const step = (data.periodDays || 14) * DAY, a = fromISO(data.anchor);
       return toISO(a + Math.floor((fromISO(iso) - a) / step) * step);
     }
-    const NANNY_FIRST_FRI = 350; // Nanny pay on the first Friday of each month
+    const NANNY_FIRST_FRI = 350, NANNY_WEEK = 750; // Nanny pay: $350 on the first Friday of each month, $750 every other Friday
     function nannyOn(iso) { // Fridays only
       const it = nannyItem(); if (!it || new Date(fromISO(iso)).getUTCDay() !== 5) return null;
       const p = payPeriodOf(iso), amt = cellValue(it.id, p).v || 0;
       const step = (data.periodDays || 14) * DAY; const fris = [];
       for (let t = fromISO(p); t < fromISO(p) + step; t += DAY) if (new Date(t).getUTCDay() === 5) fris.push(toISO(t));
       const fr = fris.length || 1;
-      // the first Friday of a month is a short week: Nanny gets $350 that day, the other Friday from the same check gets the rest
-      const first = fris.length > 1 ? fris.find(d => +d.slice(8, 10) <= 7) : null;
-      let v, note = '';
-      if (first) {
-        const low = Math.min(NANNY_FIRST_FRI, amt), rest = Math.round((amt - low) / (fris.length - 1) * 100) / 100;
-        v = iso === first ? low : rest;
-        note = iso === first ? `1st Friday of the month — ${money(low)}` : `${money(amt)} − ${money(low)} on ${fmtDate(first)}`;
-      } else v = Math.round(amt / fr * 100) / 100;
+      // fixed weekly pay: $750 every Friday, except the first Friday of the month = $350 (shown only when the check has Nanny money set aside)
+      if (!(amt > 0)) return { amt: 0, from: p, total: amt, fr, name: it.name, note: '', first: false };
+      const first = +iso.slice(8, 10) <= 7 ? iso : null;
+      const v = first ? NANNY_FIRST_FRI : NANNY_WEEK;
+      const due = fris.reduce((t, d) => t + (+d.slice(8, 10) <= 7 ? NANNY_FIRST_FRI : NANNY_WEEK), 0);
+      const note = (first ? '1st Friday of the month — ' + money(v) : money(v) + ' weekly') + (Math.abs(due - amt) > 0.005 ? ` · this check's Nanny box is ${money(amt)}, its Fridays add up to ${money(due)}` : '');
       return { amt: v, from: p, total: amt, fr, name: it.name, note, first: iso === first };
     }
     // each paycheck gets its own color; the Nanny Fridays it pays use the same color
