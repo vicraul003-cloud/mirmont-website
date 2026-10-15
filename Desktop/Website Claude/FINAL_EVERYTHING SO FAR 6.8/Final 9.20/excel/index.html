@@ -1699,13 +1699,20 @@
     // ── multi-select like Excel: ⌘/Ctrl+click adds boxes, Shift+click selects a block; sum shows top-right ──
     const sel = new Set(); let selAnchor = null;
     const keyOf = (td) => td.dataset.cid + '|' + td.dataset.cd;
+    // the amount a box shows: Adjustments boxes also show what this check gives to cover other checks' shortages
+    function shownValue(id, d) {
+      const c = cellValue(id, d);
+      const cov = id[0] !== '=' && id !== 'paycheck' && /adjust/i.test((itemInfo(id) || {}).name || '') ? coverAmt(id, d) : 0;
+      if (cov) return Math.round(((c.carried ? 0 : c.v || 0) + cov) * 100) / 100;
+      return c.v;
+    }
     function paintSelection() {
       document.querySelectorAll('#sheetWrap td.cell.sel').forEach(td => td.classList.remove('sel'));
       sel.forEach(k => { const [id, d] = k.split('|'); const td = document.querySelector(`#sheetWrap td.cell[data-cid="${id}"][data-cd="${d}"]`); if (td) td.classList.add('sel'); });
       const box = $('selSum');
       if (sel.size < 2) { box.classList.remove('show'); return; }
       let sum = 0, n = 0;
-      sel.forEach(k => { const [id, d] = k.split('|'); const v = cellValue(id, d).v; if (v != null) { sum += v; n++; } });
+      sel.forEach(k => { const [id, d] = k.split('|'); const v = shownValue(id, d); if (v != null) { sum += v; n++; } });
       sum = Math.round(sum * 100) / 100;
       box.innerHTML = `<span class="lbl">Sum</span><b class="${sum < 0 ? 'neg' : ''}">${sum < 0 ? '−' : ''}${money(Math.abs(sum)) || '$0'}</b><span class="meta">${sel.size} cells${n ? ' · Avg ' + money(Math.round(sum / n * 100) / 100) : ''}</span>`;
       box.classList.add('show');
@@ -2381,7 +2388,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: locked click adds boxes to the sum', at: '2026-10-15T01:46:09Z' };
+    const PAGE_VERSION = { msg: 'Budget: Sum counts Adjustments cover amounts', at: '2026-10-15T01:54:49Z' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); // shown in the viewer's own time zone
       $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }); }
