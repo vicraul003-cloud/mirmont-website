@@ -116,6 +116,7 @@
     .cal-day .bl.unplanned { background: transparent; border: 1px dashed rgba(217,48,37,0.45); }
     .cal-day .bl.unplanned b { opacity: 0.7; }
     .cal-detail .dl.unplanned b { opacity: 0.7; }
+    .cal-day .bl.biz { background: transparent; border: 1px dashed #8a93a6; font-style: italic; } .cal-day .bl.biz b { color: #8a93a6 !important; }
     .cal-day .bl.more { background: none; color: var(--muted); font-style: italic; justify-content: flex-start; }
     html.dark .cal-day .bl b { color: #ff8a80; }
     .lg.bill { background: rgba(217,48,37,0.3); }
@@ -2375,7 +2376,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: add MirMont Monthly Check (not counted)', at: '2026-10-15T01:25:14Z' };
+    const PAGE_VERSION = { msg: 'Budget: MirMont Monthly Check on calendar', at: '2026-10-15T01:27:45Z' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); // shown in the viewer's own time zone
       $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }); }
@@ -2504,7 +2505,17 @@
       const sec = data.sections.find(x => x.fromPaycheck); if (!sec) return out;
       const nan = nannyItem();
       sec.items.forEach(it => {
-        if ((nan && it.id === nan.id) || /adjust/i.test(it.name || '') || it.info) return;
+        if ((nan && it.id === nan.id) || /adjust/i.test(it.name || '')) return;
+        if (it.info) { // paid from another account: shown on the first Friday of the month, never counted in the bills total
+          for (let mi = mIdx(toISO(startT)); mi <= mIdx(toISO(endT)); mi++) {
+            const y = Math.floor(mi / 12), m = mi % 12; let t = Date.UTC(y, m, 1); while (new Date(t).getUTCDay() !== 5) t += DAY;
+            { const nf = nannyOn(toISO(t)); if (!(nf && nf.first)) { for (let u = t; u < Date.UTC(y, m + 1, 1); u += 7 * DAY) { const x = nannyOn(toISO(u)); if (x && x.first) { t = u; break; } } } } // same day the Nanny gets the $350
+            if (t < startT || t > endT) continue;
+            const amt = Math.round(periodsInMonth(toISO(t)).reduce((a, c) => a + (cellValue(it.id, c).v || 0), 0) * 100) / 100;
+            if (amt > 0) add(toISO(t), { name: it.name, amt, kind: 'biz', note: 'business account · not counted · same day Nanny gets $350' });
+          }
+          return;
+        }
         const r = dueRule(it);
         if (r) {
           const ok = (mi) => (((mi - r.anchor) % r.F) + r.F) % r.F === 0;
@@ -2552,7 +2563,7 @@
         const n = nannyOn(iso);
         if (n && n.amt) { ev += `<div class="ev nan" style="--pc:${payColor(n.from)}" title="Nanny ${money(n.amt)} from the ${fmtDate(n.from)} check${n.note ? ` (${n.note})` : n.fr > 1 ? ` (${money(n.total)} ÷ ${n.fr} Fridays)` : ''}"><span>Nanny <small>· ${n.first ? '1st Fri · ' : ''}${fmtDate(n.from)} check</small></span><b>${money(n.amt)}</b></div>`; if (inM) { nanSum += n.amt; nanN++; } }
         const bl = bills.get(iso) || [];
-        if (inM) bl.forEach(x => { if (!/unplanned/.test(x.kind)) { billSum += x.amt; billN++; } });
+        if (inM) bl.forEach(x => { if (!/unplanned|biz/.test(x.kind)) { billSum += x.amt; billN++; } });
         if (bl.length) {
           const shown = bl; // the calendar is big enough to list every bill
           ev += shown.map(x => `<div class="bl ${x.kind}" title="${esc(x.name)} ${money(x.amt)}${x.note ? ' · ' + x.note : ''}"><span>${esc(x.name)}</span><b>${money(x.amt)}</b></div>`).join('');
@@ -2577,7 +2588,7 @@
       const out = [], slug = (t) => String(t).replace(/[^a-z0-9]/gi, '').slice(0, 24).toLowerCase();
       periodsBetween(startT, endT + DAY).forEach(p => { const v = num('paycheck', p); if (v > 0) out.push({ key: 'pay-' + p, date: p, summary: `💵 Payday ${money(v)}`, description: `Paycheck on ${fmtDate(p)}`, reminder: false }); });
       for (let t = startT; t <= endT; t += DAY) { const iso = toISO(t), n = nannyOn(iso); if (n && n.amt > 0) out.push({ key: 'nanny-' + iso, date: iso, summary: `👶 Nanny ${money(n.amt)}`, description: `Paid from the ${fmtDate(n.from)} check${n.note ? ` (${n.note})` : n.fr > 1 ? ` (${money(n.total)} ÷ ${n.fr} Fridays)` : ''}`, reminder: true }); }
-      calBills(startT, endT).forEach((list, iso) => list.forEach(x => { if (!(x.amt > 0)) return; out.push({ key: `bill-${iso}-${slug(x.name)}`, date: iso, summary: `🧾 ${x.name} ${money(x.amt)}`, description: x.kind === 'ded' ? 'Taken from this paycheck' : `Due ${fmtDate(iso)}${x.note ? ' · ' + x.note : ''}`, reminder: x.kind !== 'ded' }); }));
+      calBills(startT, endT).forEach((list, iso) => list.forEach(x => { if (!(x.amt > 0)) return; out.push({ key: `bill-${iso}-${slug(x.name)}`, date: iso, summary: `${x.kind === 'biz' ? '🏢' : '🧾'} ${x.name} ${money(x.amt)}`, description: x.kind === 'biz' ? 'Paid from the MirMont business account — not from a paycheck' : x.kind === 'ded' ? 'Taken from this paycheck' : `Due ${fmtDate(iso)}${x.note ? ' · ' + x.note : ''}`, reminder: x.kind !== 'ded' }); }));
       const seen = new Set(); return out.filter(e => seen.has(e.key) ? false : (seen.add(e.key), true));
     }
     function buildIcs() {
