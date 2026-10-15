@@ -51,6 +51,10 @@
     .menu-btn { white-space: nowrap; background: transparent; border: 1px solid rgba(201,160,90,0.4); color: #f8f5ef; border-radius: 6px; padding: 0.4rem 0.7rem; cursor: pointer; font-size: 0.78rem; }
     .menu-btn:hover { border-color: var(--gold); color: var(--gold); }
     .menu { position: relative; }
+    .lock-btn { border-color: rgba(123,216,143,0.55); } .lock-btn.open { background: #b5621b; border-color: #f0c27a; color: #fff; font-weight: 600; }
+    body.is-locked #sheetWrap .cell input { cursor: default; caret-color: transparent; }
+    body.is-locked #sheetWrap .grip, body.is-locked #sheetWrap tr.add-row, body.is-locked #sheetWrap .add-line { display: none; }
+    body.is-locked #undoBtn, body.is-locked #redoBtn, body.is-locked #mAddSection, body.is-locked #mRestore, body.is-locked #mImport { opacity: 0.4; }
     .menu-list { display: none; position: absolute; right: 0; top: calc(100% + 6px); background: #fff; color: var(--ink); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.18); min-width: 220px; padding: 0.35rem; }
     .menu.open .menu-list { display: block; }
     .menu-list button { display: block; width: 100%; text-align: left; background: none; border: 0; padding: 0.55rem 0.7rem; border-radius: 5px; cursor: pointer; font-size: 0.85rem; }
@@ -697,6 +701,7 @@
         <a href="/">← Back to website</a>
       </div>
     </div>
+    <button type="button" class="undo-btn lock-btn" id="lockBtn" aria-pressed="true" title="Sheet is locked — click to unlock and edit"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2.2"/><path id="lockShackle" d="M8 11V7a4 4 0 0 1 8 0v4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg><span id="lockText">Locked</span></button>
   </header>
   <input type="file" id="fileInput" accept=".json,application/json" hidden />
 
@@ -816,6 +821,25 @@
     const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
     let data = null;      // the budget document
+    // ── Lock: the sheet always opens locked (view + add-up only); the padlock right of Menu unlocks it for this visit ──
+    let locked = true;
+    const LOCK_EDIT = '#sheetWrap [data-item], #sheetWrap [data-special], #sheetWrap [data-sec], #sheetWrap [data-add], #sheetWrap td[data-rem].short, #sheetWrap tr.diff-row td.short, .sugg, .sugg-pop [data-ign], #undoBtn, #redoBtn, #mAddSection, #mRestore, #mImport, [data-act="import"], [data-act="blank"], .grip, #sugPop [data-sg], #coverPop [data-cp]';
+    let lockNoteT = 0;
+    const lockNote = () => { if (Date.now() - lockNoteT < 600) return; lockNoteT = Date.now(); if (typeof flashMsg === 'function') flashMsg('🔒 Sheet is locked — click Locked (top right) to edit'); };
+    const lockStop = (e) => { e.preventDefault(); e.stopImmediatePropagation(); lockNote(); };
+    ['click', 'dblclick'].forEach(ev => window.addEventListener(ev, (e) => { if (locked && e.target.closest && e.target.closest(LOCK_EDIT)) lockStop(e); }, true));
+    window.addEventListener('contextmenu', (e) => { if (locked && e.target.closest && e.target.closest('#sheetWrap')) { e.stopImmediatePropagation(); lockNote(); } }, true);
+    window.addEventListener('dragstart', (e) => { if (locked && e.target.closest && e.target.closest('#sheetWrap')) lockStop(e); }, true);
+    window.addEventListener('drop', (e) => { if (locked) lockStop(e); }, true);
+    window.addEventListener('paste', (e) => { if (locked && !(e.target.closest && e.target.closest('dialog'))) lockStop(e); }, true);
+    window.addEventListener('cut', (e) => { if (locked && e.target.closest && e.target.closest('#sheetWrap')) lockStop(e); }, true);
+    window.addEventListener('keydown', (e) => {
+      if (!locked || (e.target.closest && e.target.closest('dialog'))) return;
+      const k = e.key.toLowerCase(), mod = e.metaKey || e.ctrlKey;
+      const inSheet = e.target.matches && e.target.matches('#sheetWrap .cell input');
+      if ((mod && (k === 'z' || k === 'y')) || (k === 'delete' || k === 'backspace') && (inSheet || document.activeElement === document.body)) { lockStop(e); return; }
+      if (inSheet && !mod && e.key.length === 1) lockNote();
+    }, true);
     let rev = 0;          // server revision
     let mode = 'server';  // 'server' | 'local'
     let saveTimer = null, saving = false, pendingSave = false;
@@ -1104,7 +1128,7 @@
         else if (cov && !tip) tip = ` title="This check also covers ${money(cov)} of shortages (counted in this column's Total)"`;
         const covTag = covTo.length ? `<span class="lk lk-from${adjCls}" data-lk="${covTo.join(',')}">${lkBody('→', covTo)}</span>` : '';
         const lk = covTag && !lkT.length && !inc.length ? covTag : !lkT.length && inc.length ? `<span class="lk lk-to${adjCls}" data-lk="${inc.join(',')}" title="Covered by the ${inc.map(fmtDate).join(' + ')} check${inc.length > 1 ? 's' : ''}">${lkBody('←', inc)}</span>` : lkT.length ? `<span class="lk lk-from${adjCls}" data-lk="${lkT.join(',')}" title="${esc((itemInfo(id) || {}).name)}: ${money(v) || '$0'} from the ${fmtDate(c.iso)} check covers the ${lkT.map(fmtDate).join(' + ')} check${lkT.length > 1 ? 's' : ''}">${lkBody('→', lkT)}</span>` : '';
-        return `<td class="${cls(c)}${bal}${lk ? ' lk-cell' : ''}" data-cid="${id}" data-cd="${c.iso}"${tip}>${grip}${hint}<input class="${k}" data-id="${id}" data-d="${c.iso}" value="${esc(val)}" data-raw="${esc(raw)}" placeholder="${esc(ph)}" inputmode="decimal" autocomplete="off" aria-label="${esc((itemInfo(id) || {}).name)} ${c.iso}" />${(lk || mvTag) ? `<div class="lk-wrap">${lk || mvTag}</div>` : ''}</td>`;
+        return `<td class="${cls(c)}${bal}${lk ? ' lk-cell' : ''}" data-cid="${id}" data-cd="${c.iso}"${tip}>${grip}${hint}<input class="${k}" data-id="${id}" data-d="${c.iso}" value="${esc(val)}" data-raw="${esc(raw)}" placeholder="${esc(ph)}" inputmode="decimal" autocomplete="off"${locked ? ' readonly' : ''} aria-label="${esc((itemInfo(id) || {}).name)} ${c.iso}" />${(lk || mvTag) ? `<div class="lk-wrap">${lk || mvTag}</div>` : ''}</td>`;
       };
       const calcCell = (c, v) => `<td class="${cls(c)}"><div class="calc ${v < 0 ? 'neg' : ''}">${money(v)}</div></td>`;
       const span = cols.length;
@@ -1461,6 +1485,7 @@
 
     function commitCell(input, after) {
       const done = () => { if (after) after(); };
+      if (locked) { input.value = input.defaultValue; done(); return; }
       if (applyPending) return; // prompt already open for this edit
       const id = input.dataset.id, iso = input.dataset.d;
       if (!data.values) data.values = {};
@@ -2208,6 +2233,22 @@
       redraw();
     }
 
+    function paintLock() {
+      const b = $('lockBtn'); if (!b) return;
+      b.classList.toggle('open', !locked); b.setAttribute('aria-pressed', String(locked));
+      b.title = locked ? 'Sheet is locked — click to unlock and edit' : 'Editing is on — click to lock the sheet again';
+      $('lockText').textContent = locked ? 'Locked' : 'Unlocked';
+      $('lockShackle').setAttribute('d', locked ? 'M8 11V7a4 4 0 0 1 8 0v4' : 'M8 11V7a4 4 0 0 1 7.75-1.4');
+      document.body.classList.toggle('is-locked', locked);
+    }
+    $('lockBtn').addEventListener('click', () => {
+      if (!locked) { const a = document.activeElement; if (a && a.blur) a.blur(); } // finish any edit before locking
+      locked = !locked;
+      if (locked) { closeSugPop(); closeCover(); closeSugg(); }
+      paintLock(); redraw();
+      flashMsg(locked ? '🔒 Sheet locked' : '🔓 Unlocked — you can edit now');
+    });
+    paintLock();
     $('undoBtn').addEventListener('click', undo);
     $('redoBtn').addEventListener('click', redo);
     // keep Refresh in the exact middle, unless the buttons on either side would run into it
@@ -2310,7 +2351,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: add Deposits row (extra cash in)', at: '2026-10-15T00:55:01Z' };
+    const PAGE_VERSION = { msg: 'Budget: open locked, Lock/Unlock button', at: '2026-10-15T01:07:03Z' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); // shown in the viewer's own time zone
       $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }); }
