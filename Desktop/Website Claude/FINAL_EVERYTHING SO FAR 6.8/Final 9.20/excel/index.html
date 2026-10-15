@@ -1590,6 +1590,14 @@
       if (ign(due)) return null;
       return { it, A: it.budget, checks, eligible: checks, payer: null, cross: false, due, label: `for ${MONTHS[d.getUTCMonth()]}` };
     }
+    function dueWindowRaw(it, iso) { // the checks that can pay this bill on time (previous due date < check <= due date)
+      const r = it && it.due ? dueRule(it) : null; if (!r) return null;
+      const ok = (mi) => (((mi - r.anchor) % r.F) + r.F) % r.F === 0;
+      let mi = mIdx(iso);
+      for (let k = 0; k < 30; k++, mi++) { if (ok(mi) && dueOn(mi, r.day) >= iso) break; }
+      const due = dueOn(mi, r.day), prev = dueOn(mi - r.F, r.day);
+      return { due, checks: periodsBetween(fromISO(prev) + DAY, fromISO(due) + DAY) };
+    }
     function suggestion(id, iso) {
       const w = billWindow(id, iso); if (!w) return null;
       const have = Math.round(w.checks.reduce((t, c) => t + (cellValue(id, c).v || 0), 0) * 100) / 100;
@@ -1730,7 +1738,7 @@
         if (/adjust/i.test(it.name || '')) return;
         const v = cellValue(it.id, iso).v; if (!(v > 0)) return;
         // which checks may pay this bill: those after the previous due date and on/before this one's due date
-        const w = billWindow(it.id, iso);
+        const w = billWindow(it.id, iso) || dueWindowRaw(it, iso); // due date always counts here, even if the "?" helper is off for this line
         let cands = w ? w.checks.slice() : periodsInMonth(iso);
         if (!w && !it.due) { cands = []; for (let i = -3; i <= 3; i++) if (i) cands.push(toISO(fromISO(iso) + i * step)); } // no due date: nearby checks
         cands.filter(t => t !== iso && t >= nowP && t >= floor).forEach(t => {
@@ -2295,7 +2303,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: cover a shortage with partial checks, highest first', at: '2026-10-15T00:24:00Z' };
+    const PAGE_VERSION = { msg: 'Budget: suggestions keep bills on or before due date', at: '2026-10-15T00:43:16Z' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); // shown in the viewer's own time zone
       $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }); }
