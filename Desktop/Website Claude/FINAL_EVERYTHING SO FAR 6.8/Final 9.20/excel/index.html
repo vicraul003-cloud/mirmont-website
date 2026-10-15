@@ -263,6 +263,12 @@
     .sug-pop .cp-acts button[data-sga=undo]:not(:disabled) { border-color: var(--gold); color: var(--gold); }
     .sug-pop .sg-row button { flex: none; background: #3b82c4; border-color: #3b82c4; padding: 0.35rem 0.8rem; font-weight: 600; }
     #sheetWrap .sheet tr.sum-rem td.short[data-rem] { cursor: pointer; }
+    .cover-pop .cp-dates button.part { border-style: dashed; }
+    #coverPop .cp-dates button.part small { color: #f0c27a; }
+    #coverPop .cp-dates button.on small { color: #fff; }
+    .cover-pop .cp-dates button em { display: block; font-style: normal; font-size: 0.62rem; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.05em; }
+    .cover-pop .cp-dates button.part small { color: #f0c27a; }
+    .cover-pop .cp-got { color: #c8c0b0; font-size: 0.85em; }
     .cover-pop .cp-note { margin-right: auto; align-self: center; font-size: 0.85rem; color: #c8c0b0; }
     .cover-pop .cp-acts { display: flex; justify-content: flex-end; gap: 0.438rem; margin-top: 0.688rem; }
     .cover-pop .cp-acts button { padding: 0.312rem 0.875rem; font-size: 0.925rem; }
@@ -1688,7 +1694,8 @@
     function closeCover(picked) {
       const x = $('coverPop'); if (x) x.remove();
       const p = coverPending; coverPending = null;
-      if (p && !picked) cancelAdj(p);
+      if (p && !picked && !p.kept) cancelAdj(p);
+      if (p && p.kept && !picked) flashMsg(`Kept the part covered so far on ${fmtDate(p.iso)}`);
     }
     // click a red (short) Difference box → same popup as typing the shortage into Adjustments
     function adjItemFor() {
@@ -1820,36 +1827,42 @@
       const payHeadS = data.sections.find(x => x.fromPaycheck);
       const overOf = (d) => { const c = computePeriod(d); return Math.round((c.pay - (payHeadS ? c.sections[payHeadS.id] : c.fromPay)) * 100) / 100; };
       let overs = [], ostart = 0;
-      if (!give) {
-        // only checks with enough over to cover the whole shortage (so they don't go short themselves)
-        const need = Math.abs(n), kOld = id + '|' + iso, oldV = (data.values[id] || {})[iso], oldBy = lkList(data.coveredBy && data.coveredBy[kOld]);
+      // short amount: earlier checks that are over; full covers first, then partial ones — each group highest to lowest
+      const need0 = Math.abs(n), kOld = id + '|' + iso;
+      const oldV = coverPending.applied ? undefined : (data.values[id] || {})[iso], oldCov = data.coveredBy && data.coveredBy[kOld];
+      const covered = {}; // this popup's picks: { date: amount }
+      const remaining = () => Math.round((need0 - Object.values(covered).reduce((a, b) => a + b, 0)) * 100) / 100;
+      const buildOvers = () => {
+        overs = []; const rem = remaining();
         const floor = data.trackStart || '2026-10-15'; // tracking started with the Oct 15, 2026 paycheck
         for (let i = -78; i < 0; i++) { // only paychecks BEFORE the short one, from Oct 15 '26 on
           const d = toISO(fromISO(iso) + i * step);
-          if (d < floor) continue;
+          if (d < floor || covered[d]) continue;
           let o = overOf(d);
-          if (oldV < 0) o += coverShare(data.coveredBy && data.coveredBy[kOld], oldV, d); // this box's current cover is already taken out of d
+          if (oldV < 0 && !Object.keys(covered).length) o += coverShare(oldCov, oldV, d); // this box's earlier cover is already taken out of d
           o = Math.round(o * 100) / 100;
-          if (o >= need - 0.005) overs.push({ d, o });
+          if (o > 0.005) overs.push({ d, o, full: o >= rem - 0.005 });
         }
-        const before = overs.filter(x => x.d < iso).length;
-        ostart = Math.max(0, before - N);
-      }
+        overs.sort((a, b) => (b.full - a.full) || (b.o - a.o) || a.d.localeCompare(b.d));
+        ostart = 0;
+      };
+      if (!give) buildOvers();
       const cur = give ? lkList(data.links && data.links[id + '|' + iso])
         : lkList(data.coveredBy && data.coveredBy[id + '|' + iso]);
       const yr = iso.slice(0, 4);
       const pop = document.createElement('div'); pop.id = 'coverPop'; pop.className = 'cover-pop';
-      pop.innerHTML = `<div class="cp-title">${give ? `<b>${money(n)}</b> set aside on ${fmtDate(iso)} — which paycheck is it for?` : `<b>${money(Math.abs(n))}</b> short on ${fmtDate(iso)} — which paycheck is covering it?<small class="cp-sub">Only earlier checks (from Oct 15 '26) over by ${money(Math.abs(n))} or more are shown</small>`}</div>
-        <div class="cp-nav"><button type="button" data-cpa="earlier">‹ Earlier</button><span class="cp-range"></span><button type="button" data-cpa="later">Later ›</button></div>
+      pop.innerHTML = `<div class="cp-title">${give ? `<b>${money(n)}</b> set aside on ${fmtDate(iso)} — which paycheck is it for?` : `<span class="cp-short"><b>${money(Math.abs(n))}</b> short on ${fmtDate(iso)}</span> — which paycheck is covering it?<small class="cp-sub">Earlier checks (from Oct 15 '26) that are over, highest first · a smaller one covers part — then pick another for the rest</small>`}</div>
+        <div class="cp-nav"><button type="button" data-cpa="earlier">${give ? '‹ Earlier' : '‹ Back'}</button><span class="cp-range"></span><button type="button" data-cpa="later">${give ? 'Later ›' : 'More ›'}</button></div>
         <div class="cp-dates"></div>
         <div class="cp-acts"><span class="cp-note">Pick a paycheck to keep this amount</span>${give ? '<button type="button" data-cpa="sheet">Pick on the sheet…</button>' : ''}</div>`;
       const lbl = (d) => `${fmtDate(d)}${d.slice(0, 4) !== yr ? " '" + d.slice(2, 4) : ''}`;
       const paint = () => {
         if (!give) {
-          const pg = overs.slice(ostart, ostart + N);
-          pop.querySelector('.cp-dates').innerHTML = pg.length ? pg.map(x => `<button type="button" data-cp="${x.d}" class="${cur.includes(x.d) ? 'on' : ''}">${lbl(x.d)}<small>+${money(x.o)}</small></button>`).join('')
-            : `<div class="cp-none">No earlier paycheck is over by ${money(Math.abs(n))} or more — lower the amount or split it across checks.</div>`;
-          pop.querySelector('.cp-range').textContent = pg.length ? `${fmtDate(pg[0].d)} '${pg[0].d.slice(2, 4)} – ${fmtDate(pg[pg.length - 1].d)} '${pg[pg.length - 1].d.slice(2, 4)}` : '';
+          const pg = overs.slice(ostart, ostart + N), rem = remaining(), got = Object.keys(covered);
+          if (got.length) pop.querySelector('.cp-short').innerHTML = `<b>${money(rem)}</b> still short on ${fmtDate(iso)} <span class="cp-got">(covered so far: ${got.sort().map(d => `${fmtDate(d)} ${money(covered[d])}`).join(', ')})</span>`;
+          pop.querySelector('.cp-dates').innerHTML = pg.length ? pg.map(x => `<button type="button" data-cp="${x.d}" class="${x.full ? '' : 'part'} ${!got.length && cur.includes(x.d) ? 'on' : ''}" title="${x.full ? `Covers all ${money(rem)}` : `Covers ${money(x.o)} of ${money(rem)} — pick another check for the rest`}">${lbl(x.d)}<small>+${money(x.o)}</small><em>${x.full ? 'covers all' : 'partial'}</em></button>`).join('')
+            : `<div class="cp-none">No earlier paycheck is over${got.length ? ' to cover the rest' : ''}.${got.length ? ' What you picked so far is kept.' : ''}</div>`;
+          pop.querySelector('.cp-range').textContent = overs.length ? `${ostart + 1}–${Math.min(ostart + N, overs.length)} of ${overs.length}` : '';
           pop.querySelector('[data-cpa=earlier]').disabled = ostart <= 0;
           pop.querySelector('[data-cpa=later]').disabled = ostart + N >= overs.length;
           return;
@@ -1882,10 +1895,22 @@
         }
         if (b.dataset.cpa === 'sheet') { const p = coverPending; coverPending = null; closeCover(true); startLinkPick([id + '|' + iso], p); return; }
         const d = b.dataset.cp; if (!d) return;
+        if (!give) {
+          const x = overs.find(o => o.d === d); if (!x) return;
+          covered[d] = Math.round(Math.min(x.o, remaining()) * 100) / 100;
+          const total = Math.round((need0 - remaining()) * 100) / 100;
+          // the Adjustments box holds what's covered so far; each check's exact share is remembered
+          if (coverPending) coverPending.applied = true;
+          setOnlyThis(id, iso, -total);
+          data.coveredBy = data.coveredBy || {}; data.coveredBy[kOld] = { ...covered };
+          redraw();
+          if (remaining() <= 0.005) { closeCover(true); flashMsg(`${fmtDate(iso)} covered by ${Object.keys(covered).sort().map(fmtDate).join(' + ')}`); return; }
+          if (coverPending) coverPending.kept = true; // closing now keeps the part already covered
+          buildOvers(); paint(); return;
+        }
         applyAdj(coverPending); closeCover(true);
         data.links = data.links || {};
-        if (give) setLink([id + '|' + iso], [d]);
-        else { data.coveredBy = data.coveredBy || {}; data.coveredBy[id + '|' + iso] = d; redraw(); }
+        setLink([id + '|' + iso], [d]);
       });
     }
     document.addEventListener('mousedown', (e) => { const x = $('coverPop'); if (x && !(e.target.closest && e.target.closest('#coverPop')) && Date.now() - (+x.dataset.t || 0) > 200) closeCover(); });
@@ -2270,7 +2295,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: live sync to a personal Google Calendar', at: '2026-10-14T22:00:00Z' };
+    const PAGE_VERSION = { msg: 'Budget: cover a shortage with partial checks, highest first', at: '2026-10-15T00:24:00Z' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); // shown in the viewer's own time zone
       $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }); }
