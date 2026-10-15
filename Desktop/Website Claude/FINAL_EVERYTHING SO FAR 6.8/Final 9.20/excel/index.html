@@ -2355,7 +2355,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: hamburger menu next to title', at: '2026-10-15T01:10:55Z' };
+    const PAGE_VERSION = { msg: 'Budget: Nanny $350 on first Friday of the month', at: '2026-10-15T01:19:03Z' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); // shown in the viewer's own time zone
       $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }); }
@@ -2458,12 +2458,22 @@
       const step = (data.periodDays || 14) * DAY, a = fromISO(data.anchor);
       return toISO(a + Math.floor((fromISO(iso) - a) / step) * step);
     }
+    const NANNY_FIRST_FRI = 350; // Nanny pay on the first Friday of each month
     function nannyOn(iso) { // Fridays only
       const it = nannyItem(); if (!it || new Date(fromISO(iso)).getUTCDay() !== 5) return null;
       const p = payPeriodOf(iso), amt = cellValue(it.id, p).v || 0;
-      const step = (data.periodDays || 14) * DAY; let fr = 0;
-      for (let t = fromISO(p); t < fromISO(p) + step; t += DAY) if (new Date(t).getUTCDay() === 5) fr++;
-      return { amt: Math.round(amt / (fr || 1) * 100) / 100, from: p, total: amt, fr, name: it.name };
+      const step = (data.periodDays || 14) * DAY; const fris = [];
+      for (let t = fromISO(p); t < fromISO(p) + step; t += DAY) if (new Date(t).getUTCDay() === 5) fris.push(toISO(t));
+      const fr = fris.length || 1;
+      // the first Friday of a month is a short week: Nanny gets $350 that day, the other Friday from the same check gets the rest
+      const first = fris.length > 1 ? fris.find(d => +d.slice(8, 10) <= 7) : null;
+      let v, note = '';
+      if (first) {
+        const low = Math.min(NANNY_FIRST_FRI, amt), rest = Math.round((amt - low) / (fris.length - 1) * 100) / 100;
+        v = iso === first ? low : rest;
+        note = iso === first ? `1st Friday of the month — ${money(low)}` : `${money(amt)} − ${money(low)} on ${fmtDate(first)}`;
+      } else v = Math.round(amt / fr * 100) / 100;
+      return { amt: v, from: p, total: amt, fr, name: it.name, note, first: iso === first };
     }
     // each paycheck gets its own color; the Nanny Fridays it pays use the same color
     const PAY_COLORS = ['#2e7d32', '#1f6fb2', '#b5621b', '#8e3fa8', '#0f8a83', '#b02e5a'];
@@ -2520,7 +2530,7 @@
         let ev = '';
         if (payset.has(iso)) { const p = num('paycheck', iso); ev += `<div class="ev pay" style="--pc:${payColor(iso)}"><span>Payday</span><b>${money(p) || ''}</b></div>`; if (inM) { pays++; paySum += p; } }
         const n = nannyOn(iso);
-        if (n && n.amt) { ev += `<div class="ev nan" style="--pc:${payColor(n.from)}" title="Nanny ${money(n.amt)} from the ${fmtDate(n.from)} check${n.fr > 1 ? ` (${money(n.total)} ÷ ${n.fr} Fridays)` : ''}"><span>Nanny <small>· ${fmtDate(n.from)} check</small></span><b>${money(n.amt)}</b></div>`; if (inM) { nanSum += n.amt; nanN++; } }
+        if (n && n.amt) { ev += `<div class="ev nan" style="--pc:${payColor(n.from)}" title="Nanny ${money(n.amt)} from the ${fmtDate(n.from)} check${n.note ? ` (${n.note})` : n.fr > 1 ? ` (${money(n.total)} ÷ ${n.fr} Fridays)` : ''}"><span>Nanny <small>· ${n.first ? '1st Fri · ' : ''}${fmtDate(n.from)} check</small></span><b>${money(n.amt)}</b></div>`; if (inM) { nanSum += n.amt; nanN++; } }
         const bl = bills.get(iso) || [];
         if (inM) bl.forEach(x => { if (!/unplanned/.test(x.kind)) { billSum += x.amt; billN++; } });
         if (bl.length) {
@@ -2546,7 +2556,7 @@
     function calEvents(startT, endT) {
       const out = [], slug = (t) => String(t).replace(/[^a-z0-9]/gi, '').slice(0, 24).toLowerCase();
       periodsBetween(startT, endT + DAY).forEach(p => { const v = num('paycheck', p); if (v > 0) out.push({ key: 'pay-' + p, date: p, summary: `💵 Payday ${money(v)}`, description: `Paycheck on ${fmtDate(p)}`, reminder: false }); });
-      for (let t = startT; t <= endT; t += DAY) { const iso = toISO(t), n = nannyOn(iso); if (n && n.amt > 0) out.push({ key: 'nanny-' + iso, date: iso, summary: `👶 Nanny ${money(n.amt)}`, description: `Paid from the ${fmtDate(n.from)} check${n.fr > 1 ? ` (${money(n.total)} ÷ ${n.fr} Fridays)` : ''}`, reminder: true }); }
+      for (let t = startT; t <= endT; t += DAY) { const iso = toISO(t), n = nannyOn(iso); if (n && n.amt > 0) out.push({ key: 'nanny-' + iso, date: iso, summary: `👶 Nanny ${money(n.amt)}`, description: `Paid from the ${fmtDate(n.from)} check${n.note ? ` (${n.note})` : n.fr > 1 ? ` (${money(n.total)} ÷ ${n.fr} Fridays)` : ''}`, reminder: true }); }
       calBills(startT, endT).forEach((list, iso) => list.forEach(x => { if (!(x.amt > 0)) return; out.push({ key: `bill-${iso}-${slug(x.name)}`, date: iso, summary: `🧾 ${x.name} ${money(x.amt)}`, description: x.kind === 'ded' ? 'Taken from this paycheck' : `Due ${fmtDate(iso)}${x.note ? ' · ' + x.note : ''}`, reminder: x.kind !== 'ded' }); }));
       const seen = new Set(); return out.filter(e => seen.has(e.key) ? false : (seen.add(e.key), true));
     }
