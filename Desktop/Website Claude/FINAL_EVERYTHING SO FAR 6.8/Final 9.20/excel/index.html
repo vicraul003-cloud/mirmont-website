@@ -63,6 +63,11 @@
     .cal-head { display: flex; align-items: center; gap: 0.5rem; }
     .cal-head h3 { margin: 0 0.3rem; min-width: 11rem; text-align: center; font-size: 1.35rem; }
     .cal-head .spacer { flex: 1; }
+    .gsync { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; font-size: 0.82rem; color: var(--muted); }
+    .gsync b { color: var(--ink); }
+    .gsync .btn { padding: 0.25rem 0.7rem; font-size: 0.78rem; text-decoration: none; }
+    .gs-dot { width: 9px; height: 9px; border-radius: 50%; background: #2e7d32; display: inline-block; }
+    .gs-dot.off { background: #9aa3b3; } .gs-dot.busy { background: #f0a24a; animation: ab-pulse 1s infinite; }
     .cal-strip { display: grid; grid-template-columns: repeat(12, 1fr); gap: 0.3rem; }
     .cal-strip button { border: 1px solid var(--line); background: transparent; color: var(--ink); border-radius: 7px; padding: 0.3rem 0.1rem; font-size: 0.74rem; cursor: pointer; line-height: 1.25; }
     .cal-strip button b { display: block; font-size: 0.8rem; }
@@ -744,6 +749,7 @@
   <dialog id="calDlg" class="cal-dlg">
     <form method="dialog">
       <div class="cal-head"><button type="button" class="btn icon" id="calPrev" title="Previous month">◀</button><h3 id="calTitle"></h3><button type="button" class="btn icon" id="calNext" title="Next month">▶</button><span class="spacer"></span><button type="button" class="btn" id="calIcs" title="Download the next 12 months as a calendar file for iPhone / iCloud">Export to iPhone (.ics)</button><button type="button" class="btn" id="calToday">This month</button><button type="button" class="btn" id="calClose">Close</button></div>
+      <div class="gsync" id="gsync"></div>
       <div class="cal-strip" id="calStrip"></div>
       <div class="cal-legend"><span><i class="lg pay"></i>Payday (solid) — each paycheck has its own color</span><span><i class="lg nan"></i>Pay Nanny (Friday) — same color as the paycheck it comes from</span><span><i class="lg bill"></i>Bill due (amount set aside) · grey = taken from each paycheck · $0 items are left off</span><span><i class="lg three"></i>Month with 3 paychecks</span></div>
       <div class="cal-grid" id="calGrid"></div>
@@ -1234,7 +1240,7 @@
       try {
         const res = await fetch(API, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(restoring ? { rev, data, restoring: true } : { rev, data }) });
         const body = await res.json().catch(() => ({}));
-        if (res.ok) { rev = body.rev; restoring = false; saveLocal(); setState('ok', 'Saved'); banner(''); }
+        if (res.ok) { rev = body.rev; restoring = false; saveLocal(); setState('ok', 'Saved'); banner(''); if (typeof gSyncSoon === 'function') gSyncSoon(); }
         else if (res.status === 409) {
           data = body.data; rev = body.rev; saveLocal(); resetUndo(); render();
           setState('ok', 'Saved');
@@ -2264,7 +2270,7 @@
     $('mMatrix').addEventListener('click', () => { setMatrix(!document.documentElement.classList.contains('matrix')); $('menu').classList.remove('open'); });
     setMatrix(document.documentElement.classList.contains('matrix'));
     // ── latest-update note (keep in sync with the git commit message for this page) ──
-    const PAGE_VERSION = { msg: 'Budget: export Calendar to iPhone (.ics)', at: '2026-10-14T21:27:00Z' };
+    const PAGE_VERSION = { msg: 'Budget: live sync to a personal Google Calendar', at: '2026-10-14T22:00:00Z' };
     $('infoMsg').textContent = PAGE_VERSION.msg;
     { const at = new Date(PAGE_VERSION.at); // shown in the viewer's own time zone
       $('infoDate').textContent = at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' · ' + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }); }
@@ -2450,6 +2456,14 @@
     $('calToday').addEventListener('click', () => { const d = new Date(); calMonth = { y: d.getFullYear(), m: d.getMonth() }; paintCal(); });
     $('calClose').addEventListener('click', () => $('calDlg').close());
     // ── export paydays, Nanny Fridays and bills (next 12 months) as an .ics file for Apple Calendar / iCloud ──
+    // one list of calendar events (paydays, Nanny Fridays, bills) used by the .ics export and the Google sync
+    function calEvents(startT, endT) {
+      const out = [], slug = (t) => String(t).replace(/[^a-z0-9]/gi, '').slice(0, 24).toLowerCase();
+      periodsBetween(startT, endT + DAY).forEach(p => { const v = num('paycheck', p); if (v > 0) out.push({ key: 'pay-' + p, date: p, summary: `💵 Payday ${money(v)}`, description: `Paycheck on ${fmtDate(p)}`, reminder: false }); });
+      for (let t = startT; t <= endT; t += DAY) { const iso = toISO(t), n = nannyOn(iso); if (n && n.amt > 0) out.push({ key: 'nanny-' + iso, date: iso, summary: `👶 Nanny ${money(n.amt)}`, description: `Paid from the ${fmtDate(n.from)} check${n.fr > 1 ? ` (${money(n.total)} ÷ ${n.fr} Fridays)` : ''}`, reminder: true }); }
+      calBills(startT, endT).forEach((list, iso) => list.forEach(x => { if (!(x.amt > 0)) return; out.push({ key: `bill-${iso}-${slug(x.name)}`, date: iso, summary: `🧾 ${x.name} ${money(x.amt)}`, description: x.kind === 'ded' ? 'Taken from this paycheck' : `Due ${fmtDate(iso)}${x.note ? ' · ' + x.note : ''}`, reminder: x.kind !== 'ded' }); }));
+      const seen = new Set(); return out.filter(e => seen.has(e.key) ? false : (seen.add(e.key), true));
+    }
     function buildIcs() {
       const d0 = new Date(), startT = Date.UTC(d0.getFullYear(), d0.getMonth(), 1), endT = Date.UTC(d0.getFullYear(), d0.getMonth() + 12, 0);
       const esc2 = (t) => String(t).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
@@ -2461,11 +2475,60 @@
         ev.push(['BEGIN:VEVENT', `UID:${uid}@mirmont-budget`, `DTSTAMP:${stamp}`, `DTSTART;VALUE=DATE:${ymd(iso)}`, `DTEND;VALUE=DATE:${next(iso)}`, `SUMMARY:${esc2(summary)}`, desc ? `DESCRIPTION:${esc2(desc)}` : null, 'TRANSP:TRANSPARENT',
           ...(alarm ? ['BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${esc2(summary)}`, 'TRIGGER:-PT15H', 'END:VALARM'] : []), 'END:VEVENT'].filter(Boolean).map(fold).join('\r\n'));
       };
-      periodsBetween(startT, endT + DAY).forEach(p => { const v = num('paycheck', p); if (v > 0) add(p, 'pay-' + p, `💵 Payday ${money(v)}`, `Paycheck on ${fmtDate(p)}`, false); });
-      for (let t = startT; t <= endT; t += DAY) { const iso = toISO(t), n = nannyOn(iso); if (n && n.amt > 0) add(iso, 'nanny-' + iso, `👶 Nanny ${money(n.amt)}`, `Paid from the ${fmtDate(n.from)} check${n.fr > 1 ? ` (${money(n.total)} ÷ ${n.fr} Fridays)` : ''}`, true); }
-      calBills(startT, endT).forEach((list, iso) => list.forEach((x, i) => { if (!(x.amt > 0)) return; add(iso, `bill-${iso}-${i}-${String(x.name).replace(/[^a-z0-9]/gi, '').slice(0, 20)}`, `🧾 ${x.name} ${money(x.amt)}`, x.kind === 'ded' ? 'Taken from this paycheck' : `Due ${fmtDate(iso)}${x.note ? ' · ' + x.note : ''}`, x.kind !== 'ded'); }));
+      calEvents(startT, endT).forEach(e => add(e.date, e.key, e.summary, e.description, e.reminder));
       return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Mirmont//Budget//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'X-WR-CALNAME:Budget', 'X-WR-TIMEZONE:America/New_York', ...ev, 'END:VCALENDAR'].join('\r\n') + '\r\n';
     }
+    // ── live sync to a "Budget" calendar in your personal Google account ──
+    const GAPI = '/excel/api/gcal';
+    let gStatus = null, gBusy = false, gTimer = null, gPending = false;
+    function gRange() { const d0 = new Date(); return [Date.UTC(2026, 9, 1), Date.UTC(d0.getFullYear(), d0.getMonth() + 13, 0)]; }
+    function paintGsync(msg) {
+      const el = $('gsync'); if (!el) return;
+      if (!gStatus) { el.innerHTML = '<span class="gs-dot"></span> Google Calendar: checking…'; return; }
+      if (!gStatus.configured) { el.innerHTML = '<span class="gs-dot off"></span> Google Calendar sync isn\'t set up on the server yet.'; return; }
+      if (!gStatus.connected) { el.innerHTML = '<span class="gs-dot off"></span> Google Calendar: not connected <a class="btn" href="' + GAPI + '?action=connect">Connect Google Calendar</a>'; return; }
+      const when = gStatus.lastSync ? new Date(gStatus.lastSync).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'not yet';
+      el.innerHTML = `<span class="gs-dot ${gBusy ? 'busy' : 'on'}"></span> Synced to <b>${esc(gStatus.email || 'your Google account')}</b> · "Budget" calendar · ${gBusy ? 'syncing…' : 'last sync ' + esc(when)}${msg ? ' · ' + esc(msg) : ''} <button type="button" class="btn" data-g="sync" ${gBusy ? 'disabled' : ''}>Sync now</button><button type="button" class="btn" data-g="off">Disconnect</button>`;
+    }
+    async function gLoadStatus() {
+      try { const r = await fetch(GAPI + '?action=status', { cache: 'no-store' }); gStatus = r.ok ? await r.json() : { configured: false }; }
+      catch { gStatus = { configured: false }; }
+      paintGsync();
+      return gStatus;
+    }
+    let gVerified = false;
+    async function gSync(manual) {
+      if (gBusy) { gPending = true; return; }
+      if (!gStatus || !gStatus.connected || !data) return;
+      gBusy = true; paintGsync();
+      let msg = '';
+      try {
+        const [a, b] = gRange(); const events = calEvents(a, b);
+        for (let i = 0; i < 40; i++) { // the server works in chunks
+          const verify = manual === true || !gVerified; gVerified = true;
+          const r = await fetch(GAPI + '?action=sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ events, verify: verify && i === 0 }) });
+          const j = await r.json().catch(() => ({}));
+          if (!r.ok) { if (j.error === 'reauth_required' || j.error === 'not_connected') { gStatus.connected = false; msg = 'please reconnect'; } else msg = 'sync failed — will retry on your next change'; break; }
+          if (j.lastSync) gStatus.lastSync = j.lastSync;
+          if (!j.remaining) break;
+        }
+      } catch { msg = 'no connection — will retry on your next change'; }
+      gBusy = false; paintGsync(msg);
+      if (gPending) { gPending = false; gSync(); }
+    }
+    function gSyncSoon() { if (!gStatus || !gStatus.connected) return; clearTimeout(gTimer); gTimer = setTimeout(gSync, 6000); }
+    $('gsync').addEventListener('click', async (e) => {
+      const b = e.target.closest('[data-g]'); if (!b) return;
+      if (b.dataset.g === 'sync') gSync(true);
+      if (b.dataset.g === 'off' && confirm('Stop syncing to Google Calendar? The "Budget" calendar stays in your Google account (you can delete it there).')) { await fetch(GAPI + '?action=disconnect', { method: 'POST' }); await gLoadStatus(); }
+    });
+    (async () => {
+      const q = new URLSearchParams(location.search).get('gcal');
+      if (q) { history.replaceState(null, '', location.pathname); }
+      await gLoadStatus();
+      if (q === 'connected') { flashMsg('Google Calendar connected — adding your events to the "Budget" calendar…'); const wait = () => data ? gSync() : setTimeout(wait, 500); wait(); }
+      else if (q === 'failed' || q === 'cancelled') flashMsg('Google Calendar was not connected' + (q === 'failed' ? ' — please try again' : ''));
+    })();
     $('calIcs').addEventListener('click', () => {
       const blob = new Blob([buildIcs()], { type: 'text/calendar;charset=utf-8' });
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `budget-calendar-${toISO(todayUTC())}.ics`; document.body.appendChild(a); a.click(); a.remove();
