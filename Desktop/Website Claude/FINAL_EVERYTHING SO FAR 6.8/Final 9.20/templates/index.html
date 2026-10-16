@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Templates | Mirmont</title>
+  <script>try { if (localStorage.getItem('mirmont-theme') === 'dark') document.documentElement.classList.add('dark'); } catch (e) {}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --navy: #0d1e4a; --navy-dark: #091535; --gold: #c9a05a; --gold-ink: #8a6420;
+      --page: #f3f1ec; --card: #ffffff; --line: #e3dfd6; --line-strong: #cfc8b9;
+      --ink: #1c232b; --muted: #6b7480; --neg: #b3261e; --ok: #2e7d32; --warn-bg: #fff4e0;
+      --bs: #c9a05a; --seam: #d93025; --field: #fff;
+    }
+    html.dark { color-scheme: dark;
+      --page: #0f1420; --card: #171d2b; --line: #283043; --line-strong: #3a4459;
+      --ink: #e7e9ee; --muted: #9aa3b3; --neg: #ff7b72; --ok: #7bd88f; --warn-bg: #3a2e17; --gold-ink: #dbb97a; --field: #111725; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Montserrat', sans-serif; background: var(--page); color: var(--ink); min-height: 100vh; font-size: 14px; }
+    button, input, select, textarea { font: inherit; color: inherit; }
+
+    .topbar { background: var(--navy-dark); color: #f8f5ef; display: flex; align-items: center; gap: 0.8rem; padding: 0.8rem 1.25rem; position: sticky; top: 0; z-index: 30; flex-wrap: wrap; }
+    .topbar img { height: 38px; display: block; }
+    .topbar h1 { font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: 1.6rem; margin-right: auto; }
+    .tb-btn { display: inline-flex; align-items: center; gap: 0.35rem; background: transparent; border: 1px solid rgba(201,160,90,0.45); color: #f8f5ef; border-radius: 6px; padding: 0.38rem 0.7rem; cursor: pointer; font-size: 0.8rem; text-decoration: none; white-space: nowrap; }
+    .tb-btn:hover { border-color: var(--gold); color: var(--gold); }
+    .save-state { font-size: 0.75rem; color: #b8c0d4; display: flex; align-items: center; gap: 0.35rem; }
+    .save-state::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #7bd88f; }
+    .save-state[data-s="busy"]::before { background: var(--gold); } .save-state[data-s="err"]::before { background: #ff7b72; }
+
+    main { max-width: 1500px; margin: 0 auto; padding: 1.1rem 1.25rem 3rem; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; }
+    .card h2 { font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold-ink); font-weight: 700; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.6rem; }
+    .card h2 .sp { margin-left: auto; }
+    .grid { display: grid; grid-template-columns: minmax(320px, 0.9fr) 1.4fr; gap: 1rem; align-items: start; }
+    .stack { display: grid; gap: 1rem; }
+    label.f { display: grid; gap: 0.25rem; font-size: 0.72rem; color: var(--muted); font-weight: 600; letter-spacing: 0.03em; }
+    input[type=text], input[type=number], select, textarea { background: var(--field); border: 1px solid var(--line-strong); border-radius: 7px; padding: 0.45rem 0.55rem; color: var(--ink); font-size: 0.9rem; width: 100%; min-width: 0; }
+    input:focus, select:focus, textarea:focus { outline: 2px solid rgba(201,160,90,0.5); outline-offset: 0; border-color: var(--gold); }
+    input.need { border-color: var(--neg); background: color-mix(in srgb, var(--neg) 7%, var(--field)); }
+    .row { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: end; }
+    .row > * { flex: 1 1 110px; }
+    .chk { display: flex; gap: 0.45rem; align-items: center; font-size: 0.85rem; cursor: pointer; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; border: 1px solid var(--line-strong); background: var(--card); color: var(--ink); border-radius: 7px; padding: 0.45rem 0.8rem; cursor: pointer; font-size: 0.85rem; font-weight: 500; }
+    .btn:hover { border-color: var(--gold); }
+    .btn.primary { background: var(--navy); border-color: var(--navy); color: #fff; } html.dark .btn.primary { background: #2a3a6b; border-color: #2a3a6b; }
+    .btn.gold { background: var(--gold); border-color: var(--gold); color: #1c232b; font-weight: 700; }
+    .btn.small { padding: 0.25rem 0.55rem; font-size: 0.78rem; }
+    .btn.danger { color: var(--neg); }
+    .btn:disabled { opacity: 0.5; cursor: default; }
+    .muted { color: var(--muted); font-size: 0.8rem; }
+    .note { padding: 0.55rem 0.7rem; border-radius: 8px; background: var(--warn-bg); border: 1px solid rgba(201,160,90,0.5); font-size: 0.82rem; line-height: 1.45; }
+    .note.err { border-color: var(--neg); color: var(--neg); background: color-mix(in srgb, var(--neg) 8%, var(--card)); }
+    .note.ok { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 9%, var(--card)); }
+
+    /* drawing */
+    .drop { border: 2px dashed var(--line-strong); border-radius: 10px; padding: 1.2rem; text-align: center; cursor: pointer; display: grid; gap: 0.35rem; place-items: center; min-height: 120px; }
+    .drop.over { border-color: var(--gold); background: color-mix(in srgb, var(--gold) 10%, transparent); }
+    .drop b { font-size: 0.95rem; }
+    .viewer { margin-top: 0.75rem; border: 1px solid var(--line); border-radius: 10px; overflow: auto; max-height: 70vh; background: repeating-conic-gradient(color-mix(in srgb, var(--line) 50%, transparent) 0 25%, transparent 0 50%) 0 0 / 16px 16px; }
+    .viewer img { display: block; width: 100%; height: auto; cursor: zoom-in; }
+    .viewer.zoom img { width: 220%; cursor: zoom-out; }
+    .viewer iframe { width: 100%; height: 65vh; border: 0; display: block; background: #fff; }
+    .ai-box { margin-top: 0.75rem; display: grid; gap: 0.5rem; }
+    .spin { width: 14px; height: 14px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: sp 0.8s linear infinite; display: inline-block; }
+    @keyframes sp { to { transform: rotate(360deg); } }
+
+    /* pieces */
+    .pieces { display: grid; gap: 0.9rem; }
+    .piece { border: 1px solid var(--line); border-radius: 10px; padding: 0.8rem; display: grid; grid-template-columns: minmax(230px, 330px) 1fr; gap: 0.9rem; background: color-mix(in srgb, var(--page) 35%, var(--card)); }
+    .piece .ph { grid-column: 1 / -1; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+    .piece .ph .num { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 0.8rem; flex: none; }
+    .piece .ph input { flex: 1 1 160px; font-weight: 600; }
+    .piece .ph select { flex: 0 0 auto; width: auto; }
+    .pv { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 6px; }
+    .pv svg { width: 100%; height: auto; display: block; }
+    .pv .edge-hit { stroke: transparent; stroke-width: 16; cursor: pointer; }
+    .pv .edge-hit:hover + .edge-line { stroke: var(--gold); }
+    .pv text { font-family: 'Montserrat', sans-serif; fill: var(--ink); }
+    .dims { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 0.5rem; }
+    .edges { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-top: 0.6rem; }
+    .edges th { text-align: left; font-size: 0.68rem; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; padding: 0.2rem 0.35rem; border-bottom: 1px solid var(--line); }
+    .edges td { padding: 0.25rem 0.35rem; border-bottom: 1px solid var(--line); vertical-align: middle; }
+    .edges td.l { font-weight: 700; width: 2rem; }
+    .edges input[type=number] { width: 5.5rem; padding: 0.25rem 0.4rem; font-size: 0.82rem; }
+    .edges tr.on td { background: color-mix(in srgb, var(--bs) 14%, transparent); }
+    .tag { display: inline-block; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.04em; padding: 0.08rem 0.4rem; border-radius: 999px; border: 1px solid currentColor; text-transform: uppercase; }
+    .tag.ai { color: #7b5cd6; } .tag.wall { color: var(--muted); }
+    .status { font-size: 0.82rem; margin-top: 0.55rem; padding: 0.45rem 0.6rem; border-radius: 7px; border: 1px solid var(--line); }
+    .status.ok { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 45%, transparent); }
+    .status.seam { color: #b5621b; border-color: rgba(181,98,27,0.45); } html.dark .status.seam { color: #f0a868; }
+    .status.bad { color: var(--neg); border-color: color-mix(in srgb, var(--neg) 45%, transparent); }
+    .seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 8px; overflow: hidden; }
+    .seg button { border: 0; background: transparent; padding: 0.35rem 0.6rem; font-size: 0.78rem; cursor: pointer; color: var(--ink); }
+    .seg button + button { border-left: 1px solid var(--line-strong); }
+    .seg button.on { background: var(--navy); color: #fff; } html.dark .seg button.on { background: #2a3a6b; }
+
+    /* results */
+    .big { display: flex; gap: 1rem; flex-wrap: wrap; align-items: stretch; margin-bottom: 0.9rem; }
+    .kpi { flex: 1 1 140px; border: 1px solid var(--line); border-radius: 10px; padding: 0.7rem 0.85rem; }
+    .kpi .k { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
+    .kpi .v { font-size: 1.5rem; font-weight: 700; margin-top: 0.15rem; font-variant-numeric: tabular-nums; }
+    .kpi.main { background: var(--navy); color: #fff; border-color: var(--navy); } .kpi.main .k { color: #c7cfe3; } .kpi.main .v { font-size: 2.2rem; color: var(--gold); }
+    .slabs { display: grid; gap: 0.9rem; }
+    .slab h3 { font-size: 0.85rem; margin-bottom: 0.35rem; display: flex; gap: 0.6rem; align-items: baseline; }
+    .slab h3 span { color: var(--muted); font-weight: 500; font-size: 0.78rem; }
+    .slab svg { width: 100%; height: auto; display: block; border-radius: 6px; }
+    .warn-list { display: grid; gap: 0.4rem; margin-bottom: 0.8rem; }
+    .plist { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-top: 0.8rem; }
+    .plist th, .plist td { text-align: left; padding: 0.3rem 0.4rem; border-bottom: 1px solid var(--line); }
+    .plist th { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+    .plist td.n { text-align: right; font-variant-numeric: tabular-nums; }
+    .sw { display: inline-block; width: 11px; height: 11px; border-radius: 3px; vertical-align: -1px; margin-right: 5px; }
+
+    .jobs-pop { position: absolute; top: calc(100% + 6px); right: 0; background: var(--card); color: var(--ink); border: 1px solid var(--line-strong); border-radius: 10px; box-shadow: 0 12px 30px rgba(0,0,0,0.25); min-width: 280px; max-height: 60vh; overflow: auto; padding: 0.35rem; display: none; z-index: 40; }
+    .jobs-pop.open { display: block; }
+    .jobs-pop button { display: flex; justify-content: space-between; gap: 1rem; width: 100%; text-align: left; border: 0; background: none; padding: 0.5rem 0.6rem; border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
+    .jobs-pop button:hover { background: var(--page); }
+    .jobs-pop small { color: var(--muted); }
+    .rel { position: relative; }
+    .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--navy-dark); color: #fff; padding: 0.6rem 1rem; border-radius: 8px; font-size: 0.85rem; z-index: 60; box-shadow: 0 8px 24px rgba(0,0,0,0.3); opacity: 0; transition: opacity .2s; pointer-events: none; }
+    .toast.show { opacity: 1; }
+
+    @media (max-width: 1000px) { .grid { grid-template-columns: 1fr; } }
+    @media (max-width: 700px) {
+      main { padding: 0.75rem 16px 2rem; } .topbar { padding: 0.6rem 16px; } .topbar h1 { font-size: 1.3rem; } .topbar img { height: 30px; }
+      .piece { grid-template-columns: 1fr; }
+      .tb-btn span.t { display: none; }
+    }
+    @media print {
+      .topbar, .no-print, .drawing-card, .pieces-card .btn, .ai-box { display: none !important; }
+      body { background: #fff; } main { padding: 0; max-width: none; } .grid { display: block; } .card { border: 0; padding: 0; margin-bottom: 1rem; }
+      .slab { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <a href="/"><img src="/FullLogo_Transparent.png" alt="Mirmont Construction" /></a>
+    <h1>Templates</h1>
+    <span class="save-state" id="saveState" data-s="ok"><span id="saveText">Ready</span></span>
+    <button type="button" class="tb-btn" id="newBtn" title="Start a new job"><span>＋</span><span class="t">New job</span></button>
+    <span class="rel"><button type="button" class="tb-btn" id="openBtn" title="Open a saved job"><span>📂</span><span class="t">Jobs</span></button><div class="jobs-pop" id="jobsPop"></div></span>
+    <button type="button" class="tb-btn" id="printBtn" title="Print or save the slab plan as PDF"><span>🖨</span><span class="t">Print</span></button>
+    <button type="button" class="tb-btn" id="themeBtn" title="Light / dark"><span id="themeIcon">🌙</span></button>
+    <a class="tb-btn" href="/excel/" title="Budget page"><span class="t">Budget</span><span>↗</span></a>
+  </header>
+
+  <main>
+    <div class="card no-print" style="margin-bottom:1rem">
+      <div class="row">
+        <label class="f" style="flex:2 1 220px">JOB NAME<input type="text" id="jobName" placeholder="e.g. Smith kitchen — Calacatta Laza" maxlength="80" /></label>
+        <label class="f">SLAB LENGTH (in)<input type="number" id="slabL" min="1" step="0.25" placeholder="e.g. 130" /></label>
+        <label class="f">SLAB WIDTH (in)<input type="number" id="slabW" min="1" step="0.25" placeholder="e.g. 65" /></label>
+        <label class="f" title="Rough/chipped border trimmed off each side of the slab">EDGE TRIM / SIDE (in)<input type="number" id="trim" min="0" step="0.125" /></label>
+        <label class="f" title="Space lost to the saw blade between pieces">SAW KERF (in)<input type="number" id="kerf" min="0" step="0.0625" /></label>
+        <label class="f">BACKSPLASH HEIGHT (in)<input type="number" id="bsH" min="0.5" step="0.25" placeholder="asked per job" /></label>
+      </div>
+      <div class="row" style="margin-top:0.6rem; align-items:center">
+        <label class="chk" style="flex:0 1 auto"><input type="checkbox" id="rotate" /> Pieces can be turned 90° (off = keep the vein running the same way)</label>
+        <label class="chk" style="flex:0 1 auto"><input type="checkbox" id="bsSeams" /> Backsplashes may have seams</label>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="stack">
+        <section class="card drawing-card">
+          <h2>Drawing<span class="sp"></span><button type="button" class="btn small no-print" id="clearDrawing" hidden>Remove</button></h2>
+          <input type="file" id="file" accept="image/*,application/pdf" hidden />
+          <div class="drop" id="drop" tabindex="0"><b>Upload the countertop drawing</b><span class="muted">Photo, screenshot or PDF · drop it here or tap to choose</span></div>
+          <div class="viewer" id="viewer" hidden></div>
+          <div class="ai-box">
+            <button type="button" class="btn gold" id="aiBtn" disabled>✨ Read the drawing with AI</button>
+            <div id="aiMsg"></div>
+          </div>
+        </section>
+      </div>
+
+      <div class="stack">
+        <section class="card pieces-card">
+          <h2>Countertop pieces<span class="sp"></span><button type="button" class="btn small no-print" id="addPiece">＋ Add piece</button></h2>
+          <p class="muted" style="margin-bottom:0.7rem">Click an edge on the shape (or tick it in the table) to give it a backsplash. Set each piece to <b>One piece</b> if it can't have a seam.</p>
+          <div class="pieces" id="pieces"></div>
+        </section>
+
+        <section class="card" id="resultsCard">
+          <h2>Slabs needed</h2>
+          <div id="results"></div>
+        </section>
+      </div>
+    </div>
+  </main>
+  <div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const r2 = (n) => Math.round(n * 100) / 100;
+  const EPS = 0.001;
+  const COLORS = ['#1f6fb2', '#2e7d32', '#b5621b', '#8e3fa8', '#0f8a83', '#b02e5a', '#5d6d2b', '#3949ab', '#a1572a', '#00838f'];
+  const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const API = '/templates/api';
+  const uid = () => Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-4);
+  const inch = (n) => {
+    if (n == null || !isFinite(n)) return '';
+    const v = r2(n), whole = Math.floor(v + EPS), frac = v - whole;
+    const sixteenths = Math.round(frac * 16);
+    const fr = sixteenths === 0 ? '' : sixteenths === 16 ? '' : ' ' + ({ 2: '1/8', 4: '1/4', 6: '3/8', 8: '1/2', 10: '5/8', 12: '3/4', 14: '7/8' }[sixteenths] || (sixteenths + '/16'));
+    return (sixteenths === 16 ? whole + 1 : whole) + fr + '"';
+  };
+  const ftin = (n) => { const f = Math.floor(n / 12 + EPS), i = r2(n - f * 12); return f ? `${f}' ${inch(i)}` : inch(n); };
+  function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 2600); }
+
+  // ───────────── geometry ─────────────
+  const area2 = (v) => { let a = 0; for (let i = 0; i < v.length; i++) { const p = v[i], q = v[(i + 1) % v.length]; a += p[0] * q[1] - q[0] * p[1]; } return a / 2; };
+  const keyPt = (p) => r2(p[0]) + ',' + r2(p[1]);
+  // clockwise on screen (y down), starting at the top-left-most vertex → edge A is always the top edge
+  function normalize(verts) {
+    let v = verts.map(p => [r2(p[0]), r2(p[1])]);
+    // drop duplicate & collinear points
+    v = v.filter((p, i) => keyPt(p) !== keyPt(v[(i + 1) % v.length]));
+    let changed = true;
+    while (changed && v.length > 3) { changed = false; for (let i = 0; i < v.length; i++) { const a = v[(i - 1 + v.length) % v.length], b = v[i], c = v[(i + 1) % v.length]; if (Math.abs((b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0])) < EPS) { v.splice(i, 1); changed = true; break; } } }
+    const mx = Math.min(...v.map(p => p[0])), my = Math.min(...v.map(p => p[1]));
+    v = v.map(p => [r2(p[0] - mx), r2(p[1] - my)]);
+    if (area2(v) < 0) v.reverse();
+    let s = 0; v.forEach((p, i) => { if (p[1] < v[s][1] - EPS || (Math.abs(p[1] - v[s][1]) < EPS && p[0] < v[s][0])) s = i; });
+    return v.slice(s).concat(v.slice(0, s));
+  }
+  function edgesOf(v) { return v.map((a, i) => { const b = v[(i + 1) % v.length]; return { i, a, b, len: r2(Math.hypot(b[0] - a[0], b[1] - a[1])), horiz: Math.abs(a[1] - b[1]) < EPS, vert: Math.abs(a[0] - b[0]) < EPS }; }); }
+  const bbox = (v) => ({ w: Math.max(...v.map(p => p[0])) - Math.min(...v.map(p => p[0])), h: Math.max(...v.map(p => p[1])) - Math.min(...v.map(p => p[1])) });
+  const rectilinear = (v) => edgesOf(v).every(e => e.horiz || e.vert);
+  // map edge indexes between two outlines of the same shape by their end points
+  function mapEdges(oldV, newV, idx) {
+    const ek = (a, b) => [keyPt(a), keyPt(b)].sort().join('|');
+    const mx = Math.min(...oldV.map(p => p[0])), my = Math.min(...oldV.map(p => p[1]));
+    const o = oldV.map(p => [r2(p[0] - mx), r2(p[1] - my)]);
+    const m = new Map(); edgesOf(newV).forEach(e => m.set(ek(e.a, e.b), e.i));
+    return idx.map(i => m.get(ek(o[i], o[(i + 1) % o.length]))).filter(i => i != null);
+  }
+
+  // shape builders (all in inches)
+  function buildRect(p) { return [[0, 0], [p.L, 0], [p.L, p.D], [0, p.D]]; }
+  function buildL(p) { // W × H overall, dW = depth of the leg along the width, dH = depth of the leg along the height, corner = where the legs meet
+    const { W, H, dW, dH } = p; let v = [[0, 0], [W, 0], [W, dW], [dH, dW], [dH, H], [0, H]];
+    if (p.corner === 'tr' || p.corner === 'br') v = v.map(q => [W - q[0], q[1]]);
+    if (p.corner === 'bl' || p.corner === 'br') v = v.map(q => [q[0], H - q[1]]);
+    return v;
+  }
+  function buildU(p) { // back length B, overall leg length G, back depth dB, legs d1 / d2, opening faces 'down'|'up'|'left'|'right'
+    const { B, G, dB, d1, d2 } = p;
+    let v = [[0, 0], [B, 0], [B, G], [B - d2, G], [B - d2, dB], [d1, dB], [d1, G], [0, G]];
+    if (p.open === 'up') v = v.map(q => [q[0], G - q[1]]);
+    else if (p.open === 'right') v = v.map(q => [q[1], q[0]]);
+    else if (p.open === 'left') v = v.map(q => [G - q[1], q[0]]);
+    return v;
+  }
+  function vertsOf(pc) {
+    const p = pc.p || {}; const ok = (...k) => k.every(x => p[x] > 0);
+    if (pc.shape === 'rect') return ok('L', 'D') ? normalize(buildRect(p)) : null;
+    if (pc.shape === 'L') return ok('W', 'H', 'dW', 'dH') && p.dW < p.H && p.dH < p.W ? normalize(buildL(p)) : null;
+    if (pc.shape === 'U') return ok('B', 'G', 'dB', 'd1', 'd2') && p.dB < p.G && p.d1 + p.d2 < p.B ? normalize(buildU(p)) : null;
+    return Array.isArray(pc.verts) && pc.verts.length >= 3 ? normalize(pc.verts) : null;
+  }
+  // recognise an outline (from the AI) as a rectangle / L / U so it can be edited with simple boxes
+  function recognise(v0) {
+    const v = normalize(v0), b = bbox(v), same = (a) => { const A = normalize(a); return A.length === v.length && A.every(p => v.some(q => keyPt(q) === keyPt(p))); };
+    if (v.length === 4 && same(buildRect({ L: b.w, D: b.h }))) return { shape: 'rect', p: { L: b.w, D: b.h } };
+    if (v.length === 6) {
+      const inner = v.find(p => p[0] > EPS && p[0] < b.w - EPS && p[1] > EPS && p[1] < b.h - EPS);
+      if (inner) for (const c of ['tl', 'tr', 'bl', 'br']) {
+        const dH = c === 'tl' || c === 'bl' ? inner[0] : b.w - inner[0], dW = c === 'tl' || c === 'tr' ? inner[1] : b.h - inner[1];
+        const p = { W: b.w, H: b.h, dW: r2(dW), dH: r2(dH), corner: c };
+        if (same(buildL(p))) return { shape: 'L', p };
+      }
+    }
+    if (v.length === 8) {
+      const inner = v.filter(p => p[0] > EPS && p[0] < b.w - EPS && p[1] > EPS && p[1] < b.h - EPS);
+      if (inner.length === 2) for (const open of ['down', 'up', 'right', 'left']) {
+        let p;
+        if (open === 'down' || open === 'up') { const xs = inner.map(q => q[0]).sort((a, c) => a - c); p = { B: b.w, G: b.h, dB: r2(open === 'down' ? inner[0][1] : b.h - inner[0][1]), d1: r2(xs[0]), d2: r2(b.w - xs[1]), open }; }
+        else { const ys = inner.map(q => q[1]).sort((a, c) => a - c); p = { B: b.h, G: b.w, dB: r2(open === 'right' ? inner[0][0] : b.w - inner[0][0]), d1: r2(ys[0]), d2: r2(b.h - ys[1]), open }; }
+        if (same(buildU(p))) return { shape: 'U', p };
+      }
+    }
+    return { shape: 'custom', p: {}, verts: v };
+  }
+  // split a rectilinear outline into rectangles (seams fall on the shared edges)
+  function slice(v) {
+    const ys = [...new Set(v.map(p => r2(p[1])))].sort((a, b) => a - b), out = []; let open = new Map();
+    const vEdges = edgesOf(v).filter(e => e.vert);
+    for (let k = 0; k < ys.length - 1; k++) {
+      const y0 = ys[k], y1 = ys[k + 1], ym = (y0 + y1) / 2;
+      const xs = vEdges.filter(e => Math.min(e.a[1], e.b[1]) < ym && Math.max(e.a[1], e.b[1]) > ym).map(e => e.a[0]).sort((a, b) => a - b);
+      const now = new Map();
+      for (let i = 0; i + 1 < xs.length; i += 2) { const key = xs[i] + '-' + xs[i + 1]; if (open.has(key)) { const r = open.get(key); r.h = r2(y1 - r.y); now.set(key, r); open.delete(key); } else now.set(key, { x: xs[i], y: y0, w: r2(xs[i + 1] - xs[i]), h: r2(y1 - y0) }); }
+      open.forEach(r => out.push(r)); open = now;
+    }
+    open.forEach(r => out.push(r));
+    return out;
+  }
+  function decompose(v) {
+    if (!rectilinear(v)) { const b = bbox(v); return [{ x: 0, y: 0, w: b.w, h: b.h }]; }
+    const a = slice(v), t = slice(v.map(p => [p[1], p[0]])).map(r => ({ x: r.y, y: r.x, w: r.h, h: r.w }));
+    const big = (rs) => Math.max(...rs.map(r => r.w * r.h));
+    if (a.length !== t.length) return a.length < t.length ? a : t;
+    return big(a) >= big(t) ? a : t;
+  }
+
+  // ───────────── job state ─────────────
+  let job = null, saveTimer = null, dirty = false;
+  const blankJob = () => {
+    let last = {}; try { last = JSON.parse(localStorage.getItem('mirmont-tpl-defaults') || '{}'); } catch {}
+    return { id: uid(), name: '', slab: { L: last.L || null, W: last.W || null }, trim: last.trim ?? 1, kerf: last.kerf ?? 0.25, rotate: last.rotate ?? true, bsHeight: null, bsSeams: true, drawing: null, ai: null, pieces: [] };
+  };
+  const newPiece = (n) => ({ id: uid(), name: 'Piece ' + n, shape: 'rect', p: { L: null, D: 25.5 }, verts: null, bs: {}, mode: 'auto', walls: [], aiBs: [], cutouts: [], notes: '' });
+
+  // ───────────── saving ─────────────
+  function setSave(s, t) { $('saveState').dataset.s = s; $('saveText').textContent = t; }
+  function changed(redraw = true) {
+    dirty = true; if (redraw) recalc();
+    setSave('busy', 'Saving…'); clearTimeout(saveTimer); saveTimer = setTimeout(save, 1200);
+    try { localStorage.setItem('mirmont-tpl-last', job.id); localStorage.setItem('mirmont-tpl-defaults', JSON.stringify({ L: job.slab.L, W: job.slab.W, trim: job.trim, kerf: job.kerf, rotate: job.rotate })); } catch {}
+  }
+  async function save() {
+    if (!dirty) return; dirty = false;
+    try {
+      const r = await fetch(API + '/jobs', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ job }) });
+      if (!r.ok) throw new Error(r.status);
+      setSave('ok', 'Saved');
+    } catch (e) {
+      try { localStorage.setItem('mirmont-tpl-job-' + job.id, JSON.stringify(job)); setSave('err', 'Saved on this device only'); } catch { setSave('err', 'Not saved'); }
+    }
+  }
+  window.addEventListener('beforeunload', () => { if (dirty) { try { fetch(API + '/jobs', { method: 'PUT', keepalive: true, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ job }) }); } catch {} } });
+  async function loadJob(id) {
+    try { const r = await fetch(API + '/jobs?id=' + encodeURIComponent(id)); if (r.ok) return await r.json(); } catch {}
+    try { const j = JSON.parse(localStorage.getItem('mirmont-tpl-job-' + id) || 'null'); if (j) return j; } catch {}
+    return null;
+  }
+  async function openJob(j) {
+    job = Object.assign(blankJob(), j); job.pieces = (job.pieces || []).map(p => Object.assign(newPiece(1), p));
+    try { localStorage.setItem('mirmont-tpl-last', job.id); } catch {}
+    const u = new URL(location.href); u.searchParams.set('job', job.id); history.replaceState(null, '', u);
+    fillJobFields(); paintDrawing(); paintAiMsg(); paintPieces(); recalc(); setSave('ok', 'Saved');
+  }
+
+  // ───────────── job fields ─────────────
+  function fillJobFields() {
+    $('jobName').value = job.name || ''; $('slabL').value = job.slab.L ?? ''; $('slabW').value = job.slab.W ?? '';
+    $('trim').value = job.trim; $('kerf').value = job.kerf; $('bsH').value = job.bsHeight ?? '';
+    $('rotate').checked = !!job.rotate; $('bsSeams').checked = !!job.bsSeams;
+  }
+  const numOrNull = (el) => { const n = parseFloat(el.value); return isFinite(n) && n > 0 ? n : null; };
+  $('jobName').addEventListener('input', () => { job.name = $('jobName').value; changed(false); paintResultsTitle(); });
+  [['slabL', v => job.slab.L = v], ['slabW', v => job.slab.W = v], ['bsH', v => job.bsHeight = v]].forEach(([id, set]) => $(id).addEventListener('input', () => { set(numOrNull($(id))); paintPieces(); changed(); }));
+  $('trim').addEventListener('input', () => { const n = parseFloat($('trim').value); job.trim = isFinite(n) && n >= 0 ? n : 0; changed(); });
+  $('kerf').addEventListener('input', () => { const n = parseFloat($('kerf').value); job.kerf = isFinite(n) && n >= 0 ? n : 0; changed(); });
+  $('rotate').addEventListener('change', () => { job.rotate = $('rotate').checked; paintPieces(); changed(); });
+  $('bsSeams').addEventListener('change', () => { job.bsSeams = $('bsSeams').checked; changed(); });
+
+  // ───────────── drawing upload ─────────────
+  function paintDrawing() {
+    const d = job.drawing, vw = $('viewer');
+    $('clearDrawing').hidden = !d; $('aiBtn').disabled = !d; $('drop').style.display = d ? 'none' : '';
+    if (!d) { vw.hidden = true; vw.innerHTML = ''; return; }
+    vw.hidden = false;
+    if (d.mediaType === 'application/pdf') { vw.innerHTML = `<iframe title="Drawing" src="${d.dataUrl}"></iframe>`; }
+    else { vw.innerHTML = `<img alt="Countertop drawing" src="${d.dataUrl}" />`; vw.querySelector('img').addEventListener('click', () => vw.classList.toggle('zoom')); }
+  }
+  function readFile(f) {
+    if (!f) return;
+    const isPdf = f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
+    if (!isPdf && !/^image\//.test(f.type)) { toast('Upload a photo, screenshot or PDF'); return; }
+    if (isPdf && f.size > 9.5e6) { toast('That PDF is too large (max ~9 MB)'); return; }
+    const fr = new FileReader();
+    fr.onload = () => {
+      if (isPdf) { job.drawing = { name: f.name, mediaType: 'application/pdf', dataUrl: fr.result }; paintDrawing(); changed(false); return; }
+      const img = new Image();
+      img.onload = () => { // shrink big photos so they upload fast and stay readable for the AI
+        const max = 2000, s = Math.min(1, max / Math.max(img.width, img.height));
+        const c = document.createElement('canvas'); c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+        const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
+        job.drawing = { name: f.name, mediaType: 'image/jpeg', dataUrl: c.toDataURL('image/jpeg', 0.88) }; paintDrawing(); changed(false);
+      };
+      img.onerror = () => toast('Could not open that image');
+      img.src = fr.result;
+    };
+    fr.readAsDataURL(f);
+  }
+  $('drop').addEventListener('click', () => $('file').click());
+  $('drop').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('file').click(); } });
+  $('file').addEventListener('change', () => { readFile($('file').files[0]); $('file').value = ''; });
+  ['dragenter', 'dragover'].forEach(ev => $('drop').addEventListener(ev, (e) => { e.preventDefault(); $('drop').classList.add('over'); }));
+  ['dragleave', 'drop'].forEach(ev => $('drop').addEventListener(ev, (e) => { e.preventDefault(); $('drop').classList.remove('over'); }));
+  $('drop').addEventListener('drop', (e) => readFile(e.dataTransfer.files[0]));
+  $('clearDrawing').addEventListener('click', () => { job.drawing = null; job.ai = null; paintDrawing(); paintAiMsg(); changed(false); });
+
+  // ───────────── AI reading ─────────────
+  function paintAiMsg(busy, err) {
+    const el = $('aiMsg');
+    if (busy) { el.innerHTML = `<div class="note"><span class="spin"></span> Reading the drawing — finding pieces, sizes and wall edges… (about 20–40 seconds)</div>`; return; }
+    if (err) { el.innerHTML = `<div class="note err">${esc(err)}</div>`; return; }
+    const a = job.ai; if (!a) { el.innerHTML = job.drawing ? '<p class="muted">The AI fills in the pieces, sizes and which edges sit against a wall. You then check and correct them below.</p>' : ''; return; }
+    el.innerHTML = `<div class="note ${a.confidence === 'low' ? 'err' : ''}"><b>AI found ${a.count} piece${a.count === 1 ? '' : 's'} and suggested ${a.bsCount} backsplash edge${a.bsCount === 1 ? '' : 's'}</b> · confidence: ${esc(a.confidence)}${a.bsHeight ? ` · drawing says backsplash ${inch(a.bsHeight)}` : ''}<br>Please check every size and backsplash below against the drawing before ordering.${a.notes ? `<br><span class="muted">${esc(a.notes)}</span>` : ''}</div>`;
+  }
+  $('aiBtn').addEventListener('click', async () => {
+    const d = job.drawing; if (!d) return;
+    if (job.pieces.some(p => vertsOf(p)) && !confirm('Replace the pieces already on this job with what the AI reads?')) return;
+    $('aiBtn').disabled = true; paintAiMsg(true);
+    try {
+      const r = await fetch(API + '/read', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ data: d.dataUrl.split(',')[1], mediaType: d.mediaType }) });
+      const out = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(out.message || (r.status === 501 ? 'The AI reader is not set up yet (ANTHROPIC_API_KEY missing in Cloudflare).' : 'The AI could not read this drawing.'));
+      if (!out.pieces || !out.pieces.length) throw new Error('The AI did not find any countertop pieces in this drawing. Try a clearer photo, or add the pieces by hand.');
+      let bsCount = 0;
+      job.pieces = out.pieces.map((ap, i) => {
+        const pc = newPiece(i + 1); pc.name = ap.name || pc.name; pc.notes = ap.notes || ''; pc.cutouts = ap.cutouts || [];
+        const norm = normalize(ap.vertices), rec = recognise(norm);
+        pc.shape = rec.shape; pc.p = rec.p; pc.verts = rec.shape === 'custom' ? norm : null;
+        const v = vertsOf(pc) || norm;
+        pc.walls = mapEdges(ap.vertices, v, ap.walls || []);
+        pc.aiBs = mapEdges(ap.vertices, v, ap.backsplash || []);
+        pc.aiBs.forEach(k => { pc.bs[k] = { h: null }; bsCount++; });
+        if (v.length && !rectilinear(v)) pc.notes = (pc.notes ? pc.notes + ' ' : '') + '(Angled edges — slab math uses the bounding rectangle.)';
+        return pc;
+      });
+      if (out.backsplashHeight && !job.bsHeight) job.bsHeight = out.backsplashHeight;
+      job.ai = { notes: out.notes, confidence: out.confidence, count: out.pieces.length, bsCount, bsHeight: out.backsplashHeight, at: new Date().toISOString() };
+      fillJobFields(); paintPieces(); changed(); paintAiMsg();
+      toast('Pieces filled in — please check them');
+    } catch (e) { paintAiMsg(false, e.message); }
+    $('aiBtn').disabled = !job.drawing;
+  });
+
+  // ───────────── pieces editor ─────────────
+  const FIELDS = {
+    rect: [['L', 'Length'], ['D', 'Depth']],
+    L: [['W', 'Overall width'], ['H', 'Overall height'], ['dW', 'Depth (top/bottom leg)'], ['dH', 'Depth (side leg)']],
+    U: [['B', 'Back length'], ['G', 'Leg length (overall)'], ['dB', 'Back depth'], ['d1', 'Leg 1 depth'], ['d2', 'Leg 2 depth']],
+  };
+  function usable() { const L = Math.max(job.slab.L || 0, job.slab.W || 0), W = Math.min(job.slab.L || 0, job.slab.W || 0); return { L: L - 2 * (job.trim || 0), W: W - 2 * (job.trim || 0), ok: L > 0 && W > 0 }; }
+  const fits = (w, h, U) => (w <= U.L + EPS && h <= U.W + EPS) || (job.rotate && w <= U.W + EPS && h <= U.L + EPS);
+  function bsHeightOf(pc, k) { const e = pc.bs[k]; return e && e.h > 0 ? e.h : job.bsHeight; }
+
+  // the parts one piece is cut into (one part = no seam)
+  function partsOf(pc, U) {
+    const v = vertsOf(pc); if (!v) return { parts: [], status: 'incomplete' };
+    const b = bbox(v), whole = { rects: decompose(v), w: b.w, h: b.h };
+    if (!U.ok) return { parts: [whole], status: 'noslab', v };
+    const wholeFits = rectilinear(v) ? fits(b.w, b.h, U) : fits(b.w, b.h, U);
+    if (pc.mode === 'one' || (pc.mode === 'auto' && wholeFits)) return { parts: [whole], status: wholeFits ? 'one' : 'toobig', v };
+    // seams: split into rectangles (try both directions), then cut any rectangle still longer than the slab; keep the split with the fewest seams
+    const splitUp = (rects) => {
+      const out = [];
+      rects.forEach(r => {
+        if (fits(r.w, r.h, U)) { out.push(r); return; }
+        const alongW = r.w >= r.h, len = alongW ? r.w : r.h, other = alongW ? r.h : r.w;
+        const maxLen = (other <= U.W + EPS ? U.L : job.rotate && other <= U.L + EPS ? U.W : 0);
+        if (!maxLen) { out.push(r); return; }
+        const k = Math.ceil(len / maxLen - EPS), step = len / k;
+        for (let i = 0; i < k; i++) out.push(alongW ? { x: r.x + i * step, y: r.y, w: step, h: r.h } : { x: r.x, y: r.y + i * step, w: r.w, h: step });
+      });
+      return out;
+    };
+    const cands = rectilinear(v) ? [slice(v), slice(v.map(p => [p[1], p[0]])).map(r => ({ x: r.y, y: r.x, w: r.h, h: r.w }))].map(splitUp) : [splitUp(decompose(v))];
+    const bad = (rs) => rs.filter(r => !fits(r.w, r.h, U)).length, big = (rs) => Math.max(...rs.map(r => r.w * r.h));
+    cands.sort((a, b) => bad(a) - bad(b) || a.length - b.length || big(b) - big(a));
+    const out = cands[0];
+    const parts = out.map(r => ({ rects: [{ x: 0, y: 0, w: r2(r.w), h: r2(r.h) }], w: r2(r.w), h: r2(r.h), at: r }));
+    const tooBig = parts.some(p => !fits(p.w, p.h, U));
+    return { parts, status: tooBig ? 'toobig' : parts.length > 1 ? 'seams' : 'one', v, splits: out };
+  }
+
+  function pieceSvg(pc, i) {
+    const v = vertsOf(pc);
+    if (!v) return `<div class="muted" style="padding:2rem 0.5rem;text-align:center">Enter the sizes to see the shape</div>`;
+    const b = bbox(v), PX = 58, PY = 28, Wpx = 330, s = Math.min((Wpx - 2 * PX) / (b.w || 1), 170 / (b.h || 1));
+    const X = (x) => PX + x * s, Y = (y) => PY + y * s, H = Math.ceil(b.h * s + 2 * PY);
+    const col = COLORS[i % COLORS.length], U = usable(), info = partsOf(pc, U);
+    let g = `<polygon points="${v.map(p => X(p[0]) + ',' + Y(p[1])).join(' ')}" fill="${col}" fill-opacity="0.13" />`;
+    if (info.splits && info.splits.length > 1) g += info.splits.map(r => `<rect x="${X(r.x)}" y="${Y(r.y)}" width="${r.w * s}" height="${r.h * s}" fill="none" stroke="var(--seam)" stroke-width="1.6" stroke-dasharray="5 4" />`).join('');
+    const c = [b.w / 2, b.h / 2];
+    edgesOf(v).forEach(e => {
+      const on = !!pc.bs[e.i], mx = (e.a[0] + e.b[0]) / 2, my = (e.a[1] + e.b[1]) / 2;
+      // label sits outside the shape
+      let nx = 0, ny = 0; if (e.horiz) ny = e.b[0] > e.a[0] ? -1 : 1; else nx = e.b[1] > e.a[1] ? 1 : -1;
+      const lx = X(mx) + nx * 8, ly = Y(my) + ny * 12 + 4;
+      g += `<line class="edge-hit" data-pc="${pc.id}" data-edge="${e.i}" x1="${X(e.a[0])}" y1="${Y(e.a[1])}" x2="${X(e.b[0])}" y2="${Y(e.b[1])}"><title>Edge ${LETTERS[e.i]} — ${inch(e.len)} · click to ${on ? 'remove' : 'add'} backsplash</title></line>`;
+      g += `<line class="edge-line" x1="${X(e.a[0])}" y1="${Y(e.a[1])}" x2="${X(e.b[0])}" y2="${Y(e.b[1])}" stroke="${on ? 'var(--bs)' : col}" stroke-width="${on ? 6 : 2}" stroke-linecap="round" pointer-events="none" />`;
+      g += `<text x="${lx}" y="${ly}" font-size="10.5" text-anchor="${nx > 0 ? 'start' : nx < 0 ? 'end' : 'middle'}" font-weight="${on ? 700 : 500}" pointer-events="none" ${on ? 'fill="var(--gold-ink)"' : ''}>${LETTERS[e.i]} ${inch(e.len)}${on ? ' · BS' : ''}</text>`;
+    });
+    return `<svg viewBox="0 0 ${Wpx} ${H}" role="img" aria-label="${esc(pc.name)} outline">${g}</svg>`;
+  }
+
+  function statusHtml(pc) {
+    const U = usable(), info = partsOf(pc, U), v = info.v;
+    if (!v) return `<div class="status bad">Enter the sizes for this piece.</div>`;
+    if (!U.ok) return `<div class="status">Enter the slab size at the top to check this piece.</div>`;
+    const b = bbox(v);
+    if (info.status === 'toobig') return pc.mode === 'one'
+      ? `<div class="status bad">⚠ Set to one piece, but ${inch(b.w)} × ${inch(b.h)} is bigger than the usable slab (${inch(U.L)} × ${inch(U.W)}). It needs a seam or a bigger slab.</div>`
+      : `<div class="status bad">⚠ A part of this piece is still bigger than the usable slab (${inch(U.L)} × ${inch(U.W)}).</div>`;
+    if (info.status === 'seams') return `<div class="status seam">✂ ${info.parts.length} parts · ${info.parts.length - 1} seam${info.parts.length > 2 ? 's' : ''} (red dashed lines) — ${info.parts.map(p => inch(p.w) + ' × ' + inch(p.h)).join(', ')}</div>`;
+    return `<div class="status ok">✓ One piece, no seam — fits on one slab (${inch(b.w)} × ${inch(b.h)})</div>`;
+  }
+
+  function paintPieces() {
+    const box = $('pieces');
+    if (!job.pieces.length) { box.innerHTML = `<p class="muted">No pieces yet. Upload a drawing and let the AI read it, or add pieces by hand.</p>`; return; }
+    box.innerHTML = job.pieces.map((pc, i) => {
+      const v = vertsOf(pc), col = COLORS[i % COLORS.length];
+      const dims = pc.shape === 'custom'
+        ? `<label class="f" style="grid-column:1/-1">CORNERS (x, y in inches — one per line, clockwise)<textarea rows="5" data-f="verts" data-pc="${pc.id}">${esc((pc.verts || []).map(p => p.join(', ')).join('\n'))}</textarea></label>`
+        : FIELDS[pc.shape].map(([k, lab]) => `<label class="f">${lab.toUpperCase()} (in)<input type="number" min="0" step="0.125" data-f="${k}" data-pc="${pc.id}" value="${pc.p[k] ?? ''}" class="${pc.p[k] > 0 ? '' : 'need'}" /></label>`).join('')
+          + (pc.shape === 'L' ? `<label class="f">CORNER<select data-f="corner" data-pc="${pc.id}">${[['tl', '┌ top-left'], ['tr', '┐ top-right'], ['bl', '└ bottom-left'], ['br', '┘ bottom-right']].map(([k, t]) => `<option value="${k}" ${pc.p.corner === k ? 'selected' : ''}>${t}</option>`).join('')}</select></label>` : '')
+          + (pc.shape === 'U' ? `<label class="f">OPENING FACES<select data-f="open" data-pc="${pc.id}">${[['down', 'Down'], ['up', 'Up'], ['left', 'Left'], ['right', 'Right']].map(([k, t]) => `<option value="${k}" ${pc.p.open === k ? 'selected' : ''}>${t}</option>`).join('')}</select></label>` : '');
+      const edges = v ? edgesOf(v).map(e => {
+        const on = pc.bs[e.i], wall = pc.walls.includes(e.i), ai = pc.aiBs.includes(e.i);
+        return `<tr class="${on ? 'on' : ''}"><td class="l">${LETTERS[e.i]}</td><td>${inch(e.len)}${e.len >= 12 ? ` <span class="muted">(${ftin(e.len)})</span>` : ''} ${wall ? '<span class="tag wall" title="AI: against a wall">wall</span>' : ''} ${ai ? '<span class="tag ai" title="AI suggested a backsplash here">AI</span>' : ''}</td>
+          <td><label class="chk"><input type="checkbox" data-bs="${e.i}" data-pc="${pc.id}" ${on ? 'checked' : ''} /> Backsplash</label></td>
+          <td>${on ? `<input type="number" min="0.5" step="0.25" data-bsh="${e.i}" data-pc="${pc.id}" value="${on.h ?? ''}" placeholder="${job.bsHeight ? inch(job.bsHeight) : 'height?'}" class="${!(on.h > 0) && !job.bsHeight ? 'need' : ''}" title="Leave empty to use the job's backsplash height" />` : ''}</td></tr>`;
+      }).join('') : '';
+      return `<div class="piece" data-id="${pc.id}">
+        <div class="ph"><span class="num" style="background:${col}">${i + 1}</span>
+          <input type="text" data-f="name" data-pc="${pc.id}" value="${esc(pc.name)}" aria-label="Piece name" />
+          <select data-f="shape" data-pc="${pc.id}" aria-label="Shape">${[['rect', 'Rectangle'], ['L', 'L-shape'], ['U', 'U-shape'], ['custom', 'Custom']].map(([k, t]) => `<option value="${k}" ${pc.shape === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
+          <span class="seg" role="group" aria-label="Seams">${[['auto', 'Auto', 'One piece if it fits, seams only if it is too big'], ['one', 'One piece', 'Must be cut as one piece — no seams'], ['seams', 'Seams OK', 'Allow seams where the shape turns a corner or runs longer than a slab']].map(([k, t, tip]) => `<button type="button" data-mode="${k}" data-pc="${pc.id}" class="${pc.mode === k ? 'on' : ''}" title="${tip}">${t}</button>`).join('')}</span>
+          <button type="button" class="btn small" data-act="dup" data-pc="${pc.id}" title="Duplicate">⧉</button>
+          <button type="button" class="btn small danger" data-act="del" data-pc="${pc.id}" title="Delete piece">✕</button>
+        </div>
+        <div><div class="pv">${pieceSvg(pc, i)}</div>${statusHtml(pc)}${pc.cutouts && pc.cutouts.length ? `<p class="muted" style="margin-top:0.4rem">Cutouts: ${esc(pc.cutouts.join(', '))}</p>` : ''}${pc.notes ? `<p class="muted" style="margin-top:0.3rem">📝 ${esc(pc.notes)}</p>` : ''}</div>
+        <div><div class="dims">${dims}</div>${v ? `<table class="edges"><thead><tr><th></th><th>Edge</th><th></th><th>Height</th></tr></thead><tbody>${edges}</tbody></table>` : ''}</div>
+      </div>`;
+    }).join('');
+  }
+  const pcById = (id) => job.pieces.find(p => p.id === id);
+  function repaintPiece(pc) { // keep focus while typing
+    const el = document.querySelector(`.piece[data-id="${pc.id}"]`), i = job.pieces.indexOf(pc); if (!el) return paintPieces();
+    el.querySelector('.pv').innerHTML = pieceSvg(pc, i);
+    const st = el.querySelector('.status'); if (st) st.outerHTML = statusHtml(pc);
+  }
+  $('pieces').addEventListener('input', (e) => {
+    const t = e.target, pc = pcById(t.dataset.pc); if (!pc) return;
+    const f = t.dataset.f;
+    if (f === 'name') { pc.name = t.value; changed(); return; }
+    if (t.dataset.bsh != null) { const n = parseFloat(t.value); pc.bs[t.dataset.bsh].h = isFinite(n) && n > 0 ? n : null; t.classList.toggle('need', !(n > 0) && !job.bsHeight); changed(); return; }
+    if (f === 'verts') { pc.verts = t.value.split(/\n|;/).map(l => l.split(/[,\s]+/).filter(Boolean).map(Number)).filter(p => p.length >= 2 && p.every(isFinite)).map(p => [p[0], p[1]]); repaintPiece(pc); changed(); return; }
+    if (FIELDS[pc.shape] && FIELDS[pc.shape].some(([k]) => k === f)) {
+      const before = vertsOf(pc), n = parseFloat(t.value); pc.p[f] = isFinite(n) && n > 0 ? n : null; t.classList.toggle('need', !(n > 0));
+      const after = vertsOf(pc); if (after && before && before.length !== after.length) pc.bs = {};
+      paintPieces(); refocus(pc.id, f);
+      changed(); return;
+    }
+  });
+  function refocus(id, f) { const el = document.querySelector(`[data-pc="${id}"][data-f="${f}"]`); if (el) { el.focus(); const v = el.value; el.value = ''; el.value = v; } }
+  $('pieces').addEventListener('change', (e) => {
+    const t = e.target, pc = pcById(t.dataset.pc); if (!pc) return;
+    if (t.dataset.f === 'shape') {
+      const v = vertsOf(pc), to = t.value;
+      if (to === 'custom') { pc.verts = v || [[0, 0], [96, 0], [96, 25.5], [0, 25.5]]; }
+      else if (to === 'rect') pc.p = { L: v ? bbox(v).w : null, D: v ? Math.min(bbox(v).h, 25.5) : 25.5 };
+      else if (to === 'L') pc.p = { W: 120, H: 84, dW: 25.5, dH: 25.5, corner: 'tl' };
+      else if (to === 'U') pc.p = { B: 144, G: 96, dB: 25.5, d1: 25.5, d2: 25.5, open: 'down' };
+      pc.shape = to; pc.bs = {}; pc.walls = []; pc.aiBs = []; paintPieces(); changed(); return;
+    }
+    if (t.dataset.f === 'corner' || t.dataset.f === 'open') { pc.p[t.dataset.f] = t.value; pc.bs = {}; paintPieces(); changed(); return; }
+    if (t.dataset.bs != null) { const k = t.dataset.bs; if (t.checked) pc.bs[k] = { h: null }; else delete pc.bs[k]; paintPieces(); changed(); }
+  });
+  $('pieces').addEventListener('click', (e) => {
+    const hit = e.target.closest('.edge-hit');
+    if (hit) { const pc = pcById(hit.dataset.pc), k = hit.dataset.edge; if (pc.bs[k]) delete pc.bs[k]; else pc.bs[k] = { h: null }; paintPieces(); changed(); return; }
+    const m = e.target.closest('[data-mode]');
+    if (m) { pcById(m.dataset.pc).mode = m.dataset.mode; paintPieces(); changed(); return; }
+    const a = e.target.closest('[data-act]'); if (!a) return;
+    const pc = pcById(a.dataset.pc), i = job.pieces.indexOf(pc);
+    if (a.dataset.act === 'del') { if (!confirm(`Delete "${pc.name}"?`)) return; job.pieces.splice(i, 1); }
+    if (a.dataset.act === 'dup') { const c = JSON.parse(JSON.stringify(pc)); c.id = uid(); c.name = pc.name + ' (copy)'; job.pieces.splice(i + 1, 0, c); }
+    paintPieces(); changed();
+  });
+  $('addPiece').addEventListener('click', () => { job.pieces.push(newPiece(job.pieces.length + 1)); paintPieces(); changed(); const ins = document.querySelectorAll('.piece:last-child input[data-f="L"]'); if (ins[0]) ins[0].focus(); });
+
+  // ───────────── slab nesting ─────────────
+  const rotRect = (r, H) => ({ x: H - r.y - r.h, y: r.x, w: r.h, h: r.w }); // 90° turn inside a W×H box
+  function orients(item) {
+    const out = [], add = (rects, w, h, deg) => out.push({ rects, w, h, deg });
+    let rs = item.rects, w = item.w, h = item.h;
+    const list = job.rotate ? [0, 90, 180, 270] : [0, 180];
+    const isRect = rs.length === 1;
+    for (let k = 0; k < 4; k++) {
+      const deg = k * 90;
+      if (list.includes(deg) && !(isRect && deg >= 180)) add(rs, w, h, deg);
+      rs = rs.map(r => rotRect(r, h)); [w, h] = [h, w];
+    }
+    return out;
+  }
+  function pack(items, U, rule) {
+    const slabs = [], kerf = job.kerf || 0, unplaced = [];
+    const clash = (a, b) => a.x < b.x + b.w + kerf - EPS && b.x < a.x + a.w + kerf - EPS && a.y < b.y + b.h + kerf - EPS && b.y < a.y + a.h + kerf - EPS;
+    const tryPlace = (slab, item) => {
+      const xs = [0, ...slab.rects.map(r => r.x + r.w + kerf)], ys = [0, ...slab.rects.map(r => r.y + r.h + kerf)];
+      let best = null;
+      for (const o of orients(item)) for (const x of xs) for (const y of ys) {
+        if (x + o.w > U.L + EPS || y + o.h > U.W + EPS) continue;
+        const sc = rule === 'y' ? y * 1e4 + x : x * 1e4 + y;
+        if (best && sc >= best.sc) continue;
+        const abs = o.rects.map(r => ({ x: x + r.x, y: y + r.y, w: r.w, h: r.h }));
+        if (abs.some(a => slab.rects.some(b => clash(a, b)))) continue;
+        best = { sc, x, y, o, abs };
+      }
+      return best;
+    };
+    for (const it of items) {
+      let done = false;
+      for (const s of slabs) { const p = tryPlace(s, it); if (p) { s.rects.push(...p.abs); s.items.push({ it, ...p }); done = true; break; } }
+      if (!done) { const s = { rects: [], items: [] }, p = tryPlace(s, it); if (p) { s.rects.push(...p.abs); s.items.push({ it, ...p }); slabs.push(s); } else unplaced.push(it); }
+    }
+    return { slabs, unplaced };
+  }
+  function buildItems(U) {
+    const items = [], warns = [];
+    job.pieces.forEach((pc, i) => {
+      const info = partsOf(pc, U);
+      if (!info.v) { warns.push(`<b>${esc(pc.name)}</b> has missing sizes — not counted.`); return; }
+      info.parts.forEach((pt, k) => items.push({ kind: 'top', pc, idx: i, label: `${i + 1}${info.parts.length > 1 ? LETTERS[k].toLowerCase() : ''}`, name: pc.name + (info.parts.length > 1 ? ` (part ${k + 1})` : ''), rects: pt.rects, w: pt.w, h: pt.h, area: pt.rects.reduce((a, r) => a + r.w * r.h, 0) }));
+      if (info.status === 'toobig') warns.push(`<b>${esc(pc.name)}</b> doesn't fit on one slab${pc.mode === 'one' ? ' as one piece — switch it to "Seams OK" or use a bigger slab' : ''}.`);
+      const v = info.v;
+      edgesOf(v).forEach(e => {
+        if (!pc.bs[e.i]) return;
+        const h = bsHeightOf(pc, e.i); if (!(h > 0)) return;
+        let len = e.len, n = 1;
+        if (!fits(len, h, U)) { if (job.bsSeams) { const max = Math.max(U.L, job.rotate ? U.W : 0); n = Math.ceil(len / max - EPS); len = len / n; } else warns.push(`Backsplash ${i + 1}${LETTERS[e.i]} (${inch(e.len)}) is longer than the slab and backsplash seams are off.`); }
+        for (let k = 0; k < n; k++) items.push({ kind: 'bs', pc, idx: i, label: `${i + 1}${LETTERS[e.i]}${n > 1 ? '-' + (k + 1) : ''}`, name: `${pc.name} · backsplash edge ${LETTERS[e.i]}${n > 1 ? ` (part ${k + 1} of ${n})` : ''}`, rects: [{ x: 0, y: 0, w: r2(len), h }], w: r2(len), h, area: len * h });
+      });
+    });
+    return { items, warns };
+  }
+  function bestPack(items, U) {
+    const orders = [(a, b) => b.area - a.area, (a, b) => Math.max(b.w, b.h) - Math.max(a.w, a.h) || b.area - a.area, (a, b) => (a.kind === b.kind ? 0 : a.kind === 'top' ? -1 : 1) || b.area - a.area];
+    let best = null;
+    for (const o of orders) for (const rule of ['y', 'x']) {
+      const res = pack(items.slice().sort(o), U, rule);
+      const fill = res.slabs.map(s => s.rects.reduce((a, r) => a + r.w * r.h, 0));
+      const score = res.unplaced.length * 1e9 + res.slabs.length * 1e6 - (fill.length ? Math.max(...fill) / (U.L * U.W) : 0) * 1e3;
+      if (!best || score < best.score) best = { ...res, score };
+    }
+    return best;
+  }
+
+  let recalcT = null;
+  function recalc() { clearTimeout(recalcT); recalcT = setTimeout(paintResults, 120); }
+  function paintResultsTitle() { const h = document.querySelector('#resultsCard h2'); h.textContent = job.name ? `Slabs needed — ${job.name}` : 'Slabs needed'; }
+  function paintResults() {
+    paintResultsTitle();
+    const out = $('results'), U = usable(), msgs = [];
+    $('slabL').classList.toggle('need', !(job.slab.L > 0)); $('slabW').classList.toggle('need', !(job.slab.W > 0));
+    const anyBs = job.pieces.some(pc => Object.keys(pc.bs).length), bsMissing = anyBs && !(job.bsHeight > 0) && job.pieces.some(pc => Object.keys(pc.bs).some(k => !(pc.bs[k].h > 0)));
+    $('bsH').classList.toggle('need', bsMissing);
+    if (!U.ok) { out.innerHTML = `<div class="note">Enter the <b>slab length and width</b> for this job at the top to see how many slabs to buy.</div>`; return; }
+    if (U.L <= 0 || U.W <= 0) { out.innerHTML = `<div class="note err">The edge trim is bigger than the slab.</div>`; return; }
+    if (!job.pieces.length) { out.innerHTML = `<p class="muted">Add pieces to see the slab count.</p>`; return; }
+    if (bsMissing) msgs.push(`<div class="note"><b>What height are the backsplashes on this job?</b> Enter it at the top (or per edge). Backsplashes without a height aren't counted yet.</div>`);
+    const { items, warns } = buildItems(U);
+    warns.forEach(w => msgs.push(`<div class="note err">${w}</div>`));
+    if (!items.length) { out.innerHTML = msgs.join('') || '<p class="muted">Enter the piece sizes to see the slab count.</p>'; return; }
+    const res = bestPack(items, U);
+    res.unplaced.forEach(it => msgs.push(`<div class="note err"><b>${esc(it.name)}</b> (${inch(it.w)} × ${inch(it.h)}) can't fit on any slab of this size${job.rotate ? '' : ' without turning it'}.</div>`));
+    const topArea = items.filter(i => i.kind === 'top').reduce((a, i) => a + i.area, 0), bsItems = items.filter(i => i.kind === 'bs'), bsArea = bsItems.reduce((a, i) => a + i.area, 0);
+    const bsLen = bsItems.reduce((a, i) => a + i.w, 0), slabArea = U.L * U.W, n = res.slabs.length;
+    const seams = job.pieces.reduce((a, pc) => { const p = partsOf(pc, U); return a + (p.v ? Math.max(0, p.parts.length - 1) : 0); }, 0);
+    const used = topArea + bsArea, util = n ? used / (n * slabArea) * 100 : 0;
+    let h = msgs.length ? `<div class="warn-list">${msgs.join('')}</div>` : '';
+    h += `<div class="big">
+      <div class="kpi main"><div class="k">Slabs to buy</div><div class="v">${n}</div><div class="muted" style="color:#c7cfe3">${inch(job.slab.L)} × ${inch(job.slab.W)}</div></div>
+      <div class="kpi"><div class="k">Countertop</div><div class="v">${r2(topArea / 144)} <small style="font-size:.8rem">sq ft</small></div></div>
+      <div class="kpi"><div class="k">Backsplash</div><div class="v">${r2(bsArea / 144)} <small style="font-size:.8rem">sq ft</small></div><div class="muted">${r2(bsLen / 12)} linear ft</div></div>
+      <div class="kpi"><div class="k">Seams</div><div class="v">${seams}</div></div>
+      <div class="kpi"><div class="k">Slab use</div><div class="v">${Math.round(util)}%</div><div class="muted">${r2((n * slabArea - used) / 144)} sq ft left over</div></div>
+    </div>`;
+    h += `<div class="slabs">${res.slabs.map((s, k) => slabSvg(s, k, U)).join('')}</div>`;
+    h += `<table class="plist"><thead><tr><th>#</th><th>Piece</th><th class="n">Size</th><th class="n">Sq ft</th><th>Slab</th></tr></thead><tbody>${res.slabs.flatMap((s, k) => s.items.map(p => `<tr><td><span class="sw" style="background:${p.it.kind === 'bs' ? 'var(--bs)' : COLORS[p.it.idx % COLORS.length]}"></span>${esc(p.it.label)}</td><td>${esc(p.it.name)}</td><td class="n">${inch(p.it.w)} × ${inch(p.it.h)}</td><td class="n">${r2(p.it.area / 144)}</td><td>${k + 1}</td></tr>`)).join('')}</tbody></table>`;
+    h += `<p class="muted" style="margin-top:0.6rem">Layout uses ${inch(job.trim)} trim on every slab edge and ${inch(job.kerf)} between cuts${job.rotate ? '' : ', with all pieces kept in the same direction'}. Check sizes against the field template before cutting.</p>`;
+    out.innerHTML = h;
+  }
+  function slabSvg(s, k, U) {
+    const SL = Math.max(job.slab.L, job.slab.W), SW = Math.min(job.slab.L, job.slab.W), t = job.trim || 0, fs = Math.max(2.4, SL / 48);
+    const used = s.rects.reduce((a, r) => a + r.w * r.h, 0);
+    let g = `<rect x="0" y="0" width="${SL}" height="${SW}" fill="color-mix(in srgb, var(--line) 55%, var(--card))" stroke="var(--line-strong)" stroke-width="${SL / 400}" />`;
+    g += `<rect x="${t}" y="${t}" width="${U.L}" height="${U.W}" fill="var(--card)" stroke="var(--muted)" stroke-width="${SL / 600}" stroke-dasharray="${SL / 150} ${SL / 200}" />`;
+    s.items.forEach(p => {
+      const col = p.it.kind === 'bs' ? '#c9a05a' : COLORS[p.it.idx % COLORS.length];
+      p.abs.forEach(r => { g += `<rect x="${t + r.x}" y="${t + r.y}" width="${r.w}" height="${r.h}" fill="${col}" fill-opacity="${p.it.kind === 'bs' ? 0.55 : 0.32}" stroke="${col}" stroke-width="${SL / 450}" />`; });
+      const big = p.abs.reduce((a, r) => (r.w * r.h > a.w * a.h ? r : a), p.abs[0]);
+      const lab = `${p.it.label}`, sub = `${inch(p.it.w)}×${inch(p.it.h)}`, f = Math.min(fs, big.h * 0.42, big.w / Math.max(3, sub.length * 0.62));
+      g += `<text x="${t + big.x + big.w / 2}" y="${t + big.y + big.h / 2 + f * 0.1}" font-size="${f}" text-anchor="middle" font-weight="700" fill="var(--ink)">${esc(lab)}</text>`;
+      if (big.h > f * 2.6) g += `<text x="${t + big.x + big.w / 2}" y="${t + big.y + big.h / 2 + f * 1.15}" font-size="${f * 0.72}" text-anchor="middle" fill="var(--ink)">${esc(sub)}</text>`;
+    });
+    return `<div class="slab"><h3>Slab ${k + 1}<span>${s.items.length} piece${s.items.length === 1 ? '' : 's'} · ${Math.round(used / (U.L * U.W) * 100)}% used</span></h3><svg viewBox="${-SL * 0.01} ${-SW * 0.01} ${SL * 1.02} ${SW * 1.02}" role="img" aria-label="Slab ${k + 1} layout">${g}</svg></div>`;
+  }
+
+  // ───────────── jobs menu / top bar ─────────────
+  $('newBtn').addEventListener('click', async () => { await save(); openJob(blankJob()); toast('New job started'); });
+  $('openBtn').addEventListener('click', async (e) => {
+    e.stopPropagation(); const pop = $('jobsPop');
+    if (pop.classList.contains('open')) { pop.classList.remove('open'); return; }
+    pop.innerHTML = '<p class="muted" style="padding:.5rem">Loading…</p>'; pop.classList.add('open');
+    let list = [];
+    try { const r = await fetch(API + '/jobs'); if (r.ok) list = (await r.json()).jobs || []; } catch {}
+    pop.innerHTML = list.length ? list.map(j => `<button type="button" data-open="${j.id}"><span>${esc(j.name || 'Untitled job')}</span><small>${new Date(j.updatedAt).toLocaleDateString()}</small></button>`).join('') + `<button type="button" data-delj="${job.id}" style="color:var(--neg)"><span>Delete this job</span><small>${esc(job.name || 'Untitled')}</small></button>` : '<p class="muted" style="padding:.5rem">No saved jobs yet.</p>';
+  });
+  $('jobsPop').addEventListener('click', async (e) => {
+    const o = e.target.closest('[data-open]'), d = e.target.closest('[data-delj]');
+    if (o) { $('jobsPop').classList.remove('open'); await save(); const j = await loadJob(o.dataset.open); if (j) openJob(j); else toast('Could not open that job'); }
+    if (d) { if (!confirm('Delete this job for good?')) return; try { await fetch(API + '/jobs?id=' + d.dataset.delj, { method: 'DELETE' }); } catch {} dirty = false; $('jobsPop').classList.remove('open'); openJob(blankJob()); toast('Job deleted'); }
+  });
+  document.addEventListener('click', (e) => { if (!e.target.closest('#jobsPop')) $('jobsPop').classList.remove('open'); });
+  $('printBtn').addEventListener('click', () => window.print());
+  const paintTheme = () => { $('themeIcon').textContent = document.documentElement.classList.contains('dark') ? '☀️' : '🌙'; };
+  $('themeBtn').addEventListener('click', () => { const d = document.documentElement.classList.toggle('dark'); try { localStorage.setItem('mirmont-theme', d ? 'dark' : 'light'); } catch {} paintTheme(); paintResults(); });
+  paintTheme();
+
+  // ───────────── start ─────────────
+  (async () => {
+    const want = new URL(location.href).searchParams.get('job') || (() => { try { return localStorage.getItem('mirmont-tpl-last'); } catch { return null; } })();
+    const j = want ? await loadJob(want) : null;
+    openJob(j || blankJob());
+    if (!j) { job.pieces = []; paintPieces(); }
+  })();
+})();
+</script>
+</body>
+</html>
