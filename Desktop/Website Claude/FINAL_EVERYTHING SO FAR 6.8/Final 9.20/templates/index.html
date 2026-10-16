@@ -415,8 +415,11 @@
     $('aiBtn').disabled = true; paintAiMsg(true);
     try {
       const r = await fetch(API + '/read', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ data: d.dataUrl.split(',')[1], mediaType: d.mediaType }) });
-      const out = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(out.message || (r.status === 501 ? 'The AI reader is not set up yet (ANTHROPIC_API_KEY missing in Cloudflare).' : 'The AI could not read this drawing.'));
+      const raw = await r.text(); let out = {}; try { out = JSON.parse(raw); } catch {}
+      if (!r.ok) {
+        const why = (out.message || ({ 404: 'the reader is not deployed yet (push the latest files)', 405: 'the reader is not deployed yet (push the latest files)', 401: 'you need to log in again — refresh the page', 413: 'the file is too large', 500: 'the reader crashed', 502: 'the AI service failed', 503: 'the site login is not set up', 524: 'the AI took too long (timed out)' }[r.status] || 'unexpected answer')).replace(/\.\s*$/, '');
+        throw new Error(`The AI could not read this drawing — ${why}. (code ${r.status}${!out.message && raw ? ': ' + raw.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120) : ''})`);
+      }
       if (!out.pieces || !out.pieces.length) throw new Error('The AI did not find any countertop pieces in this drawing. Try a clearer photo, or add the pieces by hand.');
       let bsCount = 0;
       job.pieces = out.pieces.map((ap, i) => {

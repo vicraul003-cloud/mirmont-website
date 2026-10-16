@@ -61,7 +61,7 @@ async function askGemini(env, data, mediaType) {
   let last = null;
   for (const model of models) {
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
-      method: 'POST',
+      method: 'POST', signal: AbortSignal.timeout(85000), // answer before Cloudflare's 100-second cut-off
       headers: { 'x-goog-api-key': env.GEMINI_API_KEY, 'content-type': 'application/json' },
       body: JSON.stringify({
         contents: [{ role: 'user', parts: [{ inline_data: { mime_type: mediaType, data } }, { text: PROMPT }] }],
@@ -79,14 +79,14 @@ async function askGemini(env, data, mediaType) {
     last = { error: msg, status: 502 };
     if (res.status !== 404) break; // only try the next model name when this one doesn't exist
   }
-  return last;
+  return last || { error: 'Gemini did not answer.', status: 502 };
 }
 
 async function askClaude(env, data, mediaType) {
   const source = { type: 'base64', media_type: mediaType, data };
   const fileBlock = mediaType === 'application/pdf' ? { type: 'document', source } : { type: 'image', source };
   const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
+    method: 'POST', signal: AbortSignal.timeout(85000),
     headers: { 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
     body: JSON.stringify({ model: env.TEMPLATES_MODEL || 'claude-sonnet-5-5', max_tokens: 4096, messages: [{ role: 'user', content: [fileBlock, { type: 'text', text: PROMPT }] }] }),
   });
@@ -95,7 +95,18 @@ async function askClaude(env, data, mediaType) {
   return { text: (out.content || []).filter(c => c.type === 'text').map(c => c.text).join('\n') };
 }
 
-export async function onRequestPost({ request, env }) {
+// Open /templates/api/read in the browser to check the reader is deployed and which AI it will use (never shows the key).
+export async function onRequestGet({ env }) {
+  return json({ deployed: true, provider: env.GEMINI_API_KEY ? 'gemini' : env.ANTHROPIC_API_KEY ? 'claude' : 'none — add GEMINI_API_KEY in Cloudflare',
+    model: env.GEMINI_API_KEY ? (env.GEMINI_MODEL || 'gemini-2.5-flash') : env.ANTHROPIC_API_KEY ? (env.TEMPLATES_MODEL || 'claude-sonnet-5-5') : null });
+}
+
+export async function onRequestPost(ctx) {
+  try { return await handle(ctx); }
+  catch (e) { return json({ error: 'crash', message: 'The reader hit an error: ' + String(e && e.message || e).slice(0, 200) }, 500); }
+}
+
+async function handle({ request, env }) {
   if (!env.GEMINI_API_KEY && !env.ANTHROPIC_API_KEY) return json({ error: 'not_configured', message: 'The AI reader is not set up yet — add the GEMINI_API_KEY secret in Cloudflare Pages → Settings → Variables and Secrets.' }, 501);
   let body;
   try { body = await request.json(); } catch { return json({ error: 'bad_request' }, 400); }
@@ -105,7 +116,7 @@ export async function onRequestPost({ request, env }) {
 
   let got;
   try { got = env.GEMINI_API_KEY ? await askGemini(env, data, mediaType) : await askClaude(env, data, mediaType); }
-  catch (e) { return json({ error: 'network', message: 'Could not reach the AI service. Try again.' }, 502); }
+  catch (e) { return json({ error: 'network', message: e && e.name === 'TimeoutError' ? 'The AI took too long on this drawing. Try again, or try a smaller/cropped photo.' : 'Could not reach the AI service: ' + String(e && e.message || e).slice(0, 160) }, 502); }
   if (got.error) return json({ error: 'ai_error', message: got.error }, got.status || 502);
   let parsed;
   try { parsed = extractJson(got.text); } catch { return json({ error: 'unreadable', message: 'The AI answer could not be read. Try again or add the pieces by hand.' }, 502); }
