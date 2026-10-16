@@ -417,7 +417,7 @@
       const fileBlob = await (await fetch(d.dataUrl)).blob(); // send the raw file — much lighter for the server than base64 text
       const r = await fetch(API + '/read', { method: 'POST', headers: { 'Content-Type': d.mediaType }, body: fileBlob });
       const raw = await r.text(); let out = {}; try { out = JSON.parse(raw); } catch {}
-      if (!r.ok) {
+      if (!r.ok || out.error) {
         const why = (out.message || ({ 404: 'the reader is not deployed yet (push the latest files)', 405: 'the reader is not deployed yet (push the latest files)', 401: 'you need to log in again — refresh the page', 413: 'the file is too large', 500: 'the reader crashed', 502: 'the AI service failed', 503: 'the site login is not set up', 524: 'the AI took too long (timed out)' }[r.status] || 'unexpected answer')).replace(/\.\s*$/, '');
         throw new Error(`The AI could not read this drawing — ${why}. (code ${r.status}${!out.message && raw ? ': ' + raw.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120) : ''})`);
       }

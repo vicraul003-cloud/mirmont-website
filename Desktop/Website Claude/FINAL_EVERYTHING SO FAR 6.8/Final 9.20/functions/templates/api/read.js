@@ -5,7 +5,7 @@
 // otherwise Claude when ANTHROPIC_API_KEY is set. Optional GEMINI_MODEL / TEMPLATES_MODEL pick other models.
 // Protected by functions/templates/_middleware.js (same login as the page).
 
-const json = (obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
+const json = (obj, status = 200) => new Response(JSON.stringify(obj), { status: status >= 500 ? 200 : status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 
 const PROMPT = `You are reading a kitchen/bath countertop drawing (shop drawing, sketch, or field template) for a quartz fabricator.
 Find every countertop PIECE and give its outline in INCHES. Return ONLY one JSON object, no prose, in exactly this shape:
